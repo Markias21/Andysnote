@@ -1,0 +1,2337 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Andysnotes</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1c1c1c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Andysnotes" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module">
+      window.GOOGLE_CLIENT_ID =
+        "277055321856-cq1bleob2j3s95rqqr5ckqlbaeie7tv7.apps.googleusercontent.com";
+    </script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #141414;
+        --surface: #1c1c1c;
+        --surface2: #242424;
+        --surface3: #2e2e2e;
+        --border: #2f2f2f;
+        --border2: #3a3a3a;
+        --text: #e8e8e8;
+        --text-dim: #888;
+        --text-muted: #555;
+        --accent: #c8a96e;
+        --accent-dim: rgba(200, 169, 110, 0.15);
+        --accent-hover: rgba(200, 169, 110, 0.08);
+        --sidebar-w: 240px;
+        --topbar-h: 48px;
+        --font-ui: "Inter", sans-serif;
+        --font-content: "Lora", Georgia, serif;
+        --radius: 6px;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        line-height: 1.5;
+        overflow: hidden;
+      }
+
+      /* ─── LAYOUT ─── */
+      .app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      /* ─── TOPBAR ─── */
+      .topbar {
+        height: var(--topbar-h);
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        gap: 4px;
+        flex-shrink: 0;
+        z-index: 10;
+      }
+
+      .topbar-logo {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--accent);
+        letter-spacing: -0.3px;
+        margin-right: 16px;
+      }
+
+      .topbar-nav {
+        display: flex;
+        gap: 2px;
+        flex: 1;
+      }
+
+      .nav-btn {
+        padding: 6px 12px;
+        border-radius: var(--radius);
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .nav-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .nav-btn.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+
+      .nav-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .topbar-date {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+
+      .icon-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* ─── MAIN BODY ─── */
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ─── SIDEBAR ─── */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+
+      .sidebar-header {
+        padding: 16px 16px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+
+      .sidebar-add {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+
+      .sidebar-add:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .sidebar-add svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .sidebar-search {
+        padding: 0 12px 12px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        padding: 6px 10px 6px 32px;
+        outline: none;
+        transition: border-color 0.15s;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 10px center;
+      }
+
+      .search-input::placeholder {
+        color: var(--text-muted);
+      }
+      .search-input:focus {
+        border-color: var(--border2);
+      }
+
+      .sidebar-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 8px 16px;
+      }
+
+      .sidebar-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .sidebar-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sidebar-list::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
+
+      /* ─── FOLDER ─── */
+      .folder {
+        margin-bottom: 2px;
+      }
+
+      .folder-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.12s;
+        user-select: none;
+      }
+
+      .folder-header:hover {
+        background: var(--surface2);
+      }
+
+      .folder-chevron {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+        transition: transform 0.2s;
+      }
+
+      .folder.open .folder-chevron {
+        transform: rotate(90deg);
+      }
+
+      .folder-icon {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+      .folder-icon.open {
+        color: var(--accent);
+      }
+      .folder-icon.closed {
+        color: #666;
+      }
+
+      .folder-name {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-dim);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .folder-count {
+        font-size: 11px;
+        color: var(--text-muted);
+        background: var(--surface3);
+        padding: 1px 6px;
+        border-radius: 10px;
+      }
+
+      /* ─── FOLDER ITEMS ─── */
+      .folder-items {
+        display: none;
+        padding-left: 22px;
+        margin-top: 2px;
+      }
+
+      .folder.open .folder-items {
+        display: block;
+      }
+
+      .doc-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.12s;
+        margin-bottom: 1px;
+      }
+
+      .doc-item:hover {
+        background: var(--surface2);
+      }
+      .doc-item.active {
+        background: var(--accent-dim);
+      }
+
+      .doc-item svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      .doc-item.active svg {
+        color: var(--accent);
+      }
+
+      .doc-name {
+        font-size: 13px;
+        color: var(--text-dim);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .doc-item.active .doc-name {
+        color: var(--accent);
+      }
+
+      /* ─── NEW DOC BUTTON ─── */
+      .new-doc-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.12s;
+        border: none;
+        background: transparent;
+        width: 100%;
+        color: var(--text-muted);
+        font-family: var(--font-ui);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+
+      .new-doc-btn:hover {
+        background: var(--surface2);
+        color: var(--text-dim);
+      }
+      .new-doc-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      /* ─── CONTENT AREA ─── */
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      /* ─── WRITING PANEL ─── */
+      .writing-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .writing-panel.hidden {
+        display: none;
+      }
+
+      /* ─── TOOLBAR ─── */
+      .editor-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 48px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        flex-shrink: 0;
+      }
+
+      .editor-toolbar .sep {
+        width: 1px;
+        height: 18px;
+        background: var(--border2);
+        margin: 0 4px;
+      }
+
+      .tool-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 500;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+
+      .tool-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .tool-btn.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .tool-btn svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      .word-count {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── EDITOR ─── */
+      .editor-wrap {
+        flex: 1;
+        overflow-y: auto;
+        padding: 48px 48px 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .editor-wrap::-webkit-scrollbar {
+        width: 6px;
+      }
+      .editor-wrap::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .editor-wrap::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+
+      .editor-inner {
+        width: 100%;
+        max-width: 720px;
+      }
+
+      #doc-title {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        font-family: var(--font-content);
+        font-size: 32px;
+        font-weight: 500;
+        line-height: 1.3;
+        outline: none;
+        resize: none;
+        margin-bottom: 8px;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      #doc-title::placeholder {
+        color: var(--text-muted);
+      }
+
+      .editor-meta {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 32px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .meta-chip {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .meta-chip svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      #doc-body {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        font-family: var(--font-content);
+        font-size: 17px;
+        line-height: 1.85;
+        outline: none;
+        resize: none;
+        min-height: 400px;
+        padding: 0;
+      }
+
+      #doc-body::placeholder {
+        color: var(--text-muted);
+      }
+
+      /* ─── EMPTY STATE ─── */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        gap: 12px;
+      }
+
+      .empty-state.hidden {
+        display: none;
+      }
+
+      .empty-icon {
+        width: 48px;
+        height: 48px;
+        opacity: 0.3;
+      }
+
+      .empty-state h3 {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--text-dim);
+      }
+      .empty-state p {
+        font-size: 13px;
+      }
+
+      /* ─── CALENDAR VIEW ─── */
+      .calendar-view {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 48px;
+        overflow-y: auto;
+      }
+
+      .calendar-view.hidden {
+        display: none;
+      }
+
+      .calendar-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .cal-nav {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.12s;
+      }
+
+      .cal-nav:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .cal-nav svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .cal-month-label {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        min-width: 160px;
+        text-align: center;
+      }
+
+      .cal-grid {
+        width: 100%;
+        max-width: 640px;
+      }
+
+      .cal-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-bottom: 8px;
+      }
+
+      .cal-weekday {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 8px 0;
+      }
+
+      .cal-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+
+      .cal-day {
+        aspect-ratio: 1;
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: var(--text-dim);
+        cursor: pointer;
+        transition: background 0.12s;
+        gap: 3px;
+      }
+
+      .cal-day:hover {
+        background: var(--surface2);
+      }
+      .cal-day.today {
+        background: var(--accent-dim);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .cal-day.has-entry::after {
+        content: "";
+        width: 4px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 50%;
+      }
+      .cal-day.other-month {
+        color: var(--text-muted);
+        opacity: 0.4;
+      }
+      .cal-day.empty {
+        cursor: default;
+      }
+
+      /* ─── NEW DOC MODAL ─── */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-overlay.open {
+        display: flex;
+      }
+
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        padding: 24px;
+        width: 360px;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      }
+
+      .modal h3 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      .modal input,
+      .modal select {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        padding: 8px 12px;
+        outline: none;
+        margin-bottom: 12px;
+        transition: border-color 0.15s;
+        appearance: none;
+      }
+
+      .modal input:focus,
+      .modal select:focus {
+        border-color: var(--border2);
+      }
+      .modal input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .btn {
+        padding: 7px 14px;
+        border-radius: var(--radius);
+        border: none;
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn-ghost {
+        background: var(--surface3);
+        color: var(--text-dim);
+      }
+      .btn-accent {
+        background: var(--accent);
+        color: #141414;
+      }
+
+      /* ─── ANIMATIONS ─── */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .writing-panel:not(.hidden) {
+        animation: fadeIn 0.2s ease;
+      }
+
+      /* ─── GOOGLE DRIVE UI ─── */
+      .drive-login-btn {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 12px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border2);
+        background: var(--surface2);
+        color: var(--text-dim);
+        font-family: var(--font-ui);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .drive-login-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+        border-color: var(--border2);
+      }
+      .drive-login-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .drive-login-btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
+      .user-info {
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .user-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent-dim);
+        border: 1px solid var(--border2);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .user-name {
+        font-size: 12px;
+        color: var(--text-dim);
+        max-width: 120px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .signout-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .signout-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .signout-btn svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      .sync-status {
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--text-muted);
+        justify-content: flex-end;
+        white-space: nowrap;
+      }
+
+      .sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        flex-shrink: 0;
+        transition: background 0.4s;
+      }
+      .sync-dot.local {
+        background: var(--text-muted);
+      }
+      .sync-dot.saving {
+        background: var(--accent);
+        animation: pulse 1s ease infinite;
+      }
+      .sync-dot.saved {
+        background: #5a9c6e;
+      }
+      .sync-dot.error {
+        background: #c06060;
+      }
+
+      .sync-retry {
+        background: none;
+        border: 1px solid #c06060;
+        border-radius: 3px;
+        color: #c06060;
+        font-family: var(--font-ui);
+        font-size: 10px;
+        padding: 1px 6px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        margin-left: 2px;
+      }
+      .sync-retry:hover {
+        background: rgba(192, 96, 96, 0.15);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .topbar-sep {
+        width: 1px;
+        height: 18px;
+        background: var(--border);
+        margin: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <span class="topbar-logo">Andysnotes</span>
+        <nav class="topbar-nav">
+          <button
+            class="nav-btn active"
+            id="btn-library"
+            onclick="switchView('library')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path
+                d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+              />
+            </svg>
+            Library
+          </button>
+          <button
+            class="nav-btn"
+            id="btn-calendar"
+            onclick="switchView('calendar')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            Calendar
+          </button>
+        </nav>
+        <div class="topbar-right">
+          <span class="topbar-date" id="today-date"></span>
+          <div class="topbar-sep"></div>
+          <!-- Sync status (shown when logged in) -->
+          <div class="sync-status" id="sync-status">
+            <div class="sync-dot local" id="sync-dot"></div>
+            <span id="sync-label">Local only</span>
+            <button
+              class="sync-retry"
+              id="sync-retry"
+              onclick="retryDriveSave()"
+              style="display: none"
+            >
+              Retry
+            </button>
+          </div>
+          <!-- Login button -->
+          <button
+            class="drive-login-btn"
+            id="btn-google-login"
+            onclick="handleAuthClick()"
+            disabled
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            Sign in with Google
+          </button>
+          <!-- User info (shown when logged in) -->
+          <div class="user-info" id="user-info">
+            <div class="user-avatar" id="user-avatar">
+              <span id="user-initials">?</span>
+            </div>
+            <span class="user-name" id="user-name-label"></span>
+            <button
+              class="signout-btn"
+              title="Sign out"
+              onclick="handleSignoutClick()"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN -->
+      <div class="main">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <span class="sidebar-title">Folders</span>
+            <button
+              class="sidebar-add"
+              title="New document"
+              onclick="openModal()"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div class="sidebar-search">
+            <input
+              class="search-input"
+              type="search"
+              placeholder="Search..."
+              id="search-input"
+              oninput="filterDocs(this.value)"
+            />
+          </div>
+          <div class="sidebar-list" id="folder-list"></div>
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="content" id="content">
+          <!-- LIBRARY VIEW -->
+          <div
+            id="library-view"
+            style="
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+            "
+          >
+            <!-- EMPTY STATE -->
+            <div class="empty-state" id="empty-state">
+              <svg
+                class="empty-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <h3>No document selected</h3>
+              <p>Choose a document from the sidebar or create a new one</p>
+            </div>
+
+            <!-- WRITING PANEL -->
+            <div class="writing-panel hidden" id="writing-panel">
+              <div class="editor-toolbar" id="editor-toolbar">
+                <button class="tool-btn" title="Bold" onclick="execCmd('bold')">
+                  <strong>B</strong>
+                </button>
+                <button
+                  class="tool-btn"
+                  title="Italic"
+                  onclick="execCmd('italic')"
+                >
+                  <em>I</em>
+                </button>
+                <button
+                  class="tool-btn"
+                  title="Underline"
+                  onclick="execCmd('underline')"
+                >
+                  <u>U</u>
+                </button>
+                <div class="sep"></div>
+                <button
+                  class="tool-btn"
+                  title="Heading"
+                  onclick="execCmd('formatBlock','h2')"
+                >
+                  H
+                </button>
+                <button
+                  class="tool-btn"
+                  title="Quote"
+                  onclick="execCmd('formatBlock','blockquote')"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h2v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
+                    />
+                    <path
+                      d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h2v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="tool-btn"
+                  title="Bullet list"
+                  onclick="execCmd('insertUnorderedList')"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="9" y1="6" x2="20" y2="6" />
+                    <line x1="9" y1="12" x2="20" y2="12" />
+                    <line x1="9" y1="18" x2="20" y2="18" />
+                    <circle cx="4" cy="6" r="1" fill="currentColor" />
+                    <circle cx="4" cy="12" r="1" fill="currentColor" />
+                    <circle cx="4" cy="18" r="1" fill="currentColor" />
+                  </svg>
+                </button>
+                <div class="sep"></div>
+                <button class="tool-btn" title="Save" onclick="saveDoc()">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                    />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                </button>
+                <span class="word-count" id="word-count">0 words</span>
+              </div>
+
+              <div class="editor-wrap">
+                <div class="editor-inner">
+                  <textarea
+                    id="doc-title"
+                    rows="1"
+                    placeholder="Untitled"
+                    oninput="autoResize(this); updateMeta();"
+                  ></textarea>
+                  <div class="editor-meta">
+                    <span class="meta-chip" id="meta-folder">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                        />
+                      </svg>
+                      <span id="meta-folder-name">—</span>
+                    </span>
+                    <span class="meta-chip" id="meta-date">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span id="meta-date-val">—</span>
+                    </span>
+                  </div>
+                  <div
+                    id="doc-body"
+                    contenteditable="true"
+                    style="
+                      width: 100%;
+                      background: transparent;
+                      border: none;
+                      color: var(--text);
+                      font-family: var(--font-content);
+                      font-size: 17px;
+                      line-height: 1.85;
+                      outline: none;
+                      min-height: 400px;
+                      padding: 0;
+                    "
+                    data-placeholder="Start writing..."
+                    oninput="onBodyInput()"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CALENDAR VIEW -->
+          <div class="calendar-view hidden" id="calendar-view">
+            <div class="calendar-header">
+              <button class="cal-nav" onclick="calNav(-1)">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <span class="cal-month-label" id="cal-month-label"></span>
+              <button class="cal-nav" onclick="calNav(1)">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+            <div class="cal-grid">
+              <div class="cal-weekdays">
+                <div class="cal-weekday">Sun</div>
+                <div class="cal-weekday">Mon</div>
+                <div class="cal-weekday">Tue</div>
+                <div class="cal-weekday">Wed</div>
+                <div class="cal-weekday">Thu</div>
+                <div class="cal-weekday">Fri</div>
+                <div class="cal-weekday">Sat</div>
+              </div>
+              <div class="cal-days" id="cal-days"></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- MODAL -->
+    <div
+      class="modal-overlay"
+      id="modal-overlay"
+      onclick="closeModalOutside(event)"
+    >
+      <div class="modal">
+        <h3 id="modal-heading">New Item</h3>
+        <select
+          id="modal-type"
+          onchange="onModalTypeChange(this.value)"
+          style="margin-bottom: 12px"
+        >
+          <option value="doc">Document (.txt)</option>
+          <option value="folder">Folder</option>
+        </select>
+        <input type="text" id="modal-title" placeholder="Name..." />
+        <select id="modal-folder">
+          <option value="">
+            Parent folder (optional — defaults to Writer/)
+          </option>
+        </select>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-accent" onclick="createItem()">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ─── DRIVE FILESYSTEM CONFIG ─── */
+      var WRITER_ROOT_NAME = "Writer";
+      var FOLDER_MIME = "application/vnd.google-apps.folder";
+      var FILE_MIME = "text/plain";
+      var DRIVE_SCOPE =
+        "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
+
+      /* ─── IN-MEMORY TREE (Drive is source of truth) ─── */
+      // Node: { id, name, mimeType, createdTime, modifiedTime, children: [] }
+      let driveTree = []; // top-level children of Writer/
+      let writerRootId = null; // Drive folder ID of "Writer/"
+      let expandedFolders = new Set(); // which folder IDs are open in sidebar
+      let currentFileId = null; // Drive file ID of the open document
+      let calDate = new Date();
+      let driveSaveTimer = null;
+
+      /* ─── OAUTH / GAPI ─── */
+      let tokenClient_tc = null;
+      let gapiInited = false;
+      let gisInited = false;
+      let driveAccessToken = null;
+
+      function gapiLoaded() {
+        gapi.load("client", async () => {
+          await gapi.client.init({ discoveryDocs: [] });
+          gapiInited = true;
+          maybeEnableButton();
+        });
+      }
+
+      function gisLoaded() {
+        if (!window.GOOGLE_CLIENT_ID) return;
+        tokenClient_tc = google.accounts.oauth2.initTokenClient({
+          client_id: window.GOOGLE_CLIENT_ID,
+          scope: DRIVE_SCOPE,
+          callback: handleTokenResponse,
+        });
+        gisInited = true;
+        maybeEnableButton();
+      }
+
+      function maybeEnableButton() {
+        if (gapiInited && gisInited) {
+          const btn = document.getElementById("btn-google-login");
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      async function handleTokenResponse(resp) {
+        if (resp.error) {
+          console.error("OAuth error", resp);
+          setSyncStatus("error", "Sign-in failed", true);
+          return;
+        }
+        driveAccessToken = resp.access_token;
+        await onSignedIn();
+      }
+
+      async function handleAuthClick() {
+        if (!tokenClient_tc) {
+          alert(
+            "Google Sign-In is not configured. Please set VITE_GOOGLE_CLIENT_ID.",
+          );
+          return;
+        }
+        tokenClient_tc.requestAccessToken({
+          prompt: driveAccessToken ? "" : "consent",
+        });
+      }
+
+      async function handleSignoutClick() {
+        if (driveAccessToken)
+          google.accounts.oauth2.revoke(driveAccessToken, () => {});
+        driveAccessToken = null;
+        writerRootId = null;
+        driveTree = [];
+        expandedFolders = new Set();
+        currentFileId = null;
+        updateDriveUI(false, null);
+        showEmptyState();
+        renderSidebar();
+      }
+
+      async function onSignedIn() {
+        let user = null;
+        try {
+          const r = await driveGet(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+          );
+          user = r;
+        } catch (e) {
+          console.error("Profile fetch failed", e);
+        }
+        updateDriveUI(true, user);
+        await initDriveFilesystem();
+      }
+
+      function updateDriveUI(signedIn, user) {
+        const loginBtn = document.getElementById("btn-google-login");
+        const userInfo = document.getElementById("user-info");
+        const nameLabel = document.getElementById("user-name-label");
+        const initials = document.getElementById("user-initials");
+        const avatar = document.getElementById("user-avatar");
+        if (!loginBtn || !userInfo || !nameLabel || !initials || !avatar)
+          return;
+        if (signedIn && user) {
+          loginBtn.style.display = "none";
+          userInfo.style.display = "flex";
+          const name = user.name || user.email || "User";
+          nameLabel.textContent = name;
+          initials.textContent = name
+            .split(" ")
+            .map((w) => w[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+          if (user.picture) {
+            avatar.innerHTML = `<img src="${user.picture}" alt="${name}">`;
+          }
+          setSyncStatus("saving", "Connecting...");
+        } else {
+          loginBtn.style.display = "flex";
+          userInfo.style.display = "none";
+          setSyncStatus("local", "Local only");
+        }
+      }
+
+      /* ─── DRIVE HTTP HELPERS ─── */
+      async function driveGet(url, params = {}) {
+        if (!driveAccessToken) throw new Error("Not authenticated");
+        const qs = Object.keys(params).length
+          ? "?" + new URLSearchParams(params).toString()
+          : "";
+        const r = await fetch(url + qs, {
+          headers: { Authorization: "Bearer " + driveAccessToken },
+        });
+        if (!r.ok)
+          throw new Error(`GET ${url} -> ${r.status}: ${await r.text()}`);
+        return r.json();
+      }
+
+      // POST without content body -> create folder (JSON only)
+      // POST with textContent -> create .txt file (multipart)
+      async function drivePost(url, metadata, textContent = null) {
+        if (!driveAccessToken) throw new Error("Not authenticated");
+        if (textContent === null) {
+          const r = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + driveAccessToken,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(metadata),
+          });
+          if (!r.ok)
+            throw new Error(`POST ${url} -> ${r.status}: ${await r.text()}`);
+          return r.json();
+        } else {
+          const boundary = "wb_" + Date.now();
+          const body = [
+            `--${boundary}`,
+            "Content-Type: application/json",
+            "",
+            JSON.stringify(metadata),
+            `--${boundary}`,
+            "Content-Type: text/plain; charset=utf-8",
+            "",
+            textContent,
+            `--${boundary}--`,
+          ].join("\r\n");
+          const r = await fetch(url + "?uploadType=multipart", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + driveAccessToken,
+              "Content-Type": `multipart/related; boundary=${boundary}`,
+            },
+            body,
+          });
+          if (!r.ok)
+            throw new Error(`POST multipart -> ${r.status}: ${await r.text()}`);
+          return r.json();
+        }
+      }
+
+      async function drivePatch(fileId, textContent) {
+        if (!driveAccessToken) throw new Error("Not authenticated");
+        const r = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: "Bearer " + driveAccessToken,
+              "Content-Type": "text/plain; charset=utf-8",
+            },
+            body: textContent,
+          },
+        );
+        if (!r.ok)
+          throw new Error(`PATCH ${fileId} -> ${r.status}: ${await r.text()}`);
+        return r.json();
+      }
+
+      async function driveListChildren(parentId) {
+        let files = [],
+          pageToken = null;
+        do {
+          const params = {
+            q: `'${parentId}' in parents and trashed=false`,
+            fields:
+              "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime)",
+            pageSize: 200,
+            orderBy: "name",
+          };
+          if (pageToken) params.pageToken = pageToken;
+          const r = await driveGet(
+            "https://www.googleapis.com/drive/v3/files",
+            params,
+          );
+          files = files.concat(r.files || []);
+          pageToken = r.nextPageToken || null;
+        } while (pageToken);
+        return files;
+      }
+
+      /* ─── DRIVE FILESYSTEM INIT ─── */
+      async function initDriveFilesystem() {
+        try {
+          setSyncStatus("saving", "Loading...");
+          writerRootId = await findOrCreateWriterRoot();
+          driveTree = await loadSubtree(writerRootId);
+          renderSidebar();
+          populateModalFolders();
+          setSyncStatus("saved", "Loaded \u00b7 " + formatTime(new Date()));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : JSON.stringify(e);
+          console.error("initDriveFilesystem error:", msg);
+          setSyncStatus(
+            "error",
+            "Load failed \u00b7 " + formatTime(new Date()),
+            true,
+          );
+        }
+      }
+
+      async function findOrCreateWriterRoot() {
+        const r = await driveGet("https://www.googleapis.com/drive/v3/files", {
+          q: `name='${WRITER_ROOT_NAME}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,
+          fields: "files(id,name)",
+          pageSize: 1,
+        });
+        if (r.files && r.files.length > 0) return r.files[0].id;
+        // Create Writer/ root folder
+        const created = await drivePost(
+          "https://www.googleapis.com/drive/v3/files",
+          { name: WRITER_ROOT_NAME, mimeType: FOLDER_MIME, parents: ["root"] },
+        );
+        return created.id;
+      }
+
+      async function loadSubtree(parentId) {
+        const items = await driveListChildren(parentId);
+        const nodes = [];
+        for (const item of items) {
+          const node = {
+            id: item.id,
+            name: item.name,
+            mimeType: item.mimeType,
+            createdTime: item.createdTime,
+            modifiedTime: item.modifiedTime,
+            children: [],
+          };
+          if (item.mimeType === FOLDER_MIME) {
+            node.children = await loadSubtree(item.id);
+          }
+          nodes.push(node);
+        }
+        return nodes;
+      }
+
+      /* ─── SIDEBAR ─── */
+      function renderSidebar(filter = "") {
+        const list = document.getElementById("folder-list");
+        list.innerHTML = "";
+        const q = filter.toLowerCase();
+
+        if (!driveAccessToken) {
+          list.innerHTML =
+            '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
+            "Sign in with Google to load your Andysnotes workspace from Drive.</div>";
+          return;
+        }
+
+        if (driveTree.length === 0 && writerRootId) {
+          list.innerHTML =
+            '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);">' +
+            "No folders yet. Use the \u002b button to create one.</div>";
+          return;
+        }
+
+        renderNodes(driveTree, list, q, 0);
+      }
+
+      function renderNodes(nodes, container, q, depth) {
+        for (const node of nodes) {
+          if (node.mimeType === FOLDER_MIME) {
+            renderFolderNode(node, container, q, depth);
+          } else if (node.name.endsWith(".txt")) {
+            renderFileNode(node, container, q, depth);
+          }
+        }
+      }
+
+      function renderFolderNode(node, container, q, depth) {
+        const isOpen = expandedFolders.has(node.id) || !!q;
+
+        if (q) {
+          const matchingDocs = flatDocs(node).filter((d) =>
+            d.name
+              .replace(/\.txt$/, "")
+              .toLowerCase()
+              .includes(q),
+          );
+          if (matchingDocs.length === 0) return;
+        }
+
+        const docCount = countDocs(node);
+        const icon_closed =
+          '<svg class="folder-icon closed" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+          ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+        const icon_open =
+          '<svg class="folder-icon open" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"' +
+          ' stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"' +
+          ' fill="rgba(200,169,110,0.1)" stroke="currentColor"/></svg>';
+
+        const folderEl = document.createElement("div");
+        folderEl.className = "folder" + (isOpen ? " open" : "");
+        folderEl.dataset.id = node.id;
+
+        folderEl.innerHTML =
+          '<div class="folder-header" onclick="toggleFolder(\'' +
+          node.id +
+          "')\">" +
+          '<svg class="folder-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+          ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<polyline points="9 18 15 12 9 6"/></svg>' +
+          (isOpen ? icon_open : icon_closed) +
+          '<span class="folder-name">' +
+          escHtml(node.name) +
+          "</span>" +
+          '<span class="folder-count">' +
+          docCount +
+          "</span>" +
+          "</div>" +
+          '<div class="folder-items" id="items-' +
+          node.id +
+          '"></div>';
+
+        const items = folderEl.querySelector(".folder-items");
+
+        if (isOpen) {
+          renderNodes(node.children, items, q, depth + 1);
+          const addBtn = document.createElement("button");
+          addBtn.className = "new-doc-btn";
+          addBtn.onclick = (e) => {
+            e.stopPropagation();
+            openModal(node.id, "doc");
+          };
+          addBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+            ' stroke-linecap="round" stroke-linejoin="round">' +
+            '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            " New document";
+          items.appendChild(addBtn);
+        }
+
+        container.appendChild(folderEl);
+      }
+
+      function renderFileNode(node, container, q, depth) {
+        const title = node.name.replace(/\.txt$/, "");
+        if (q && !title.toLowerCase().includes(q)) return;
+
+        const item = document.createElement("div");
+        item.className =
+          "doc-item" + (node.id === currentFileId ? " active" : "");
+        item.dataset.id = node.id;
+        item.onclick = () => openDoc(node);
+        item.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"' +
+          ' stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+          '<polyline points="14 2 14 8 20 8"/></svg>' +
+          '<span class="doc-name">' +
+          escHtml(title) +
+          "</span>";
+        container.appendChild(item);
+      }
+
+      function countDocs(node) {
+        let n = 0;
+        for (const c of node.children) {
+          if (c.mimeType === FOLDER_MIME) n += countDocs(c);
+          else if (c.name.endsWith(".txt")) n++;
+        }
+        return n;
+      }
+
+      function flatDocs(node) {
+        const result = [];
+        for (const c of node.children) {
+          if (c.mimeType === FOLDER_MIME) result.push(...flatDocs(c));
+          else if (c.name.endsWith(".txt")) result.push(c);
+        }
+        return result;
+      }
+
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function toggleFolder(folderId) {
+        if (expandedFolders.has(folderId)) expandedFolders.delete(folderId);
+        else expandedFolders.add(folderId);
+        renderSidebar(document.getElementById("search-input").value);
+      }
+
+      function filterDocs(val) {
+        renderSidebar(val);
+      }
+
+      function findNodeById(id, nodes) {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          if (n.mimeType === FOLDER_MIME) {
+            const found = findNodeById(id, n.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      function findParentOf(id, nodes) {
+        for (const n of nodes) {
+          if (n.mimeType === FOLDER_MIME) {
+            if (n.children.some((c) => c.id === id)) return n;
+            const found = findParentOf(id, n.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      /* ─── OPEN DOC ─── */
+      async function openDoc(node) {
+        if (!driveAccessToken) return;
+        currentFileId = node.id;
+
+        document.getElementById("empty-state").classList.add("hidden");
+        document.getElementById("writing-panel").classList.remove("hidden");
+
+        const title = node.name.replace(/\.txt$/, "");
+        document.getElementById("doc-title").value = title;
+
+        const parentNode = findParentOf(node.id, driveTree);
+        document.getElementById("meta-folder-name").textContent = parentNode
+          ? parentNode.name
+          : WRITER_ROOT_NAME;
+
+        const modified = node.modifiedTime ? new Date(node.modifiedTime) : null;
+        document.getElementById("meta-date-val").textContent = modified
+          ? modified.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "\u2014";
+
+        document.getElementById("doc-body").textContent = "";
+        document.getElementById("doc-body").classList.add("empty");
+        setSyncStatus("saving", "Opening...");
+
+        try {
+          const r = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${node.id}?alt=media`,
+            { headers: { Authorization: "Bearer " + driveAccessToken } },
+          );
+          if (!r.ok) throw new Error("fetch content failed: " + r.status);
+          const text = await r.text();
+          document.getElementById("doc-body").textContent = text;
+          if (text.trim())
+            document.getElementById("doc-body").classList.remove("empty");
+          setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+        } catch (e) {
+          console.error("openDoc error", e);
+          setSyncStatus(
+            "error",
+            "Open failed \u00b7 " + formatTime(new Date()),
+            true,
+          );
+        }
+
+        updateWordCount();
+        autoResize(document.getElementById("doc-title"));
+        renderSidebar(document.getElementById("search-input").value);
+      }
+
+      function showEmptyState() {
+        document.getElementById("empty-state").classList.remove("hidden");
+        document.getElementById("writing-panel").classList.add("hidden");
+        currentFileId = null;
+      }
+
+      /* ─── SAVE DOC ─── */
+      function saveDoc() {
+        if (!currentFileId || !driveAccessToken) return;
+        clearTimeout(driveSaveTimer);
+        saveToDriveNow();
+      }
+
+      function scheduleDriveSave() {
+        if (!driveAccessToken || !currentFileId) return;
+        clearTimeout(driveSaveTimer);
+        setSyncStatus("saving", "Saving...");
+        driveSaveTimer = setTimeout(saveToDriveNow, 3000);
+      }
+
+      async function saveToDriveNow() {
+        if (!driveAccessToken || !currentFileId) return;
+        try {
+          setSyncStatus("saving", "Saving...");
+          const text = document.getElementById("doc-body").textContent || "";
+          await drivePatch(currentFileId, text);
+          // Update cached modifiedTime
+          const node = findNodeById(currentFileId, driveTree);
+          if (node) node.modifiedTime = new Date().toISOString();
+          setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
+        } catch (e) {
+          console.error("saveToDriveNow error", e);
+          setSyncStatus(
+            "error",
+            "Save failed \u00b7 " + formatTime(new Date()),
+            true,
+          );
+        }
+      }
+
+      /* ─── EDITOR ─── */
+      function execCmd(cmd, arg = null) {
+        document.getElementById("doc-body").focus();
+        document.execCommand(cmd, false, arg);
+      }
+
+      function onBodyInput() {
+        updateWordCount();
+        const body = document.getElementById("doc-body");
+        if (body.textContent.trim()) body.classList.remove("empty");
+        else body.classList.add("empty");
+        if (driveAccessToken && currentFileId) scheduleDriveSave();
+      }
+
+      function updateWordCount() {
+        const body = document.getElementById("doc-body");
+        const text = (body?.textContent || "").trim();
+        const count = text ? text.split(/\s+/).length : 0;
+        document.getElementById("word-count").textContent =
+          count + (count === 1 ? " word" : " words");
+      }
+
+      function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+      }
+
+      function updateMeta() {
+        autoResize(document.getElementById("doc-title"));
+      }
+
+      /* ─── INIT ─── */
+      document.addEventListener("DOMContentLoaded", () => {
+        updateTodayDate();
+        renderSidebar();
+        renderCalendar();
+
+        const body = document.getElementById("doc-body");
+        body.addEventListener("focus", () => {
+          if (!body.textContent.trim()) body.classList.add("empty");
+        });
+        body.addEventListener("blur", () => {
+          if (!body.textContent.trim()) body.classList.add("empty");
+        });
+        body.classList.add("empty");
+
+        const style = document.createElement("style");
+        style.textContent =
+          "#doc-body.empty:before { content: attr(data-placeholder);" +
+          " color: var(--text-muted); pointer-events: none; }";
+        document.head.appendChild(style);
+
+        document.addEventListener("keydown", (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+            e.preventDefault();
+            saveDoc();
+          }
+          if (e.key === "Escape") closeModal();
+        });
+
+        document
+          .getElementById("modal-title")
+          .addEventListener("keydown", (e) => {
+            if (e.key === "Enter") createItem();
+          });
+      });
+
+      function updateTodayDate() {
+        const d = new Date();
+        document.getElementById("today-date").textContent =
+          d.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          });
+      }
+
+      /* ─── VIEW SWITCHING ─── */
+      function switchView(view) {
+        const btnLib = document.getElementById("btn-library");
+        const btnCal = document.getElementById("btn-calendar");
+        const libView = document.getElementById("library-view");
+        const calView = document.getElementById("calendar-view");
+        const sidebar = document.getElementById("sidebar");
+        if (view === "library") {
+          btnLib.classList.add("active");
+          btnCal.classList.remove("active");
+          libView.style.display = "flex";
+          calView.classList.add("hidden");
+          sidebar.style.display = "";
+        } else {
+          btnLib.classList.remove("active");
+          btnCal.classList.add("active");
+          libView.style.display = "none";
+          calView.classList.remove("hidden");
+          sidebar.style.display = "none";
+          renderCalendar();
+        }
+      }
+
+      /* ─── CALENDAR (uses Drive modifiedTime) ─── */
+      function renderCalendar() {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        document.getElementById("cal-month-label").textContent =
+          `${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+
+        const days = document.getElementById("cal-days");
+        days.innerHTML = "";
+
+        const year = calDate.getFullYear();
+        const month = calDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrev = new Date(year, month, 0).getDate();
+        const today = new Date();
+
+        // Collect days that have a modified Drive file
+        const modDays = new Set();
+        function collectDates(nodes) {
+          for (const n of nodes) {
+            if (n.mimeType === FOLDER_MIME) {
+              collectDates(n.children);
+              continue;
+            }
+            if (n.modifiedTime) {
+              const d = new Date(n.modifiedTime);
+              if (d.getFullYear() === year && d.getMonth() === month) {
+                modDays.add(d.getDate());
+              }
+            }
+          }
+        }
+        collectDates(driveTree);
+
+        // Trailing days from previous month
+        for (let i = firstDay - 1; i >= 0; i--) {
+          const d = document.createElement("div");
+          d.className = "cal-day other-month";
+          d.textContent = daysInPrev - i;
+          days.appendChild(d);
+        }
+        // Current month days
+        for (let i = 1; i <= daysInMonth; i++) {
+          const d = document.createElement("div");
+          d.className = "cal-day";
+          if (
+            year === today.getFullYear() &&
+            month === today.getMonth() &&
+            i === today.getDate()
+          ) {
+            d.classList.add("today");
+          }
+          if (modDays.has(i)) d.classList.add("has-entry");
+          d.textContent = i;
+          days.appendChild(d);
+        }
+        // Next month fill
+        const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+        let nextDay = 1;
+        for (let i = firstDay + daysInMonth; i < totalCells; i++) {
+          const d = document.createElement("div");
+          d.className = "cal-day other-month";
+          d.textContent = nextDay++;
+          days.appendChild(d);
+        }
+      }
+
+      function calNav(dir) {
+        calDate.setMonth(calDate.getMonth() + dir);
+        renderCalendar();
+      }
+
+      /* ─── MODAL ─── */
+      function onModalTypeChange(type) {
+        const heading = document.getElementById("modal-heading");
+        const titleInput = document.getElementById("modal-title");
+        if (type === "folder") {
+          heading.textContent = "New Folder";
+          titleInput.placeholder = "Folder name...";
+        } else {
+          heading.textContent = "New Document";
+          titleInput.placeholder = "Document title...";
+        }
+      }
+
+      function populateModalFolders() {
+        const sel = document.getElementById("modal-folder");
+        sel.innerHTML = '<option value="">Andysnotes/ (root)</option>';
+        function addOptions(nodes, prefix) {
+          for (const n of nodes) {
+            if (n.mimeType !== FOLDER_MIME) continue;
+            const opt = document.createElement("option");
+            opt.value = n.id;
+            opt.textContent = prefix + n.name;
+            sel.appendChild(opt);
+            addOptions(n.children, prefix + "\u00a0\u00a0");
+          }
+        }
+        addOptions(driveTree, "");
+      }
+
+      function openModal(folderId = null, type = "doc") {
+        const overlay = document.getElementById("modal-overlay");
+        overlay.classList.add("open");
+        const typeEl = document.getElementById("modal-type");
+        if (typeEl) {
+          typeEl.value = type;
+          onModalTypeChange(type);
+        }
+        document.getElementById("modal-title").value = "";
+        document.getElementById("modal-folder").style.borderColor = "";
+        populateModalFolders();
+        if (folderId) document.getElementById("modal-folder").value = folderId;
+        setTimeout(() => document.getElementById("modal-title").focus(), 50);
+      }
+
+      function closeModal() {
+        document.getElementById("modal-overlay").classList.remove("open");
+      }
+
+      function closeModalOutside(e) {
+        if (e.target === document.getElementById("modal-overlay")) closeModal();
+      }
+
+      async function createItem() {
+        const title = document.getElementById("modal-title").value.trim();
+        const typeEl = document.getElementById("modal-type");
+        const type = typeEl ? typeEl.value : "doc";
+        const folderEl = document.getElementById("modal-folder");
+        const folderId = folderEl.value || writerRootId;
+
+        if (!title) {
+          document.getElementById("modal-title").style.borderColor =
+            "var(--accent)";
+          return;
+        }
+        if (!folderId) {
+          folderEl.style.borderColor = "var(--accent)";
+          return;
+        }
+
+        closeModal();
+        setSyncStatus("saving", "Creating...");
+
+        try {
+          if (type === "folder") {
+            const created = await drivePost(
+              "https://www.googleapis.com/drive/v3/files",
+              { name: title, mimeType: FOLDER_MIME, parents: [folderId] },
+            );
+            const newNode = {
+              id: created.id,
+              name: title,
+              mimeType: FOLDER_MIME,
+              createdTime: new Date().toISOString(),
+              modifiedTime: new Date().toISOString(),
+              children: [],
+            };
+            insertIntoTree(newNode, folderId);
+            expandedFolders.add(folderId);
+            renderSidebar();
+            populateModalFolders();
+            setSyncStatus(
+              "saved",
+              "Folder created \u00b7 " + formatTime(new Date()),
+            );
+          } else {
+            const fileName = title.endsWith(".txt") ? title : title + ".txt";
+            const created = await drivePost(
+              "https://www.googleapis.com/upload/drive/v3/files",
+              { name: fileName, mimeType: FILE_MIME, parents: [folderId] },
+              "",
+            );
+            const newNode = {
+              id: created.id,
+              name: fileName,
+              mimeType: FILE_MIME,
+              createdTime: new Date().toISOString(),
+              modifiedTime: new Date().toISOString(),
+              children: [],
+            };
+            insertIntoTree(newNode, folderId);
+            expandedFolders.add(folderId);
+            renderSidebar();
+            await openDoc(newNode);
+          }
+        } catch (e) {
+          console.error("createItem error", e);
+          setSyncStatus(
+            "error",
+            "Create failed \u00b7 " + formatTime(new Date()),
+            true,
+          );
+        }
+      }
+
+      function insertIntoTree(node, parentId) {
+        const sort = (arr) => arr.sort((a, b) => a.name.localeCompare(b.name));
+        if (parentId === writerRootId) {
+          driveTree.push(node);
+          sort(driveTree);
+          return;
+        }
+        function insert(nodes) {
+          for (const n of nodes) {
+            if (n.id === parentId) {
+              n.children.push(node);
+              sort(n.children);
+              return true;
+            }
+            if (n.mimeType === FOLDER_MIME && insert(n.children)) return true;
+          }
+          return false;
+        }
+        insert(driveTree);
+      }
+
+      /* ─── STATUS HELPERS ─── */
+      function formatTime(date) {
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function setSyncStatus(state, label, showRetry = false) {
+        const dot = document.getElementById("sync-dot");
+        const lbl = document.getElementById("sync-label");
+        const retry = document.getElementById("sync-retry");
+        if (!dot || !lbl) return;
+        dot.className = "sync-dot " + state;
+        lbl.textContent = label;
+        if (retry) retry.style.display = showRetry ? "inline" : "none";
+      }
+
+      function retryDriveSave() {
+        if (currentFileId && driveAccessToken) {
+          saveToDriveNow();
+        } else if (driveAccessToken && !writerRootId) {
+          initDriveFilesystem();
+        }
+      }
+
+      /* ─── OAUTH BOOT (assigned to window so Google scripts can call them) ─── */
+      window.gapiLoaded = gapiLoaded;
+      window.gisLoaded = gisLoaded;
+    </script>
+
+    <!-- Google scripts loaded AFTER inline script so gisLoaded/gapiLoaded are defined when onload fires -->
+    <script
+      src="https://accounts.google.com/gsi/client"
+      async
+      defer
+      onload="gisLoaded()"
+    ></script>
+    <script
+      src="https://apis.google.com/js/api.js"
+      async
+      defer
+      onload="gapiLoaded()"
+    ></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => console.log("[SW] Registered:", reg.scope))
+            .catch((err) => console.warn("[SW] Registration failed:", err));
+        });
+      }
+    </script>
+  </body>
+</html>
