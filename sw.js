@@ -1,11 +1,11 @@
 const CACHE_NAME = "text-navigator-v1";
 
 const PRECACHE_URLS = [
-  "/",
-  "/manifest.json",
-  "/icon-192.svg",
-  "/icon-512.svg",
-  "/favicon.svg",
+  "./",
+  "./manifest.json",
+  "./icon-192.svg",
+  "./icon-512.svg",
+  "./favicon.svg",
 ];
 
 self.addEventListener("install", (event) => {
