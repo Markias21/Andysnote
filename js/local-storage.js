@@ -1,4 +1,3 @@
-console.log("local-storage.js loaded");
 
 class LocalStorageProvider extends StorageProvider {
 

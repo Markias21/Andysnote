@@ -1,4 +1,3 @@
-alert("storage loaded");
 
 console.log("storage.js loaded");
 class StorageProvider {
