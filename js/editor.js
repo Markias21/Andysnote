@@ -113,19 +113,25 @@ function showEmptyState() {
 }
 
 /* ─── EDITOR ─── */
-/* The only editor affordance: indent the paragraph containing the caret one
-   step to the right. This is a UI-only effect — it adds left padding to the
-   block element and never writes anything to the saved plain text (saves read
-   innerText, which ignores padding). Indentation is therefore not persisted;
+/* The only editor affordance: TOGGLE indentation on the paragraph containing
+   the caret. It's boolean — ON adds one step of left space, OFF removes it (no
+   accumulation on repeated clicks). This is a UI-only effect; it adds left
+   padding to the block and never writes anything to the saved plain text (saves
+   read innerText, which ignores padding), so indentation is not persisted and
    reopening a note shows it flat again, by design. */
 function indentParagraph() {
   const body = document.getElementById("doc-body");
   body.focus();
   const block = currentEditableBlock(body);
   if (!block) return;
-  const level = Math.min(parseInt(block.dataset.indent || "0", 10) + 1, 10);
-  block.dataset.indent = String(level);
-  block.style.paddingLeft = level * 24 + "px";
+  const on = block.dataset.indent === "1";
+  if (on) {
+    delete block.dataset.indent;
+    block.style.paddingLeft = "";
+  } else {
+    block.dataset.indent = "1";
+    block.style.paddingLeft = "24px";
+  }
 }
 
 /* Find the top-level block (direct child of #doc-body) that holds the caret,
