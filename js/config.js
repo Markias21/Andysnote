@@ -1,6 +1,7 @@
 /* ─── GOOGLE OAUTH ─── */
 /* 👇 여기에만 Client ID를 붙여넣으세요 (Client Secret은 사용하지 않음) */
-window.GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
+window.GOOGLE_CLIENT_ID =
+  "214649048044-lq3pcovgq8lo09g0apguilj31m481uj6.apps.googleusercontent.com";
 
 /* ─── DRIVE FILESYSTEM CONFIG ─── */
 const DEV_MODE =
