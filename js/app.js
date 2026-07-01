@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTodayDate();
   renderSidebar();
   renderCalendar();
+  initLocalNotes();
 
   const body = document.getElementById("doc-body");
   body.addEventListener("focus", () => {

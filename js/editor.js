@@ -1,7 +1,9 @@
 /* ─── OPEN DOC ─── */
 async function openDoc(node) {
-  if (storageMode === "local") return openLocalDoc(node);
   if (!driveAccessToken) return;
+  await flushDriveSave();
+  await flushLocalSave();
+  storageMode = "drive";
   currentFileId = node.id;
 
   document.getElementById("empty-state").classList.add("hidden");
@@ -24,7 +26,7 @@ async function openDoc(node) {
       })
     : "\u2014";
 
-  document.getElementById("doc-body").value = "";
+  document.getElementById("doc-body").innerText = "";
   document.getElementById("doc-body").classList.add("empty");
   setSyncStatus("saving", "Opening...");
 
@@ -35,7 +37,7 @@ async function openDoc(node) {
     );
     if (!r.ok) throw new Error("fetch content failed: " + r.status);
     const text = await r.text();
-    document.getElementById("doc-body").value = text;
+    document.getElementById("doc-body").innerText = text;
     if (text.trim())
       document.getElementById("doc-body").classList.remove("empty");
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
@@ -92,4 +94,10 @@ function autoResize(el) {
 
 function updateMeta() {
   autoResize(document.getElementById("doc-title"));
+}
+
+function onTitleInput() {
+  autoResize(document.getElementById("doc-title"));
+  updateMeta();
+  if (storageMode === "local" && currentFileId) scheduleLocalSave();
 }

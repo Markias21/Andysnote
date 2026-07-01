@@ -16,16 +16,14 @@ async function handleSignoutClick() {
         google.accounts.oauth2.revoke(driveAccessToken, () => {});
     driveAccessToken = null;
     updateDriveUI(false, null);
-    if (storageMode === "local") {
-        // A local workspace is active — only Drive auth was revoked; keep it.
-        renderSidebar(document.getElementById("search-input").value);
-        return;
-    }
     writerRootId = null;
     driveTree = [];
     expandedFolders = new Set();
-    currentFileId = null;
-    showEmptyState();
+    // Keep any open local note; only clear the editor if a Drive doc was open.
+    if (storageMode !== "local") {
+        currentFileId = null;
+        showEmptyState();
+    }
     renderSidebar();
     }
 

@@ -167,11 +167,22 @@ function scheduleDriveSave() {
   driveSaveTimer = setTimeout(saveToDriveNow, 3000);
 }
 
+/* Flush a pending Drive autosave before switching documents so a delayed
+   timer can never patch the wrong file after currentFileId has changed. */
+async function flushDriveSave() {
+  if (driveSaveTimer) {
+    clearTimeout(driveSaveTimer);
+    driveSaveTimer = null;
+  }
+  if (storageMode === "drive" && currentFileId && driveAccessToken)
+    await saveToDriveNow();
+}
+
 async function saveToDriveNow() {
   if (!driveAccessToken || !currentFileId) return;
   try {
     setSyncStatus("saving", "Saving...");
-    const text = document.getElementById("doc-body").value || "";
+    const text = document.getElementById("doc-body").innerText || "";
     await drivePatch(currentFileId, text);
     // Update cached modifiedTime
     const node = findNodeById(currentFileId, driveTree);

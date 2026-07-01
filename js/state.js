@@ -13,9 +13,8 @@ let gapiInited = false;
 let gisInited = false;
 let driveAccessToken = null;
 
-/* ─── STORAGE MODE / LOCAL FILESYSTEM ─── */
-let storageMode = "drive"; // "drive" | "local"
-let localRootHandle = null; // FileSystemDirectoryHandle for the local workspace root
-let localHandles = {}; // synthetic node id -> { handle, parentId, name, kind }
-let localIdCounter = 0; // generates unique local node ids
+/* ─── STORAGE MODE / LOCAL (BROWSER) NOTES ─── */
+let storageMode = "drive"; // backend of the currently-open doc: "drive" | "local"
 let localSaveTimer = null; // debounce timer for local autosave
+let localNotes = []; // browser-stored notes: [{id,title,body,createdTime,modifiedTime}]
+let localDbPromise = null; // cached IndexedDB connection promise

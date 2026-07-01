@@ -4,27 +4,10 @@ function renderSidebar(filter = "") {
   list.innerHTML = "";
   const q = filter.toLowerCase();
 
-  if (storageMode === "local") {
-    if (!localRootHandle) {
-      list.innerHTML =
-        '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-        "Press the \u002b button above to choose a folder on this computer.</div>";
-      return;
-    }
-    if (driveTree.length === 0) {
-      list.innerHTML =
-        '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);">' +
-        "No folders yet. Use the \u002b button to create one.</div>";
-      return;
-    }
-    renderNodes(driveTree, list, q, 0);
-    return;
-  }
-
   if (!driveAccessToken) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-      "Press the \u002b button above to choose a folder on this computer, or sign in with Google to use Drive.</div>";
+      "Sign in with Google to load your Drive workspace. Notes you create in notes_local below stay in this browser.</div>";
     return;
   }
 
@@ -162,6 +145,7 @@ function toggleFolder(folderId) {
 
 function filterDocs(val) {
   renderSidebar(val);
+  renderLocalNotes(val);
 }
 
 function findNodeById(id, nodes) {

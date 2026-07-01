@@ -12,3 +12,7 @@ var FOLDER_MIME = "application/vnd.google-apps.folder";
 var FILE_MIME = "text/plain";
 var DRIVE_SCOPE =
   "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
+
+/* ─── LOCAL (browser) STORE CONFIG ─── */
+var LOCAL_DB_NAME = "andysnotes-local";
+var LOCAL_STORE = "notes";
