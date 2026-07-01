@@ -1507,7 +1507,8 @@
           setSyncStatus("saved", "Loaded \u00b7 " + formatTime(new Date()));
         } catch (e) {
           const msg = e instanceof Error ? e.message : JSON.stringify(e);
-          console.error("initDriveFilesystem error:", msg);
+          console.error("initDriveFilesystem error (full):", e);
+          console.error("initDriveFilesystem error (message):", msg);
           setSyncStatus(
             "error",
             "Load failed \u00b7 " + formatTime(new Date()),
