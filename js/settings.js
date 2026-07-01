@@ -1,6 +1,6 @@
 /* ─── SETTINGS ───────────────────────────────────────────────────────────
    One app-wide settings object (declared as `appSettings` in state.js).
-   Groups: UI / Font / Behavior. Font is two-axis only: korean + english.
+   Groups: UI / Font / Behavior. Font is a single editor-wide choice.
    The UI never mutates settings directly — it only calls setSetting().
    Expand later by adding fields to defaultSettings() + the list in
    renderSettings(); no structural split needed. */
@@ -13,8 +13,7 @@ function defaultSettings() {
       compactMode: false,  // denser layout
     },
     font: {
-      korean: "default",    // key into KOREAN_FONTS map
-      english: "sans-serif", // key into ENGLISH_FONTS map
+      editor: "system", // key into EDITOR_FONTS map
     },
     behavior: {
       autoSave: true,   // debounced autosave on edits
@@ -56,7 +55,7 @@ function saveSettings() {
   }
 }
 
-/* Read a setting by dotted path, e.g. getSetting("font.korean"). */
+/* Read a setting by dotted path, e.g. getSetting("font.editor"). */
 function getSetting(path) {
   if (!appSettings) initSettings();
   const parts = path.split(".");
@@ -96,38 +95,31 @@ function setSetting(path, value) {
 }
 
 /* Reflect the current settings into the live DOM (fonts, view modes).
-   Font keys are resolved to CSS font-family stacks via lookup maps.
-   Both --font-content and --font-title use the same composed stack
-   (english stack first, then korean stack as fallback). */
+   A single editor font key is resolved to a CSS font-family stack.
+   All text elements use the same variable --editor-font.
+   Every stack ends with system-ui, sans-serif per the fallback rule. */
 function applySettings() {
   if (!appSettings) return;
 
-  // Korean font key → CSS font-family stack (with OS-level fallbacks)
+  // Editor font key → CSS font-family stack.
   // Add new entries here to extend the font list; no other code changes needed.
-  const KOREAN_FONTS = {
-    "default":  "sans-serif",
-    "dotum":    "\ub3cb\uc6c0, AppleGothic, sans-serif",
-    "myungjo":  "\uba85\uc870, AppleMyungjo, Batang, serif",
-    "gungsuh":  "\uad81\uc11c, GungsuhChe, serif",
-    "nanum":    "NanumGothic, \ub098\ub214\uace0\ub515, sans-serif",
-  };
-
-  // English font key → CSS font-family stack
-  const ENGLISH_FONTS = {
-    "sans-serif": "Inter, Arial, sans-serif",
-    "serif":      "Georgia, \"Times New Roman\", serif",
-    "monospace":  "\"Courier New\", Courier, monospace",
-    "system":     "system-ui, -apple-system, sans-serif",
+  const EDITOR_FONTS = {
+    "system":         "system-ui, -apple-system, sans-serif",
+    "sans-serif":     "Inter, system-ui, sans-serif",
+    "serif":          "Georgia, \"Times New Roman\", system-ui, sans-serif",
+    "monospace":      "\"Courier New\", Courier, system-ui, sans-serif",
+    "nanum-gothic":   "NanumGothic, system-ui, sans-serif",
+    "nanum-myeongjo": "NanumMyeongjo, system-ui, sans-serif",
+    "gungsuh":        "\uad81\uc11c, GungsuhChe, system-ui, sans-serif",
+    "dotum":          "\ub3cb\uc6c0, AppleGothic, system-ui, sans-serif",
+    "pretendard":     "Pretendard, system-ui, sans-serif",
   };
 
   const root = document.documentElement;
-  const f = appSettings.font;
-  const engStack = ENGLISH_FONTS[f.english] || "sans-serif";
-  const korStack = KOREAN_FONTS[f.korean]   || "sans-serif";
-  const fullStack = engStack + ", " + korStack;
+  const stack = EDITOR_FONTS[appSettings.font.editor]
+    || "system-ui, sans-serif";
 
-  root.style.setProperty("--font-content", fullStack);
-  root.style.setProperty("--font-title",   fullStack);
+  root.style.setProperty("--editor-font", stack);
 
   const body = document.getElementById("doc-body");
   if (body) body.classList.toggle("paragraph-view", !!appSettings.ui.paragraphMode);
@@ -166,30 +158,21 @@ function renderSettings() {
       title: "Font",
       fields: [
         {
-          path: "font.korean",
-          label: "Korean font",
+          path: "font.editor",
+          label: "Editor font",
           type: "select",
-          // {value: stored key, label: display name}
-          // Extend this list to add more Korean fonts; add matching entry to
-          // KOREAN_FONTS in applySettings() with the same key and a CSS stack.
+          // Extend this list to add more fonts; add matching entry to
+          // EDITOR_FONTS in applySettings() with the same key and a CSS stack.
           options: [
-            { value: "default",  label: "\uae30\ubcf8 sans-serif" },
-            { value: "dotum",    label: "\ub3cb\uc6c0" },
-            { value: "myungjo",  label: "\uba85\uc870" },
-            { value: "gungsuh",  label: "\uad81\uc11c" },
-            { value: "nanum",    label: "\ub098\ub214\uace0\ub515 (NanumGothic)" },
-          ],
-        },
-        {
-          path: "font.english",
-          label: "English font",
-          type: "select",
-          // Extend here + ENGLISH_FONTS in applySettings() to add more choices.
-          options: [
-            { value: "sans-serif", label: "Sans-serif" },
-            { value: "serif",      label: "Serif" },
-            { value: "monospace",  label: "Monospace" },
-            { value: "system",     label: "System font" },
+            { value: "system",         label: "System" },
+            { value: "sans-serif",     label: "Sans-serif" },
+            { value: "serif",          label: "Serif" },
+            { value: "monospace",      label: "Monospace" },
+            { value: "nanum-gothic",   label: "\ub098\ub214\uace0\ub515 (Nanum Gothic)" },
+            { value: "nanum-myeongjo", label: "\ub098\ub214\uba85\uc870 (Nanum Myeongjo)" },
+            { value: "gungsuh",        label: "\uad81\uc11c" },
+            { value: "dotum",          label: "\ub3cb\uc6c0" },
+            { value: "pretendard",     label: "Pretendard" },
           ],
         },
       ],
