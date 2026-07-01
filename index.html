@@ -624,6 +624,13 @@
         color: var(--text-muted);
       }
 
+      /* Indent is a pure UI effect: a per-paragraph left margin that never
+         reaches the saved plain text. The transition makes the paragraph
+         appear to slide one step to the right on each click. */
+      #doc-body > div {
+        transition: padding-left 0.12s ease;
+      }
+
       /* ─── EMPTY STATE ─── */
       .empty-state {
         flex: 1;
@@ -1296,35 +1303,10 @@
             <!-- WRITING PANEL -->
             <div class="writing-panel hidden" id="writing-panel">
               <div class="editor-toolbar" id="editor-toolbar">
-                <button class="tool-btn" title="Bold" onclick="execCmd('bold')">
-                  <strong>B</strong>
-                </button>
                 <button
                   class="tool-btn"
-                  title="Italic"
-                  onclick="execCmd('italic')"
-                >
-                  <em>I</em>
-                </button>
-                <button
-                  class="tool-btn"
-                  title="Underline"
-                  onclick="execCmd('underline')"
-                >
-                  <u>U</u>
-                </button>
-                <div class="sep"></div>
-                <button
-                  class="tool-btn"
-                  title="Heading"
-                  onclick="execCmd('formatBlock','h2')"
-                >
-                  H
-                </button>
-                <button
-                  class="tool-btn"
-                  title="Quote"
-                  onclick="execCmd('formatBlock','blockquote')"
+                  title="Indent paragraph"
+                  onclick="indentParagraph()"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -1334,33 +1316,10 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >
-                    <path
-                      d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h2v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
-                    />
-                    <path
-                      d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h2v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="tool-btn"
-                  title="Bullet list"
-                  onclick="execCmd('insertUnorderedList')"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <line x1="9" y1="6" x2="20" y2="6" />
-                    <line x1="9" y1="12" x2="20" y2="12" />
-                    <line x1="9" y1="18" x2="20" y2="18" />
-                    <circle cx="4" cy="6" r="1" fill="currentColor" />
-                    <circle cx="4" cy="12" r="1" fill="currentColor" />
-                    <circle cx="4" cy="18" r="1" fill="currentColor" />
+                    <line x1="21" y1="6" x2="9" y2="6" />
+                    <line x1="21" y1="12" x2="13" y2="12" />
+                    <line x1="21" y1="18" x2="9" y2="18" />
+                    <polyline points="4 9 7 12 4 15" />
                   </svg>
                 </button>
                 <div class="sep"></div>
@@ -1442,7 +1401,7 @@
                   </div>
                   <div
                     id="doc-body"
-                    contenteditable="true"
+                    contenteditable="plaintext-only"
                     style="
                       width: 100%;
                       background: transparent;

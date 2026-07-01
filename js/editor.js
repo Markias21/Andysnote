@@ -58,7 +58,11 @@ async function openDoc(node) {
     // Only replace the visible body if the user hasn't started editing since the
     // cache paint, so a background refresh can never clobber in-progress edits.
     const body = document.getElementById("doc-body");
-    if (!painted || body.innerText === paintedText) {
+    // Re-render only when the fetched text actually differs from what's shown
+    // and the user hasn't started editing — so a background revalidation never
+    // wipes an indent the user just applied to unchanged content.
+    const unedited = !painted || body.innerText === paintedText;
+    if (unedited && text !== body.innerText) {
       setDocBody(text);
     }
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
@@ -77,12 +81,29 @@ async function openDoc(node) {
   renderSidebar(currentSearchValue());
 }
 
+/* Render plain text as one <div> block per line. Block-per-line is what makes
+   the paragraph-level indent possible, and innerText of these blocks round-trips
+   back to the exact same plain text (newlines preserved, no indent characters),
+   so saved data is unaffected by any indentation applied in the UI. */
 function setDocBody(text) {
   const body = document.getElementById("doc-body");
-  body.innerText = text || "";
+  renderBodyBlocks(body, text || "");
   if ((text || "").trim()) body.classList.remove("empty");
   else body.classList.add("empty");
   updateWordCount();
+}
+
+function renderBodyBlocks(body, text) {
+  body.innerHTML = "";
+  if (!text) return;
+  const frag = document.createDocumentFragment();
+  for (const line of text.split("\n")) {
+    const div = document.createElement("div");
+    if (line === "") div.appendChild(document.createElement("br"));
+    else div.textContent = line; // textContent escapes HTML — no injection
+    frag.appendChild(div);
+  }
+  body.appendChild(frag);
 }
 
 function showEmptyState() {
@@ -92,9 +113,46 @@ function showEmptyState() {
 }
 
 /* ─── EDITOR ─── */
-function execCmd(cmd, arg = null) {
-  document.getElementById("doc-body").focus();
-  document.execCommand(cmd, false, arg);
+/* The only editor affordance: indent the paragraph containing the caret one
+   step to the right. This is a UI-only effect — it adds left padding to the
+   block element and never writes anything to the saved plain text (saves read
+   innerText, which ignores padding). Indentation is therefore not persisted;
+   reopening a note shows it flat again, by design. */
+function indentParagraph() {
+  const body = document.getElementById("doc-body");
+  body.focus();
+  const block = currentEditableBlock(body);
+  if (!block) return;
+  const level = Math.min(parseInt(block.dataset.indent || "0", 10) + 1, 10);
+  block.dataset.indent = String(level);
+  block.style.paddingLeft = level * 24 + "px";
+}
+
+/* Find the top-level block (direct child of #doc-body) that holds the caret,
+   wrapping a bare first-line text node in a <div> when needed so it can be
+   indented like any other paragraph. */
+function currentEditableBlock(body) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!body.contains(range.startContainer)) return null;
+  let node = range.startContainer;
+  if (node === body) {
+    node =
+      body.childNodes[range.startOffset] ||
+      body.childNodes[range.startOffset - 1] ||
+      null;
+  }
+  while (node && node.parentNode && node.parentNode !== body)
+    node = node.parentNode;
+  if (!node || node === body) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const div = document.createElement("div");
+    body.insertBefore(div, node);
+    div.appendChild(node);
+    node = div;
+  }
+  return node.nodeType === Node.ELEMENT_NODE ? node : null;
 }
 
 function onBodyInput() {

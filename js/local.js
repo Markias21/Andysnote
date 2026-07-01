@@ -463,10 +463,9 @@ async function openLocalNote(id) {
       })
     : "\u2014";
 
-  const body = document.getElementById("doc-body");
-  body.innerText = note.body || "";
-  if ((note.body || "").trim()) body.classList.remove("empty");
-  else body.classList.add("empty");
+  // Use the shared renderer so Local notes get the same block-per-line structure
+  // as Drive notes — required for per-paragraph indent to target one paragraph.
+  setDocBody(note.body || "");
 
   setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
   updateWordCount();
