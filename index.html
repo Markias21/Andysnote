@@ -1162,7 +1162,21 @@
               </svg>
               <h3>No document selected</h3>
               <p>Choose a document from the sidebar or create a new one</p>
+              <button
+                class="btn-accent"
+                style="margin-top: 16px"
+                onclick="triggerLocalImport()"
+              >
+                Import .txt file
+              </button>
             </div>
+            <input
+              type="file"
+              id="local-file-input"
+              accept=".txt,text/plain"
+              style="display: none"
+              onchange="handleLocalImport(this)"
+            />
 
             <!-- WRITING PANEL -->
             <div class="writing-panel hidden" id="writing-panel">
@@ -1249,6 +1263,43 @@
                     />
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                </button>
+                <div class="sep"></div>
+                <button
+                  class="tool-btn"
+                  title="Export as .txt"
+                  onclick="exportLocalFile()"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </button>
+                <button
+                  class="tool-btn"
+                  title="Import .txt"
+                  onclick="triggerLocalImport()"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                 </button>
                 <span class="word-count" id="word-count">0 words</span>
@@ -1398,6 +1449,7 @@
     <script src="js/auth.js"></script>
     <script src="js/sidebar.js"></script>
     <script src="js/editor.js"></script>
+    <script src="js/local.js"></script>
     <script src="js/modal.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/app.js"></script>

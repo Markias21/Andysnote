@@ -21,3 +21,7 @@ Final load order (locked invariant): config → state → ui → drive → auth 
 **Script load-order invariant:** keep `drive.js` before `auth.js` in index.html (auth's `onSignedIn` calls `initDriveFilesystem`/`driveGet`). Hold this until/unless converting to real ES module imports.
 
 **Verify each step:** `node --check js/<mod>.js`; extract inline block and `node --check`; confirm each moved function has exactly ONE definition across `index.html js/`; confirm callers still exist; `curl` the served files (static server = `python3 -m http.server 8000`, network-first SW so fresh files serve).
+
+**Storage "adapter" pattern (what it actually is):** there is NO registry/class abstraction. Each storage backend = one file of plain top-level functions. GoogleDrive = drive.js (source of truth). Local = local.js (TXT export/import via Blob download + FileReader on a hidden `<input type=file>`; NOT File System Access). Browser storage is only a reserved concept (no code). To add a backend, add another such file — do NOT introduce a `const XxxRepository` object or `window.Repositories` registry: those count as new top-level globals and violate the globals-only-in-config/state rule. Function declarations are fine (every module has them); top-level `const`/`let` state is not.
+
+**Local editor I/O:** `#doc-title` is a textarea (use `.value`); `#doc-body` is a contenteditable `<div>` (read/write via `.innerText`, NOT `.value`). Imported local notes set `currentFileId = null` so Drive autosave (`onBodyInput` needs `driveAccessToken && currentFileId`) stays off.
