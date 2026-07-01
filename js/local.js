@@ -480,6 +480,7 @@ async function openLocalNote(id) {
 
 function scheduleLocalSave() {
   if (storageMode !== "local" || !currentFileId) return;
+  if (!getSetting("behavior.autoSave")) return;
   localDirty = true;
   clearTimeout(localSaveTimer);
   setSyncStatus("saving", "Saving...");

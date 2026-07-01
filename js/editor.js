@@ -125,11 +125,8 @@ function showEmptyState() {
    (body.innerText) and its \n structure are unaffected. It's a global display
    mode, applied to every paragraph at once — on by default. */
 function toggleParagraphView() {
-  const body = document.getElementById("doc-body");
-  const on = body.classList.toggle("paragraph-view");
-  const btn = document.getElementById("btn-paragraph-view");
-  if (btn) btn.classList.toggle("active", on);
-  body.focus();
+  setSetting("ui.paragraphMode", !getSetting("ui.paragraphMode"));
+  document.getElementById("doc-body").focus();
 }
 
 function onBodyInput() {

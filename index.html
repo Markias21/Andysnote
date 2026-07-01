@@ -45,6 +45,7 @@
         --topbar-h: 48px;
         --font-ui: "Inter", sans-serif;
         --font-content: "Lora", Georgia, serif;
+        --font-title: "Inter", sans-serif;
         --radius: 6px;
       }
 
@@ -570,7 +571,7 @@
         background: transparent;
         border: none;
         color: var(--text);
-        font-family: var(--font-content);
+        font-family: var(--font-title);
         font-size: 32px;
         font-weight: 500;
         line-height: 1.3;
@@ -843,6 +844,178 @@
         margin-top: 4px;
       }
 
+      /* ─── SETTINGS ─── */
+      .settings-gear {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .settings-gear:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .settings-gear svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .settings-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: flex-start;
+        justify-content: center;
+      }
+      .settings-overlay.open {
+        display: flex;
+      }
+      .settings-panel {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        width: 420px;
+        max-width: calc(100vw - 32px);
+        max-height: 80vh;
+        margin-top: 64px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      .settings-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .settings-head h3 {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .settings-close {
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font-size: 15px;
+        cursor: pointer;
+        line-height: 1;
+        padding: 4px;
+        border-radius: var(--radius);
+      }
+      .settings-close:hover {
+        color: var(--text);
+        background: var(--surface3);
+      }
+      .settings-body {
+        padding: 8px 20px 16px;
+        overflow-y: auto;
+      }
+      .settings-group {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .settings-group:last-child {
+        border-bottom: none;
+      }
+      .settings-group-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+        margin-bottom: 8px;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 0;
+      }
+      .settings-label {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .settings-select {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        padding: 6px 10px;
+        outline: none;
+        cursor: pointer;
+        min-width: 150px;
+      }
+      .settings-select:focus {
+        border-color: var(--border2);
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 22px;
+        flex-shrink: 0;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .switch .slider {
+        position: absolute;
+        inset: 0;
+        background: var(--surface3);
+        border-radius: 22px;
+        transition: background 0.15s;
+      }
+      .switch .slider:before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 3px;
+        top: 3px;
+        background: var(--text-dim);
+        border-radius: 50%;
+        transition: transform 0.15s, background 0.15s;
+      }
+      .switch input:checked + .slider {
+        background: var(--accent-dim);
+      }
+      .switch input:checked + .slider:before {
+        transform: translateX(16px);
+        background: var(--accent);
+      }
+
+      /* ─── COMPACT MODE ─── */
+      body.compact {
+        font-size: 13px;
+      }
+      body.compact #doc-body {
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      body.compact #doc-title {
+        font-size: 26px;
+      }
+      body.compact .editor-meta {
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+      }
+
       .btn {
         padding: 7px 14px;
         border-radius: var(--radius);
@@ -1092,6 +1265,26 @@
         <div class="topbar-right">
           <span class="topbar-date" id="today-date"></span>
           <div class="topbar-sep"></div>
+          <button
+            class="settings-gear"
+            id="btn-settings"
+            title="Settings"
+            onclick="openSettings()"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
           <!-- Sync status (shown when logged in) -->
           <div class="sync-status" id="sync-status">
             <div class="sync-dot local" id="sync-dot"></div>
@@ -1503,8 +1696,24 @@
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div
+      class="settings-overlay"
+      id="settings-overlay"
+      onclick="closeSettingsOutside(event)"
+    >
+      <div class="settings-panel">
+        <div class="settings-head">
+          <h3>Settings</h3>
+          <button class="settings-close" onclick="closeSettings()">✕</button>
+        </div>
+        <div class="settings-body" id="settings-body"></div>
+      </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script src="js/state.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/cache.js"></script>
     <script src="js/drive.js"></script>

@@ -23,6 +23,9 @@ let localNotes = []; // browser-stored notes+folders: [{id,type,parentId,title,b
 let localDbPromise = null; // cached IndexedDB connection promise
 let localExpandedFolders = new Set(); // which notes_local folder IDs are open
 
+/* ─── SETTINGS (single app-wide global state; logic lives in settings.js) ─── */
+let appSettings = null; // one settings object: { ui, font, behavior } — mutate only via setSetting()
+
 /* ─── DRIVE CACHE (IndexedDB performance layer) ─── */
 let driveCacheDbPromise = null; // cached IndexedDB connection for the Drive cache
 let driveTreeFullyLoaded = false; // true once every Drive subtree has been loaded

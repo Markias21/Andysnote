@@ -1,5 +1,6 @@
 /* ─── INIT ─── */
 document.addEventListener("DOMContentLoaded", () => {
+  initSettings();
   updateTodayDate();
   renderSidebar();
   renderCalendar();
@@ -25,7 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       saveDoc();
     }
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape") {
+      closeModal();
+      closeSettings();
+    }
   });
 
   document

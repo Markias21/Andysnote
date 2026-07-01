@@ -278,6 +278,8 @@ function saveDoc() {
 
 function scheduleDriveSave() {
   if (!driveAccessToken || !currentFileId) return;
+  if (!getSetting("behavior.autoSave") || !getSetting("behavior.driveSync"))
+    return;
   driveDirty = true;
   clearTimeout(driveSaveTimer);
   setSyncStatus("saving", "Saving...");
