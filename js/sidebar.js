@@ -44,7 +44,8 @@ function renderFolderNode(node, container, q, depth) {
     if (matchingDocs.length === 0) return;
   }
 
-  const docCount = countDocs(node);
+  const countKnown = node.loaded || node.children.length > 0;
+  const docCount = countKnown ? countDocs(node) : "";
   const icon_closed =
     '<svg class="folder-icon closed" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
     ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
@@ -81,6 +82,14 @@ function renderFolderNode(node, container, q, depth) {
   const items = folderEl.querySelector(".folder-items");
 
   if (isOpen) {
+    if (!node.loaded && node.children.length === 0) {
+      const loadingEl = document.createElement("div");
+      loadingEl.className = "doc-item loading";
+      loadingEl.style.cssText =
+        "opacity:.6;font-style:italic;pointer-events:none;";
+      loadingEl.textContent = "Loading\u2026";
+      items.appendChild(loadingEl);
+    }
     renderNodes(node.children, items, q, depth + 1);
     const addBtn = document.createElement("button");
     addBtn.className = "new-doc-btn";
@@ -137,13 +146,26 @@ function flatDocs(node) {
   return result;
 }
 
+function currentSearchValue() {
+  const el = document.getElementById("search-input");
+  return el ? el.value : "";
+}
+
 function toggleFolder(folderId) {
-  if (expandedFolders.has(folderId)) expandedFolders.delete(folderId);
-  else expandedFolders.add(folderId);
-  renderSidebar(document.getElementById("search-input").value);
+  const opening = !expandedFolders.has(folderId);
+  if (opening) expandedFolders.add(folderId);
+  else expandedFolders.delete(folderId);
+  renderSidebar(currentSearchValue());
+  // Lazy load: fetch this folder's contents the first time it is opened.
+  if (opening) ensureFolderLoaded(folderId);
 }
 
 function filterDocs(val) {
+  // Search must see the whole workspace, so pull in any not-yet-loaded folders
+  // (once; the result is cached). Navigation stays lazy when there is no query.
+  if (val && val.trim() && driveAccessToken && !driveTreeFullyLoaded) {
+    loadEntireTree();
+  }
   renderSidebar(val);
   renderLocalNotes(val);
 }

@@ -19,3 +19,8 @@ let localSaveTimer = null; // debounce timer for local autosave
 let localNotes = []; // browser-stored notes+folders: [{id,type,parentId,title,body,createdTime,modifiedTime}]
 let localDbPromise = null; // cached IndexedDB connection promise
 let localExpandedFolders = new Set(); // which notes_local folder IDs are open
+
+/* ─── DRIVE CACHE (IndexedDB performance layer) ─── */
+let driveCacheDbPromise = null; // cached IndexedDB connection for the Drive cache
+let driveTreeFullyLoaded = false; // true once every Drive subtree has been loaded
+let driveFullLoadPromise = null; // in-flight loadEntireTree() promise (dedupe)

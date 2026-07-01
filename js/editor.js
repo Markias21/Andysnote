@@ -26,10 +26,23 @@ async function openDoc(node) {
       })
     : "\u2014";
 
-  document.getElementById("doc-body").innerText = "";
-  document.getElementById("doc-body").classList.add("empty");
+  setDocBody("");
   setSyncStatus("saving", "Opening...");
 
+  // 1) Instant paint from cache, if we have this note's body stored.
+  let painted = false;
+  let paintedText = null;
+  const cached = await cacheGetDoc(node.id);
+  if (currentFileId !== node.id) return; // user switched docs during await
+  if (cached && typeof cached.text === "string") {
+    setDocBody(cached.text);
+    paintedText = cached.text;
+    painted = true;
+    setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+  }
+
+  // 2) Always revalidate the body from Drive (stale-while-revalidate). Drive is
+  //    the source of truth, so we never rely on cache alone for correctness.
   try {
     const r = await fetch(
       `https://www.googleapis.com/drive/v3/files/${node.id}?alt=media`,
@@ -37,22 +50,36 @@ async function openDoc(node) {
     );
     if (!r.ok) throw new Error("fetch content failed: " + r.status);
     const text = await r.text();
-    document.getElementById("doc-body").innerText = text;
-    if (text.trim())
-      document.getElementById("doc-body").classList.remove("empty");
+    if (currentFileId !== node.id) return; // stale response, a newer doc is open
+    cachePutDoc(node.id, text, node.modifiedTime);
+    // Only replace the visible body if the user hasn't started editing since the
+    // cache paint, so a background refresh can never clobber in-progress edits.
+    const body = document.getElementById("doc-body");
+    if (!painted || body.innerText === paintedText) {
+      setDocBody(text);
+    }
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
   } catch (e) {
     console.error("openDoc error", e);
-    setSyncStatus(
-      "error",
-      "Open failed \u00b7 " + formatTime(new Date()),
-      true,
-    );
+    if (!painted)
+      setSyncStatus(
+        "error",
+        "Open failed \u00b7 " + formatTime(new Date()),
+        true,
+      );
   }
 
   updateWordCount();
   autoResize(document.getElementById("doc-title"));
-  renderSidebar(document.getElementById("search-input").value);
+  renderSidebar(currentSearchValue());
+}
+
+function setDocBody(text) {
+  const body = document.getElementById("doc-body");
+  body.innerText = text || "";
+  if ((text || "").trim()) body.classList.remove("empty");
+  else body.classList.add("empty");
+  updateWordCount();
 }
 
 function showEmptyState() {

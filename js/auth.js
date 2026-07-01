@@ -19,6 +19,8 @@ async function handleSignoutClick() {
     writerRootId = null;
     driveTree = [];
     expandedFolders = new Set();
+    driveTreeFullyLoaded = false;
+    driveFullLoadPromise = null;
     // Keep any open local note; only clear the editor if a Drive doc was open.
     if (storageMode !== "local") {
         currentFileId = null;

@@ -83,8 +83,10 @@ async function createItem() {
         createdTime: new Date().toISOString(),
         modifiedTime: new Date().toISOString(),
         children: [],
+        loaded: true,
       };
       insertIntoTree(newNode, folderId);
+      syncFolderCache(folderId);
       expandedFolders.add(folderId);
       renderSidebar();
       populateModalFolders();
@@ -106,8 +108,11 @@ async function createItem() {
         createdTime: new Date().toISOString(),
         modifiedTime: new Date().toISOString(),
         children: [],
+        loaded: true,
       };
       insertIntoTree(newNode, folderId);
+      syncFolderCache(folderId);
+      cachePutDoc(created.id, "", newNode.modifiedTime);
       expandedFolders.add(folderId);
       renderSidebar();
       await openDoc(newNode);

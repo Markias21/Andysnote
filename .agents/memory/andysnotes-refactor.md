@@ -24,6 +24,16 @@ There is NO class/registry abstraction — each backend is one file of plain top
 
 **Prior folder-based local design was fully replaced** — `showDirectoryPicker`, `localRootHandle`, `localHandles`, `localIdCounter`, `localCreateItem`, `openLocalDoc`, `connectLocalFolder` no longer exist. The File-System-Access folder picker was abandoned because it throws SecurityError inside the Replit preview iframe; the download/upload fallback path is what actually works in-preview.
 
+## Drive performance: lazy load + IndexedDB cache (why it's shaped this way)
+
+Drive nav is lazy + cache-first, NOT an eager full crawl. `js/cache.js` (separate db `andysnotes-cache`, stores `treeChildren` per folderId + `docContent` per fileId) is a performance layer only — Drive stays source of truth.
+
+- **Never eagerly crawl the whole tree.** The old `loadSubtree` did N serial API calls before first paint. Now `initDriveFilesystem` paints root from cache instantly, then revalidates only the root level (`loadChildrenShallow`). A folder's children load on first expand (`ensureFolderLoaded` via `toggleFolder`); nodes carry a `loaded` flag. `mergeChildren` preserves already-loaded subtrees when a level is revalidated (else you discard deeper loaded data).
+- **openDoc is stale-while-revalidate.** Paint cached body instantly, then ALWAYS re-fetch from Drive. Do NOT hard-skip the network on timestamp equality — `node.modifiedTime` is client/tree-derived and can be stale (external edits) → would serve stale content forever. **Why:** correctness must not depend on cache alone. Guard: only overwrite the visible body if `body.innerText === paintedText` (user hasn't started editing), and re-check `currentFileId !== node.id` after every await (rapid doc-switch race).
+- **Search needs the whole tree**, which breaks under lazy loading. `filterDocs` calls `loadEntireTree()` (parallel deep load, cached) when a query is present. `driveTreeFullyLoaded` gates it; **only set it true when EVERY subtree succeeded** (`deepLoadNodes` returns all-success bool) — else a transient failure permanently locks search into a partial view. `driveFullLoadPromise` dedupes concurrent calls. Both reset on sign-in/out.
+- **Cache invalidation:** only *create* mutates the Drive tree (no Drive delete/rename exists). After create, call `syncFolderCache(parentId)` (+ `cachePutDoc` for new files); after `saveToDriveNow`, `cachePutDoc(id, text, stamp)` keeps the body cache fresh.
+- Folder-count badge shows "" until a folder is `loaded` (avoids a misleading "0" on unopened folders); unopened+open folders show a "Loading…" row.
+
 ## Autosave data-loss guard (why flush-on-switch exists)
 
 Both backends autosave on a debounce timer (`driveSaveTimer` 3s, `localSaveTimer` 1.2s) that reads mutable globals (`currentFileId`, editor DOM) at fire time. A delayed timer could patch/overwrite the WRONG doc after navigation. **Rule:** every doc-switch entry point (`openDoc`, `openLocalNote`) must `await flushDriveSave(); await flushLocalSave();` BEFORE changing `currentFileId`/`storageMode`. Each flush clears its timer and, if its mode is active, saves synchronously first. Any global-state reset (esp. `handleSignoutClick`) must be mode-aware or it wipes the open local note.

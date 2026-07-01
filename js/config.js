@@ -16,3 +16,8 @@ var DRIVE_SCOPE =
 /* ─── LOCAL (browser) STORE CONFIG ─── */
 var LOCAL_DB_NAME = "andysnotes-local";
 var LOCAL_STORE = "notes";
+
+/* ─── DRIVE CACHE CONFIG (IndexedDB performance layer) ─── */
+var DRIVE_CACHE_DB_NAME = "andysnotes-cache";
+var CACHE_TREE_STORE = "treeChildren"; // per-folder direct children lists
+var CACHE_DOC_STORE = "docContent"; // opened note bodies
