@@ -38,3 +38,89 @@ async function onSignedIn() {
     updateDriveUI(true, user);
     await initDriveFilesystem();
     }
+
+/* ─── OAUTH / GAPI BOOT ─── */
+function gapiLoaded() {
+  gapi.load("client", async () => {
+    await gapi.client.init({ discoveryDocs: [] });
+    gapiInited = true;
+    maybeEnableButton();
+  });
+}
+
+function gisLoaded() {
+  if (!window.GOOGLE_CLIENT_ID) return;
+  tokenClient_tc = google.accounts.oauth2.initTokenClient({
+    client_id: window.GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: handleTokenResponse,
+  });
+  gisInited = true;
+  maybeEnableButton();
+}
+
+function maybeEnableButton() {
+  if (gapiInited && gisInited) {
+    const btn = document.getElementById("btn-google-login");
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function handleTokenResponse(resp) {
+  if (resp.error) {
+    console.error("OAuth error", resp);
+    setSyncStatus("error", "Sign-in failed", true);
+    return;
+  }
+  driveAccessToken = resp.access_token;
+  console.log("Granted OAuth scopes:", resp.scope);
+  const hasDrive =
+    typeof google !== "undefined" &&
+    google.accounts &&
+    google.accounts.oauth2 &&
+    google.accounts.oauth2.hasGrantedAllScopes(
+      resp,
+      "https://www.googleapis.com/auth/drive",
+    );
+  if (!hasDrive) {
+    console.error(
+      "Drive scope NOT granted. Token scopes:",
+      resp.scope,
+    );
+  }
+  await onSignedIn();
+}
+
+function updateDriveUI(signedIn, user) {
+  const loginBtn = document.getElementById("btn-google-login");
+  const userInfo = document.getElementById("user-info");
+  const nameLabel = document.getElementById("user-name-label");
+  const initials = document.getElementById("user-initials");
+  const avatar = document.getElementById("user-avatar");
+  if (!loginBtn || !userInfo || !nameLabel || !initials || !avatar)
+    return;
+  if (signedIn && user) {
+    loginBtn.style.display = "none";
+    userInfo.style.display = "flex";
+    const name = user.name || user.email || "User";
+    nameLabel.textContent = name;
+    initials.textContent = name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+    if (user.picture) {
+      avatar.innerHTML = `<img src="${user.picture}" alt="${name}">`;
+    }
+    setSyncStatus("saving", "Connecting...");
+  } else {
+    loginBtn.style.display = "flex";
+    userInfo.style.display = "none";
+    setSyncStatus("local", "Local only");
+  }
+}
+
+/* ─── OAUTH BOOT (assigned to window so Google scripts can call them) ─── */
+window.gapiLoaded = gapiLoaded;
+window.gisLoaded = gisLoaded;

@@ -5,7 +5,9 @@ description: Conventions for the in-progress index.html → js/ module refactor 
 
 # Andysnotes module refactor
 
-Ongoing goal: strip ALL JavaScript out of `index.html` inline `<script>` into per-feature modules under `js/`. Target files: config, state, auth, drive, sidebar, editor, modal, calendar, ui, app.
+Status: COMPLETE. All JS extracted from `index.html` inline `<script>` into per-feature files under `js/`: config, state, ui, drive, auth, sidebar, editor, modal, calendar, app. index.html now holds only bootstrap (`<script src>` tags + two Google `<script>` with onload attrs). Dead scaffolding storage.js/local-storage.js deleted (unused). app.js = bootstrap (DOMContentLoaded init + SW registration).
+
+Final load order (locked invariant): config → state → ui → drive → auth → sidebar → editor → modal → calendar → app → Google gsi/api scripts. auth.js MUST stay before the Google scripts (it defines + window-assigns gisLoaded/gapiLoaded which their onload calls).
 
 **Ironclad user rules:** move code only — never rewrite function bodies, never change behavior/features, remove duplicate functions, keep app runnable. Do ONE module per step; user manually smoke-tests (login → load → save) between steps before the next.
 
