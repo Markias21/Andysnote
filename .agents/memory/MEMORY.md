@@ -1,1 +1,2 @@
 - [Google OAuth CLIENT_ID timing](google-oauth-client-id-timing.md) — login button stuck disabled with NO console error = `gisLoaded()` ran before `type="module"` set `GOOGLE_CLIENT_ID`; use a plain sync head script. Also SW cache-first serves stale JS.
+- [Andysnotes module refactor](andysnotes-refactor.md) — plain-global scripts sharing scope; move WHOLE functions only (no rewrites), one module/step, keep drive.js before auth.js; state in state.js, config in config.js.

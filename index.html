@@ -1483,90 +1483,6 @@
         }
       }
 
-      /* ─── DRIVE HTTP HELPERS ─── */
-      
-      // POST without content body -> create folder (JSON only)
-      // POST with textContent -> create .txt file (multipart)
-      
-      
-      async function driveListChildren(parentId) {
-        let files = [],
-          pageToken = null;
-        do {
-          const params = {
-            q: `'${parentId}' in parents and trashed=false`,
-            fields:
-              "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime)",
-            pageSize: 200,
-            orderBy: "name",
-          };
-          if (pageToken) params.pageToken = pageToken;
-          const r = await driveGet(
-            "https://www.googleapis.com/drive/v3/files",
-            params,
-          );
-          files = files.concat(r.files || []);
-          pageToken = r.nextPageToken || null;
-        } while (pageToken);
-        return files;
-      }
-
-      /* ─── DRIVE FILESYSTEM INIT ─── */
-      async function initDriveFilesystem() {
-        try {
-          setSyncStatus("saving", "Loading...");
-          writerRootId = await findOrCreateWriterRoot();
-          driveTree = await loadSubtree(writerRootId);
-          renderSidebar();
-          populateModalFolders();
-          setSyncStatus("saved", "Loaded \u00b7 " + formatTime(new Date()));
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : JSON.stringify(e);
-          console.error("initDriveFilesystem error (full):", e);
-          console.error("initDriveFilesystem error (message):", msg);
-          setSyncStatus(
-            "error",
-            "Load failed \u00b7 " + formatTime(new Date()),
-            true,
-          );
-        }
-      }
-
-      async function findOrCreateWriterRoot() {
-        const r = await driveGet("https://www.googleapis.com/drive/v3/files", {
-          q: `name='${WRITER_ROOT_NAME}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,
-          fields: "files(id,name)",
-          pageSize: 1,
-        });
-        if (r.files && r.files.length > 0) return r.files[0].id;
-        // Create Writer/ root folder
-        const created = await drivePost(
-          "https://www.googleapis.com/drive/v3/files",
-          { name: WRITER_ROOT_NAME, mimeType: FOLDER_MIME, parents: ["root"] },
-        );
-        return created.id;
-      }
-
-      async function loadSubtree(parentId) {
-        const items = await driveListChildren(parentId);
-        const nodes = [];
-        for (const item of items) {
-          const node = {
-            id: item.id,
-            name: item.name,
-            mimeType: item.mimeType,
-            createdTime: item.createdTime,
-            modifiedTime: item.modifiedTime,
-            children: [],
-          };
-          if (item.mimeType === FOLDER_MIME) {
-            node.children = await loadSubtree(item.id);
-          }
-          nodes.push(node);
-        }
-        return nodes;
-      }
-
       /* ─── SIDEBAR ─── */
       function renderSidebar(filter = "") {
         const list = document.getElementById("folder-list");
@@ -1798,40 +1714,6 @@
         currentFileId = null;
       }
 
-      /* ─── SAVE DOC ─── */
-      function saveDoc() {
-        if (!currentFileId || !driveAccessToken) return;
-        clearTimeout(driveSaveTimer);
-        saveToDriveNow();
-      }
-
-      function scheduleDriveSave() {
-        if (!driveAccessToken || !currentFileId) return;
-        clearTimeout(driveSaveTimer);
-        setSyncStatus("saving", "Saving...");
-        driveSaveTimer = setTimeout(saveToDriveNow, 3000);
-      }
-
-      async function saveToDriveNow() {
-        if (!driveAccessToken || !currentFileId) return;
-        try {
-          setSyncStatus("saving", "Saving...");
-          const text = document.getElementById("doc-body").value || "";
-          await drivePatch(currentFileId, text);
-          // Update cached modifiedTime
-          const node = findNodeById(currentFileId, driveTree);
-          if (node) node.modifiedTime = new Date().toISOString();
-          setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
-        } catch (e) {
-          console.error("saveToDriveNow error", e);
-          setSyncStatus(
-            "error",
-            "Save failed \u00b7 " + formatTime(new Date()),
-            true,
-          );
-        }
-      }
-
       /* ─── EDITOR ─── */
       function execCmd(cmd, arg = null) {
         document.getElementById("doc-body").focus();
@@ -2044,14 +1926,6 @@
         insert(driveTree);
       }
 
-      function retryDriveSave() {
-        if (currentFileId && driveAccessToken) {
-          saveToDriveNow();
-        } else if (driveAccessToken && !writerRootId) {
-          initDriveFilesystem();
-        }
-      }
-
       /* ─── OAUTH BOOT (assigned to window so Google scripts can call them) ─── */
       window.gapiLoaded = gapiLoaded;
       window.gisLoaded = gisLoaded;
@@ -2083,7 +1957,7 @@
 
     <script src="js/storage.js"></script>
     <script src="js/local-storage.js"></script>
-    <script src="js/drive-api.js"></script>
+    <script src="js/drive.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
     <script>
