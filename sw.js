@@ -1,67 +1,25 @@
-const CACHE_NAME = "text-navigator-v3";
+/* Service worker kill-switch.
+   Previous versions cached stale copies of the app and served a broken mix of
+   old and new files. This version caches nothing: it deletes all caches,
+   unregisters itself, and reloads any open tabs so the browser always fetches
+   fresh files directly from the network. */
 
-const PRECACHE_URLS = [
-  "./",
-  "./manifest.json",
-  "./icon-192.svg",
-  "./icon-512.svg",
-  "./favicon.svg",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      clients.forEach((client) => client.navigate(client.url));
+    })(),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  if (request.method !== "GET") return;
-
-  if (url.hostname === "accounts.google.com" ||
-      url.hostname === "apis.google.com" ||
-      url.hostname.endsWith(".googleapis.com") ||
-      url.hostname.endsWith(".gstatic.com") ||
-      url.hostname.endsWith("fonts.googleapis.com")) {
-    return;
-  }
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .catch(() => caches.match("/"))
-    );
-    return;
-  }
-
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response;
-          }
-          const toCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, toCache));
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-  }
+  event.respondWith(fetch(event.request));
 });

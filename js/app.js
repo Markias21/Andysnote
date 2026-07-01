@@ -34,12 +34,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* ─── SERVICE WORKER ─── */
+/* ─── SERVICE WORKER CLEANUP ─── */
+/* Older versions of this app registered a caching service worker that ended up
+   serving stale files. We no longer register a service worker; instead we
+   unregister any existing one and clear all caches so the browser always loads
+   fresh files from the network. */
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./sw.js")
-      .then((reg) => console.log("[SW] Registered:", reg.scope))
-      .catch((err) => console.warn("[SW] Registration failed:", err));
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
   });
+}
+if (window.caches) {
+  caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
 }
