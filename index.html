@@ -1429,6 +1429,21 @@
           return;
         }
         driveAccessToken = resp.access_token;
+        console.log("Granted OAuth scopes:", resp.scope);
+        const hasDrive =
+          typeof google !== "undefined" &&
+          google.accounts &&
+          google.accounts.oauth2 &&
+          google.accounts.oauth2.hasGrantedAllScopes(
+            resp,
+            "https://www.googleapis.com/auth/drive",
+          );
+        if (!hasDrive) {
+          console.error(
+            "Drive scope NOT granted. Token scopes:",
+            resp.scope,
+          );
+        }
         await onSignedIn();
       }
 

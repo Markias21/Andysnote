@@ -7,7 +7,7 @@ async function handleAuthClick() {
         return;
     }
     tokenClient_tc.requestAccessToken({
-        prompt: driveAccessToken ? "" : "consent",
+        prompt: "consent",
     });
     }
 
