@@ -16,5 +16,6 @@ let driveAccessToken = null;
 /* ─── STORAGE MODE / LOCAL (BROWSER) NOTES ─── */
 let storageMode = "drive"; // backend of the currently-open doc: "drive" | "local"
 let localSaveTimer = null; // debounce timer for local autosave
-let localNotes = []; // browser-stored notes: [{id,title,body,createdTime,modifiedTime}]
+let localNotes = []; // browser-stored notes+folders: [{id,type,parentId,title,body,createdTime,modifiedTime}]
 let localDbPromise = null; // cached IndexedDB connection promise
+let localExpandedFolders = new Set(); // which notes_local folder IDs are open
