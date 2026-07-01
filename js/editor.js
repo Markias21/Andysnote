@@ -12,6 +12,12 @@ async function openDoc(node) {
   document.getElementById("empty-state").classList.add("hidden");
   document.getElementById("writing-panel").classList.remove("hidden");
 
+  // Optimistic UI: paint the sidebar active highlight straight from local
+  // selection state (currentFileId), decoupled from the async content load
+  // below. Previously this ran only after the Drive fetch, so the highlight
+  // lagged a network round-trip on every click.
+  renderSidebar(currentSearchValue());
+
   const title = node.name.replace(/\.txt$/, "");
   document.getElementById("doc-title").value = title;
 
@@ -78,7 +84,6 @@ async function openDoc(node) {
 
   updateWordCount();
   autoResize(document.getElementById("doc-title"));
-  renderSidebar(currentSearchValue());
 }
 
 /* Render plain text as one <div> block per line. Block-per-line is what makes

@@ -451,6 +451,12 @@ async function openLocalNote(id) {
   document.getElementById("empty-state").classList.add("hidden");
   document.getElementById("writing-panel").classList.remove("hidden");
 
+  // Optimistic UI: paint the sidebar active highlight straight from local
+  // selection state (currentFileId + storageMode), before filling in the note's
+  // content below, so selection is instant and decoupled from data loading.
+  renderLocalNotes(document.getElementById("search-input").value);
+  renderSidebar(document.getElementById("search-input").value);
+
   document.getElementById("doc-title").value = note.title || "";
   document.getElementById("meta-folder-name").textContent = "notes_local";
 
@@ -470,8 +476,6 @@ async function openLocalNote(id) {
   setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
   updateWordCount();
   autoResize(document.getElementById("doc-title"));
-  renderLocalNotes(document.getElementById("search-input").value);
-  renderSidebar(document.getElementById("search-input").value);
 }
 
 function scheduleLocalSave() {
