@@ -16,8 +16,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;600&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;500;600&family=Nanum+Myeongjo&family=IBM+Plex+Mono:wght@400;500&family=Jua&family=Hi+Melody&family=Gowun+Batang:wght@400;700&display=swap"
       rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/jetbrains-mono@1.0.6/css/jetbrains-mono.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css"
     />
     <style>
       *,
@@ -570,7 +582,7 @@
         background: transparent;
         border: none;
         color: var(--text);
-        font-family: var(--editor-font);
+        font-family: var(--editor-font), system-ui, sans-serif;
         font-size: 32px;
         font-weight: 500;
         line-height: 1.3;
@@ -611,7 +623,7 @@
         background: transparent;
         border: none;
         color: var(--text);
-        font-family: var(--editor-font);
+        font-family: var(--editor-font), system-ui, sans-serif;
         font-size: 17px;
         line-height: 1.85;
         outline: none;
@@ -961,6 +973,31 @@
       }
       .settings-select:focus {
         border-color: var(--border2);
+      }
+      .settings-select-group {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+        padding: 4px 8px;
+        background: var(--surface2);
+      }
+      .settings-select-option {
+        padding: 5px 8px;
+      }
+      .font-preview {
+        font-size: 14px;
+        line-height: 1.4;
+        padding: 6px 10px;
+        border-radius: var(--radius);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        min-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .switch {
         position: relative;
@@ -1585,7 +1622,7 @@
                       background: transparent;
                       border: none;
                       color: var(--text);
-                      font-family: var(--editor-font);
+                      font-family: var(--editor-font), system-ui, sans-serif;
                       font-size: 17px;
                       line-height: 1.85;
                       outline: none;

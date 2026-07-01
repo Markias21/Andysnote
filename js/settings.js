@@ -5,15 +5,50 @@
    Expand later by adding fields to defaultSettings() + the list in
    renderSettings(); no structural split needed. */
 
+/* ── Font registry ──
+   All editor fonts are registered in one place.
+   Key = stored value (what goes into localStorage / settings.font.editor).
+   Stack = CSS font-family token that the browser can resolve.
+   Preview = short sample text shown next to the font name in Settings.
+   Each entry carries a category so the Settings UI can group them.
+
+   Fonts are loaded once via CDN <link> tags in index.html.
+   Never duplicate font loading logic — the CDN links are global. */
+const EDITOR_FONTS = {
+  "pretendard":  { stack: "Pretendard",                 category: "clean",    preview: "Pretendard ┌──────" },
+  "noto-sans":   { stack: "\"Noto Sans KR\"",           category: "clean",    preview: "가가가가 Noto" },
+  "inter":       { stack: "Inter",                      category: "clean",    preview: "Inter abc" },
+  /* Gmarket Sans is not available on a reliable free CDN. Add via custom
+     @font-face if you have the font files, then register here with stack
+     "GmarketSans". */
+  "cookierun":   { stack: "\"Jua\"",                    category: "cute",     preview: "가가가가 CookieRun" },
+  "nanum-pen":   { stack: "\"Nanum Pen Script\"",       category: "cute",     preview: "가가가가 Pen" },
+  "noto-serif":  { stack: "\"Noto Serif KR\"",          category: "serif",    preview: "가가가가 Serif" },
+  "nanum-myeongjo": { stack: "\"Nanum Myeongjo\"",      category: "serif",    preview: "가가가가 Myeongjo" },
+  "kopub":       { stack: "\"Gowun Batang\"",           category: "serif",    preview: "가가가가 KoPub" },
+  "jetbrains":   { stack: "\"JetBrains Mono\"",         category: "mono",     preview: "JetBrains Mono" },
+  "fira":        { stack: "\"Fira Code\"",              category: "mono",     preview: "Fira Code" },
+  "ibm-plex":    { stack: "\"IBM Plex Mono\"",          category: "mono",     preview: "IBM Plex Mono" },
+  "system":      { stack: "system-ui",                  category: "clean",    preview: "System abc" },
+};
+
+/* Category labels for the Settings grouped dropdown. */
+const FONT_CATEGORIES = {
+  clean: "Clean / Default UI",
+  cute:  "Cute / Friendly",
+  serif: "Serif / Document",
+  mono:  "Code / Technical",
+};
+
 /* The single source of truth for shape + defaults. */
 function defaultSettings() {
   return {
     ui: {
-      indentMode: true, // indent mode: visual paragraph indentation on #doc-body
-      compactMode: false,  // denser layout
+      indentMode: true,   // indent mode: visual paragraph indentation on #doc-body
+      compactMode: false,   // denser layout
     },
     font: {
-      editor: "system", // key into EDITOR_FONTS map
+      editor: "pretendard", // key into EDITOR_FONTS
     },
     behavior: {
       autoSave: true,   // debounced autosave on edits
@@ -95,31 +130,19 @@ function setSetting(path, value) {
 }
 
 /* Reflect the current settings into the live DOM (fonts, view modes).
-   A single editor font key is resolved to a CSS font-family stack.
-   All text elements use the same variable --editor-font.
-   Every stack ends with system-ui, sans-serif per the fallback rule. */
+   The font stack is injected into --editor-font. The CSS in index.html
+   already appends `system-ui, sans-serif` after the variable:
+     font-family: var(--editor-font), system-ui, sans-serif;
+   So the stack here only needs the primary + any essential fallbacks.
+   (For web fonts we rely on the CDN link; for system fonts we keep the
+   token minimal and let the CSS fallback do the rest.) */
 function applySettings() {
   if (!appSettings) return;
 
-  // Editor font key → CSS font-family stack.
-  // Add new entries here to extend the font list; no other code changes needed.
-  const EDITOR_FONTS = {
-    "system":         "system-ui, -apple-system, sans-serif",
-    "sans-serif":     "Inter, system-ui, sans-serif",
-    "serif":          "Georgia, \"Times New Roman\", system-ui, sans-serif",
-    "monospace":      "\"Courier New\", Courier, system-ui, sans-serif",
-    "nanum-gothic":   "NanumGothic, system-ui, sans-serif",
-    "nanum-myeongjo": "NanumMyeongjo, system-ui, sans-serif",
-    "gungsuh":        "\uad81\uc11c, GungsuhChe, system-ui, sans-serif",
-    "dotum":          "\ub3cb\uc6c0, AppleGothic, system-ui, sans-serif",
-    "pretendard":     "Pretendard, system-ui, sans-serif",
-  };
+  const meta = EDITOR_FONTS[appSettings.font.editor];
+  const stack = meta ? meta.stack : "system-ui";
 
-  const root = document.documentElement;
-  const stack = EDITOR_FONTS[appSettings.font.editor]
-    || "system-ui, sans-serif";
-
-  root.style.setProperty("--editor-font", stack);
+  document.documentElement.style.setProperty("--editor-font", stack);
 
   const body = document.getElementById("doc-body");
   if (body) body.classList.toggle("indent-mode", !!appSettings.ui.indentMode);
@@ -148,8 +171,8 @@ function renderSettings() {
     {
       title: "UI",
       fields: [
-        { path: "ui.indentMode", label: "Indent mode", type: "bool" },
-        { path: "ui.compactMode",   label: "Compact mode",      type: "bool" },
+        { path: "ui.indentMode",    label: "Indent mode",    type: "bool" },
+        { path: "ui.compactMode",   label: "Compact mode",   type: "bool" },
       ],
     },
     {
@@ -158,20 +181,9 @@ function renderSettings() {
         {
           path: "font.editor",
           label: "Editor font",
-          type: "select",
-          // Extend this list to add more fonts; add matching entry to
-          // EDITOR_FONTS in applySettings() with the same key and a CSS stack.
-          options: [
-            { value: "system",         label: "System" },
-            { value: "sans-serif",     label: "Sans-serif" },
-            { value: "serif",          label: "Serif" },
-            { value: "monospace",      label: "Monospace" },
-            { value: "nanum-gothic",   label: "\ub098\ub214\uace0\ub515 (Nanum Gothic)" },
-            { value: "nanum-myeongjo", label: "\ub098\ub214\uba85\uc870 (Nanum Myeongjo)" },
-            { value: "gungsuh",        label: "\uad81\uc11c" },
-            { value: "dotum",          label: "\ub3cb\uc6c0" },
-            { value: "pretendard",     label: "Pretendard" },
-          ],
+          type: "font-select",
+          // grouped by category; each option carries preview text
+          options: buildFontOptions(),
         },
       ],
     },
@@ -204,7 +216,6 @@ function renderSettings() {
           field.path +
           "', this.value)\">";
         for (const opt of field.options) {
-          // options may be {value, label} objects or plain strings
           const optVal   = typeof opt === "object" ? opt.value : opt;
           const optLabel = typeof opt === "object" ? opt.label : opt;
           control +=
@@ -217,6 +228,8 @@ function renderSettings() {
             "</option>";
         }
         control += "</select>";
+      } else if (field.type === "font-select") {
+        control = renderFontSelect(field.path, val, field.options);
       }
       html +=
         '<div class="settings-row"><span class="settings-label">' +
@@ -228,4 +241,62 @@ function renderSettings() {
     html += "</div>";
   }
   document.getElementById("settings-body").innerHTML = html;
+}
+
+/* Build grouped font options from EDITOR_FONTS registry.
+   Returns [{ label, value, preview, category }, ...] sorted by category order. */
+function buildFontOptions() {
+  const order = ["clean", "cute", "serif", "mono"];
+  const items = [];
+  for (const key of Object.keys(EDITOR_FONTS)) {
+    const f = EDITOR_FONTS[key];
+    items.push({
+      value: key,
+      label: key.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      preview: f.preview,
+      category: f.category,
+    });
+  }
+  items.sort((a, b) => {
+    const oa = order.indexOf(a.category);
+    const ob = order.indexOf(b.category);
+    if (oa !== ob) return oa - ob;
+    return a.label.localeCompare(b.label);
+  });
+  return items;
+}
+
+/* Render a grouped font select with inline preview text.
+   Uses a native <select> with <optgroup> for categories.
+   The preview text is rendered as part of the option label. */
+function renderFontSelect(path, currentValue, options) {
+  let html = '<select class="settings-select" onchange="setSetting(\'' +
+    path + "', this.value)\">";
+
+  let currentGroup = null;
+  for (const opt of options) {
+    if (opt.category !== currentGroup) {
+      if (currentGroup !== null) html += "</optgroup>";
+      currentGroup = opt.category;
+      const groupLabel = FONT_CATEGORIES[currentGroup] || currentGroup;
+      html += '<optgroup label="' + escapeHtml(groupLabel) + '">';
+    }
+    const label = escapeHtml(opt.label) + " — " + escapeHtml(opt.preview);
+    html += '<option value="' + escapeHtml(opt.value) + '"' +
+      (opt.value === currentValue ? " selected" : "") +
+      ' style="font-family:' + escapeHtml(EDITOR_FONTS[opt.value].stack) + ',sans-serif"' +
+      ">" + label + "</option>";
+  }
+  if (currentGroup !== null) html += "</optgroup>";
+  html += "</select>";
+  return html;
+}
+
+/* Minimal HTML escape for option labels / values. */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
