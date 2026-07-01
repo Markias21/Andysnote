@@ -113,52 +113,18 @@ function showEmptyState() {
 }
 
 /* ─── EDITOR ─── */
-/* The only editor affordance: TOGGLE indentation on the paragraph containing
-   the caret. It's boolean — ON adds one step of left space, OFF removes it (no
-   accumulation on repeated clicks). This is a UI-only effect; it adds left
-   padding to the block and never writes anything to the saved plain text (saves
-   read innerText, which ignores padding), so indentation is not persisted and
-   reopening a note shows it flat again, by design. */
-function indentParagraph() {
+/* Paragraph-spacing view mode. This is NOT a text-editing feature and never
+   changes the saved data: setDocBody already renders each line (Enter-separated
+   paragraph) as its own <div>; this just toggles the .paragraph-view class on
+   #doc-body so CSS adds vertical space between those blocks. The saved value
+   (body.innerText) and its \n structure are unaffected. It's a global display
+   mode, applied to every paragraph at once — on by default. */
+function toggleParagraphView() {
   const body = document.getElementById("doc-body");
+  const on = body.classList.toggle("paragraph-view");
+  const btn = document.getElementById("btn-paragraph-view");
+  if (btn) btn.classList.toggle("active", on);
   body.focus();
-  const block = currentEditableBlock(body);
-  if (!block) return;
-  const on = block.dataset.indent === "1";
-  if (on) {
-    delete block.dataset.indent;
-    block.style.paddingLeft = "";
-  } else {
-    block.dataset.indent = "1";
-    block.style.paddingLeft = "24px";
-  }
-}
-
-/* Find the top-level block (direct child of #doc-body) that holds the caret,
-   wrapping a bare first-line text node in a <div> when needed so it can be
-   indented like any other paragraph. */
-function currentEditableBlock(body) {
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return null;
-  const range = sel.getRangeAt(0);
-  if (!body.contains(range.startContainer)) return null;
-  let node = range.startContainer;
-  if (node === body) {
-    node =
-      body.childNodes[range.startOffset] ||
-      body.childNodes[range.startOffset - 1] ||
-      null;
-  }
-  while (node && node.parentNode && node.parentNode !== body)
-    node = node.parentNode;
-  if (!node || node === body) return null;
-  if (node.nodeType === Node.TEXT_NODE) {
-    const div = document.createElement("div");
-    body.insertBefore(div, node);
-    div.appendChild(node);
-    node = div;
-  }
-  return node.nodeType === Node.ELEMENT_NODE ? node : null;
 }
 
 function onBodyInput() {
