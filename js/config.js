@@ -1,3 +1,7 @@
+/* ─── GOOGLE OAUTH ─── */
+/* 👇 여기에만 Client ID를 붙여넣으세요 (Client Secret은 사용하지 않음) */
+window.GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
+
 /* ─── DRIVE FILESYSTEM CONFIG ─── */
 const DEV_MODE =
   location.hostname.endsWith(".github.dev") ||

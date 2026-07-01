@@ -2,7 +2,7 @@
 async function handleAuthClick() {
     if (!tokenClient_tc) {
         alert(
-        "Google Sign-In is not configured. Please set VITE_GOOGLE_CLIENT_ID.",
+        "Google Sign-In is not configured. Please set window.GOOGLE_CLIENT_ID in js/config.js.",
         );
         return;
     }
