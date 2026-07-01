@@ -1,6 +1,6 @@
 /* ─── SETTINGS ───────────────────────────────────────────────────────────
    One app-wide settings object (declared as `appSettings` in state.js).
-   Start simple: a single object with 3 groups (UI / Font / Behavior).
+   Groups: UI / Font / Behavior. Font is two-axis only: korean + english.
    The UI never mutates settings directly — it only calls setSetting().
    Expand later by adding fields to defaultSettings() + the list in
    renderSettings(); no structural split needed. */
@@ -10,17 +10,15 @@ function defaultSettings() {
   return {
     ui: {
       paragraphMode: true, // paragraph-spacing view on #doc-body
-      compactMode: false, // denser layout
+      compactMode: false,  // denser layout
     },
     font: {
-      title: "Inter",
-      body: "Lora",
-      korean: "Apple SD Gothic Neo",
-      english: "Inter",
+      korean: "default",    // key into KOREAN_FONTS map
+      english: "sans-serif", // key into ENGLISH_FONTS map
     },
     behavior: {
-      autoSave: true, // debounced autosave on edits
-      driveSync: true, // push Drive docs to Google Drive automatically
+      autoSave: true,   // debounced autosave on edits
+      driveSync: true,  // push Drive docs to Google Drive automatically
     },
   };
 }
@@ -58,7 +56,7 @@ function saveSettings() {
   }
 }
 
-/* Read a setting by dotted path, e.g. getSetting("font.body"). */
+/* Read a setting by dotted path, e.g. getSetting("font.korean"). */
 function getSetting(path) {
   if (!appSettings) initSettings();
   const parts = path.split(".");
@@ -97,27 +95,39 @@ function setSetting(path, value) {
   }
 }
 
-/* Keep only characters valid in a CSS font-family token so a hand-edited
-   localStorage value can't inject arbitrary CSS through the custom property. */
-function sanitizeFont(name) {
-  return String(name || "").replace(/[^a-zA-Z0-9 \-]/g, "").trim();
-}
-
-/* Reflect the current settings into the live DOM (fonts, view modes). */
+/* Reflect the current settings into the live DOM (fonts, view modes).
+   Font keys are resolved to CSS font-family stacks via lookup maps.
+   Both --font-content and --font-title use the same composed stack
+   (english stack first, then korean stack as fallback). */
 function applySettings() {
   if (!appSettings) return;
+
+  // Korean font key → CSS font-family stack (with OS-level fallbacks)
+  // Add new entries here to extend the font list; no other code changes needed.
+  const KOREAN_FONTS = {
+    "default":  "sans-serif",
+    "dotum":    "\ub3cb\uc6c0, AppleGothic, sans-serif",
+    "myungjo":  "\uba85\uc870, AppleMyungjo, Batang, serif",
+    "gungsuh":  "\uad81\uc11c, GungsuhChe, serif",
+    "nanum":    "NanumGothic, \ub098\ub214\uace0\ub515, sans-serif",
+  };
+
+  // English font key → CSS font-family stack
+  const ENGLISH_FONTS = {
+    "sans-serif": "Inter, Arial, sans-serif",
+    "serif":      "Georgia, \"Times New Roman\", serif",
+    "monospace":  "\"Courier New\", Courier, monospace",
+    "system":     "system-ui, -apple-system, sans-serif",
+  };
+
   const root = document.documentElement;
   const f = appSettings.font;
-  const eng = sanitizeFont(f.english);
-  const kor = sanitizeFont(f.korean);
-  root.style.setProperty(
-    "--font-content",
-    `"${sanitizeFont(f.body)}", "${eng}", "${kor}", Georgia, serif`,
-  );
-  root.style.setProperty(
-    "--font-title",
-    `"${sanitizeFont(f.title)}", "${eng}", "${kor}", "Inter", sans-serif`,
-  );
+  const engStack = ENGLISH_FONTS[f.english] || "sans-serif";
+  const korStack = KOREAN_FONTS[f.korean]   || "sans-serif";
+  const fullStack = engStack + ", " + korStack;
+
+  root.style.setProperty("--font-content", fullStack);
+  root.style.setProperty("--font-title",   fullStack);
 
   const body = document.getElementById("doc-body");
   if (body) body.classList.toggle("paragraph-view", !!appSettings.ui.paragraphMode);
@@ -149,48 +159,46 @@ function renderSettings() {
       title: "UI",
       fields: [
         { path: "ui.paragraphMode", label: "Paragraph spacing", type: "bool" },
-        { path: "ui.compactMode", label: "Compact mode", type: "bool" },
+        { path: "ui.compactMode",   label: "Compact mode",      type: "bool" },
       ],
     },
     {
       title: "Font",
       fields: [
         {
-          path: "font.title",
-          label: "Title font",
-          type: "select",
-          options: ["Inter", "Lora", "Georgia", "system-ui"],
-        },
-        {
-          path: "font.body",
-          label: "Body font",
-          type: "select",
-          options: ["Lora", "Georgia", "Inter", "system-ui"],
-        },
-        {
           path: "font.korean",
           label: "Korean font",
           type: "select",
+          // {value: stored key, label: display name}
+          // Extend this list to add more Korean fonts; add matching entry to
+          // KOREAN_FONTS in applySettings() with the same key and a CSS stack.
           options: [
-            "Apple SD Gothic Neo",
-            "Malgun Gothic",
-            "Noto Sans KR",
-            "sans-serif",
+            { value: "default",  label: "\uae30\ubcf8 sans-serif" },
+            { value: "dotum",    label: "\ub3cb\uc6c0" },
+            { value: "myungjo",  label: "\uba85\uc870" },
+            { value: "gungsuh",  label: "\uad81\uc11c" },
+            { value: "nanum",    label: "\ub098\ub214\uace0\ub515 (NanumGothic)" },
           ],
         },
         {
           path: "font.english",
           label: "English font",
           type: "select",
-          options: ["Inter", "Georgia", "Arial", "Times New Roman"],
+          // Extend here + ENGLISH_FONTS in applySettings() to add more choices.
+          options: [
+            { value: "sans-serif", label: "Sans-serif" },
+            { value: "serif",      label: "Serif" },
+            { value: "monospace",  label: "Monospace" },
+            { value: "system",     label: "System font" },
+          ],
         },
       ],
     },
     {
       title: "Behavior",
       fields: [
-        { path: "behavior.autoSave", label: "Auto save", type: "bool" },
-        { path: "behavior.driveSync", label: "Drive sync", type: "bool" },
+        { path: "behavior.autoSave",  label: "Auto save",   type: "bool" },
+        { path: "behavior.driveSync", label: "Drive sync",  type: "bool" },
       ],
     },
   ];
@@ -215,13 +223,16 @@ function renderSettings() {
           field.path +
           "', this.value)\">";
         for (const opt of field.options) {
+          // options may be {value, label} objects or plain strings
+          const optVal   = typeof opt === "object" ? opt.value : opt;
+          const optLabel = typeof opt === "object" ? opt.label : opt;
           control +=
             '<option value="' +
-            opt +
+            optVal +
             '"' +
-            (opt === val ? " selected" : "") +
+            (optVal === val ? " selected" : "") +
             ">" +
-            opt +
+            optLabel +
             "</option>";
         }
         control += "</select>";
