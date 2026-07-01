@@ -1,0 +1,14 @@
+/* ─── IN-MEMORY TREE (Drive is source of truth) ─── */
+// Node: { id, name, mimeType, createdTime, modifiedTime, children: [] }
+let driveTree = []; // top-level children of Writer/
+let writerRootId = null; // Drive folder ID of "Writer/"
+let expandedFolders = new Set(); // which folder IDs are open in sidebar
+let currentFileId = null; // Drive file ID of the open document
+let calDate = new Date();
+let driveSaveTimer = null;
+
+/* ─── OAUTH / GAPI ─── */
+let tokenClient_tc = null;
+let gapiInited = false;
+let gisInited = false;
+let driveAccessToken = null;
