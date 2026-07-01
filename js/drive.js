@@ -170,23 +170,31 @@ function mergeChildren(oldNodes, freshNodes) {
 async function ensureFolderLoaded(folderId) {
   const node = findNodeById(folderId, driveTree);
   if (!node || node.mimeType !== FOLDER_MIME || node.loaded) return;
+  // Dedupe: a rapid re-open must not fire a second list call for the same folder.
+  if (folderLoadPromises[folderId]) return folderLoadPromises[folderId];
 
-  if (node.children.length === 0) {
-    const cached = await cacheGetChildren(folderId);
-    if (cached && cached.length && node.children.length === 0) {
-      node.children = cached.map(driveNodeFrom);
-      renderSidebar(currentSearchValue());
+  folderLoadPromises[folderId] = (async () => {
+    if (node.children.length === 0) {
+      const cached = await cacheGetChildren(folderId);
+      if (cached && cached.length && node.children.length === 0) {
+        node.children = cached.map(driveNodeFrom);
+        renderSidebar(currentSearchValue());
+      }
     }
-  }
-
+    try {
+      const fresh = await loadChildrenShallow(folderId);
+      node.children = mergeChildren(node.children, fresh);
+      node.loaded = true;
+      renderSidebar(currentSearchValue());
+      populateModalFolders();
+    } catch (e) {
+      console.error("ensureFolderLoaded error", e);
+    }
+  })();
   try {
-    const fresh = await loadChildrenShallow(folderId);
-    node.children = mergeChildren(node.children, fresh);
-    node.loaded = true;
-    renderSidebar(currentSearchValue());
-    populateModalFolders();
-  } catch (e) {
-    console.error("ensureFolderLoaded error", e);
+    await folderLoadPromises[folderId];
+  } finally {
+    delete folderLoadPromises[folderId];
   }
 }
 
@@ -270,19 +278,22 @@ function saveDoc() {
 
 function scheduleDriveSave() {
   if (!driveAccessToken || !currentFileId) return;
+  driveDirty = true;
   clearTimeout(driveSaveTimer);
   setSyncStatus("saving", "Saving...");
   driveSaveTimer = setTimeout(saveToDriveNow, 3000);
 }
 
 /* Flush a pending Drive autosave before switching documents so a delayed
-   timer can never patch the wrong file after currentFileId has changed. */
+   timer can never patch the wrong file after currentFileId has changed.
+   Only writes when the open doc is actually dirty — browsing/reading notes
+   must not trigger a wasteful PATCH on every navigation. */
 async function flushDriveSave() {
   if (driveSaveTimer) {
     clearTimeout(driveSaveTimer);
     driveSaveTimer = null;
   }
-  if (storageMode === "drive" && currentFileId && driveAccessToken)
+  if (storageMode === "drive" && currentFileId && driveAccessToken && driveDirty)
     await saveToDriveNow();
 }
 
@@ -298,6 +309,7 @@ async function saveToDriveNow() {
     const node = findNodeById(savedId, driveTree);
     if (node) node.modifiedTime = stamp;
     cachePutDoc(savedId, text, stamp);
+    driveDirty = false;
     setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
   } catch (e) {
     console.error("saveToDriveNow error", e);

@@ -444,6 +444,9 @@ async function openLocalNote(id) {
 
   storageMode = "local";
   currentFileId = id;
+  // The freshly opened note starts clean; never carry a prior doc's dirty flag.
+  driveDirty = false;
+  localDirty = false;
 
   document.getElementById("empty-state").classList.add("hidden");
   document.getElementById("writing-panel").classList.remove("hidden");
@@ -474,17 +477,20 @@ async function openLocalNote(id) {
 
 function scheduleLocalSave() {
   if (storageMode !== "local" || !currentFileId) return;
+  localDirty = true;
   clearTimeout(localSaveTimer);
   setSyncStatus("saving", "Saving...");
   localSaveTimer = setTimeout(saveLocalNow, 1200);
 }
 
+/* Only persist when the open note is actually dirty, so switching between
+   notes to read them never triggers a redundant IndexedDB write. */
 async function flushLocalSave() {
   if (localSaveTimer) {
     clearTimeout(localSaveTimer);
     localSaveTimer = null;
   }
-  if (storageMode === "local" && currentFileId) await saveLocalNow();
+  if (storageMode === "local" && currentFileId && localDirty) await saveLocalNow();
 }
 
 async function saveLocalNow() {
@@ -510,6 +516,7 @@ async function saveLocalNow() {
     else localNotes.push(note);
 
     renderLocalNotes(document.getElementById("search-input").value);
+    localDirty = false;
     setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
   } catch (e) {
     console.error("saveLocalNow error", e);

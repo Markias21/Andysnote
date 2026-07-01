@@ -36,7 +36,9 @@ Drive nav is lazy + cache-first, NOT an eager full crawl. `js/cache.js` (separat
 
 ## Autosave data-loss guard (why flush-on-switch exists)
 
-Both backends autosave on a debounce timer (`driveSaveTimer` 3s, `localSaveTimer` 1.2s) that reads mutable globals (`currentFileId`, editor DOM) at fire time. A delayed timer could patch/overwrite the WRONG doc after navigation. **Rule:** every doc-switch entry point (`openDoc`, `openLocalNote`) must `await flushDriveSave(); await flushLocalSave();` BEFORE changing `currentFileId`/`storageMode`. Each flush clears its timer and, if its mode is active, saves synchronously first. Any global-state reset (esp. `handleSignoutClick`) must be mode-aware or it wipes the open local note.
+Both backends autosave on a debounce timer (`driveSaveTimer` 3s, `localSaveTimer` 1.2s) that reads mutable globals (`currentFileId`, editor DOM) at fire time. A delayed timer could patch/overwrite the WRONG doc after navigation. **Rule:** every doc-switch entry point (`openDoc`, `openLocalNote`) must `await flushDriveSave(); await flushLocalSave();` BEFORE changing `currentFileId`/`storageMode`. Each flush clears its timer and, if its mode is active AND dirty, saves synchronously first. Any global-state reset (esp. `handleSignoutClick`) must be mode-aware or it wipes the open local note.
+
+**Dirty gating (why flush must NOT save unconditionally):** flush-on-switch used to PATCH Drive / write IndexedDB on EVERY navigation even when the doc was only read — a wasteful network write per note click, a real slowness source. Now `driveDirty`/`localDirty` (state.js) are set in `scheduleDriveSave`/`scheduleLocalSave`, cleared on successful save, and flush only saves when dirty. **Flags are boolean+global, not per-file**, so every doc-open (`openDoc`/`openLocalNote`) resets BOTH flags to false right after setting `currentFileId` — otherwise a failed prior flush leaves a stale-true flag that would later be applied to the wrong (next) doc. Known accepted limitation: flush-save errors are swallowed, so navigation still proceeds if a save fails (pre-existing; not a regression of the dirty change).
 
 ## Editor I/O quirk
 

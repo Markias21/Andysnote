@@ -160,7 +160,14 @@ function toggleFolder(folderId) {
   if (opening) ensureFolderLoaded(folderId);
 }
 
+/* Debounced so a full sidebar rebuild (and, when needed, the one-time full-tree
+   load) runs after the user pauses typing instead of on every keystroke. */
 function filterDocs(val) {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => applyDocFilter(val), 180);
+}
+
+function applyDocFilter(val) {
   // Search must see the whole workspace, so pull in any not-yet-loaded folders
   // (once; the result is cached). Navigation stays lazy when there is no query.
   if (val && val.trim() && driveAccessToken && !driveTreeFullyLoaded) {

@@ -5,6 +5,9 @@ async function openDoc(node) {
   await flushLocalSave();
   storageMode = "drive";
   currentFileId = node.id;
+  // The freshly opened doc starts clean; never carry a prior doc's dirty flag.
+  driveDirty = false;
+  localDirty = false;
 
   document.getElementById("empty-state").classList.add("hidden");
   document.getElementById("writing-panel").classList.remove("hidden");
