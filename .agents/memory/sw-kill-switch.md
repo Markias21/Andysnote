@@ -1,6 +1,6 @@
 ---
 name: Service worker stale-cache kill-switch
-description: Why Andysnotes' SW was removed and how to escape a stuck stale-cache state.
+description: Why AndysNote' SW was removed and how to escape a stuck stale-cache state.
 ---
 
 # Service worker stale-cache kill-switch

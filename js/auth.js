@@ -16,7 +16,7 @@ async function handleSignoutClick() {
         google.accounts.oauth2.revoke(driveAccessToken, () => {});
     driveAccessToken = null;
     updateDriveUI(false, null);
-    writerRootId = null;
+    andysNoteRootId = null;
     driveTree = [];
     expandedFolders = new Set();
     driveTreeFullyLoaded = false;

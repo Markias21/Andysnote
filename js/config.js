@@ -7,17 +7,17 @@ window.GOOGLE_CLIENT_ID =
 const DEV_MODE =
   location.hostname.endsWith(".github.dev") ||
   location.hostname === "localhost";
-var WRITER_ROOT_NAME = "Writer";
+var ANDYSNOTE_ROOT_NAME = "AndysNote";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
 var FILE_MIME = "text/plain";
 var DRIVE_SCOPE =
   "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
 
 /* ─── LOCAL (browser) STORE CONFIG ─── */
-var LOCAL_DB_NAME = "andysnotes-local";
+var LOCAL_DB_NAME = "andysnote-local";
 var LOCAL_STORE = "notes";
 
 /* ─── DRIVE CACHE CONFIG (IndexedDB performance layer) ─── */
-var DRIVE_CACHE_DB_NAME = "andysnotes-cache";
+var DRIVE_CACHE_DB_NAME = "andysnote-cache";
 var CACHE_TREE_STORE = "treeChildren"; // per-folder direct children lists
 var CACHE_DOC_STORE = "docContent"; // opened note bodies

@@ -1,7 +1,7 @@
 /* ─── IN-MEMORY TREE (Drive is source of truth) ─── */
 // Node: { id, name, mimeType, createdTime, modifiedTime, children: [] }
-let driveTree = []; // top-level children of Writer/
-let writerRootId = null; // Drive folder ID of "Writer/"
+let driveTree = []; // top-level children of AndysNote/
+let andysNoteRootId = null; // Drive folder ID of "AndysNote/"
 let expandedFolders = new Set(); // which folder IDs are open in sidebar
 let currentFileId = null; // Drive file ID of the open document
 let calDate = new Date();

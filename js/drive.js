@@ -101,10 +101,10 @@ async function initDriveFilesystem() {
   try {
     setSyncStatus("saving", "Loading...");
     driveTreeFullyLoaded = false;
-    writerRootId = await findOrCreateWriterRoot();
+    andysNoteRootId = await findOrCreateAndysNoteRoot();
 
     // 1) Instant paint from cache, if we have one.
-    const cached = await cacheGetChildren(writerRootId);
+    const cached = await cacheGetChildren(andysNoteRootId);
     if (cached && cached.length) {
       driveTree = cached.map(driveNodeFrom);
       renderSidebar(currentSearchValue());
@@ -113,7 +113,7 @@ async function initDriveFilesystem() {
     }
 
     // 2) Revalidate the root level against Drive.
-    const fresh = await loadChildrenShallow(writerRootId);
+    const fresh = await loadChildrenShallow(andysNoteRootId);
     driveTree = mergeChildren(driveTree, fresh);
     renderSidebar(currentSearchValue());
     populateModalFolders();
@@ -222,7 +222,7 @@ async function loadEntireTree() {
    create so the cached tree stays in sync with what the user sees. */
 function syncFolderCache(parentId) {
   const children =
-    parentId === writerRootId
+    parentId === andysNoteRootId
       ? driveTree
       : (findNodeById(parentId, driveTree) || {}).children || [];
   cachePutChildren(parentId, children);
@@ -248,17 +248,17 @@ async function deepLoadNodes(nodes) {
   return results.every(Boolean);
 }
 
-async function findOrCreateWriterRoot() {
+async function findOrCreateAndysNoteRoot() {
   const r = await driveGet("https://www.googleapis.com/drive/v3/files", {
-    q: `name='${WRITER_ROOT_NAME}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,
+    q: `name='${ANDYSNOTE_ROOT_NAME}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,
     fields: "files(id,name)",
     pageSize: 1,
   });
   if (r.files && r.files.length > 0) return r.files[0].id;
-  // Create Writer/ root folder
+  // Create AndysNote/ root folder
   const created = await drivePost(
     "https://www.googleapis.com/drive/v3/files",
-    { name: WRITER_ROOT_NAME, mimeType: FOLDER_MIME, parents: ["root"] },
+    { name: ANDYSNOTE_ROOT_NAME, mimeType: FOLDER_MIME, parents: ["root"] },
   );
   return created.id;
 }
@@ -326,7 +326,7 @@ async function saveToDriveNow() {
 function retryDriveSave() {
   if (currentFileId && driveAccessToken) {
     saveToDriveNow();
-  } else if (driveAccessToken && !writerRootId) {
+  } else if (driveAccessToken && !andysNoteRootId) {
     initDriveFilesystem();
   }
 }

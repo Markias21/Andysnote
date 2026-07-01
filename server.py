@@ -1,4 +1,4 @@
-"""Static file server for Andysnotes.
+"""Static file server for AndysNote.
 
 Serves the site with no-cache headers so browsers always revalidate and fetch
 the latest files. This prevents the stale-cache problems that occur with the
@@ -22,5 +22,5 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("0.0.0.0", PORT), NoCacheHandler) as httpd:
-        print(f"Serving Andysnotes on 0.0.0.0:{PORT} (no-cache)")
+        print(f"Serving AndysNote on 0.0.0.0:{PORT} (no-cache)")
         httpd.serve_forever()

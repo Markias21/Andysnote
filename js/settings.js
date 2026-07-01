@@ -42,7 +42,7 @@ function mergeSettings(defaults, saved) {
 function initSettings() {
   let saved = null;
   try {
-    saved = JSON.parse(localStorage.getItem("andysnotes-settings") || "null");
+    saved = JSON.parse(localStorage.getItem("andysnote-settings") || "null");
   } catch (e) {
     saved = null;
   }
@@ -52,7 +52,7 @@ function initSettings() {
 
 function saveSettings() {
   try {
-    localStorage.setItem("andysnotes-settings", JSON.stringify(appSettings));
+    localStorage.setItem("andysnote-settings", JSON.stringify(appSettings));
   } catch (e) {
     /* ignore quota / privacy-mode errors */
   }

@@ -1,9 +1,9 @@
 ---
-name: Andysnotes architecture
-description: Architecture + conventions for the Andysnotes writing app (plain-global js/ modules, dual storage backends).
+name: AndysNote architecture
+description: Architecture + conventions for the AndysNote writing app (plain-global js/ modules, dual storage backends).
 ---
 
-# Andysnotes architecture
+# AndysNote architecture
 
 Pure static site: root `index.html` + per-feature `js/*.js`, served by `python3 server.py` (custom no-cache static server). All JS files are PLAIN classic scripts sharing ONE global scope (no ES modules).
 
@@ -15,8 +15,8 @@ Pure static site: root `index.html` + per-feature `js/*.js`, served by `python3 
 
 There is NO class/registry abstraction — each backend is one file of plain top-level functions.
 
-- **Drive** (`drive.js`): Google Drive via GIS token (full `drive` scope). Folder tree in `driveTree`/`writerRootId`; rendered in sidebar `#folder-list`.
-- **Local** (`local.js`): BROWSER-based file I/O, NOT the real OS filesystem. Primary store = IndexedDB (`andysnotes-local` db, `notes` store, keyPath `id`; ids `"local-"+Date.now()+"-"+rand`). Records carry `type:"folder"|"note"` and `parentId` (null=root); backward-compat: missing `type`→note, missing `parentId`→root. Notes add `title,body,createdTime,modifiedTime`; folders omit `body`. Shown in its own sidebar section **notes_local** (`#local-list`) as an expand/collapse tree that MIRRORS the Drive tree UX (folders, nested subfolders, per-folder hover actions: new note / new subfolder / delete-recursive; open-folder state in `localExpandedFolders` Set). It is an app-managed list — NOT a mirror of any OS folder. The OS filesystem is only touched through explicit user-driven `.txt` **export** (`showSaveFilePicker` → `<a download>` fallback) and **import** (`showOpenFilePicker` → hidden `<input type=file>` fallback; imports land at root).
+- **Drive** (`drive.js`): Google Drive via GIS token (full `drive` scope). Folder tree in `driveTree`/`andysNoteRootId`; rendered in sidebar `#folder-list`.
+- **Local** (`local.js`): BROWSER-based file I/O, NOT the real OS filesystem. Primary store = IndexedDB (`andysnote-local` db, `notes` store, keyPath `id`; ids `"local-"+Date.now()+"-"+rand`). Records carry `type:"folder"|"note"` and `parentId` (null=root); backward-compat: missing `type`→note, missing `parentId`→root. Notes add `title,body,createdTime,modifiedTime`; folders omit `body`. Shown in its own sidebar section **notes_local** (`#local-list`) as an expand/collapse tree that MIRRORS the Drive tree UX (folders, nested subfolders, per-folder hover actions: new note / new subfolder / delete-recursive; open-folder state in `localExpandedFolders` Set). It is an app-managed list — NOT a mirror of any OS folder. The OS filesystem is only touched through explicit user-driven `.txt` **export** (`showSaveFilePicker` → `<a download>` fallback) and **import** (`showOpenFilePicker` → hidden `<input type=file>` fallback; imports land at root).
 
   **Local folder invariants (learned):** (1) folder delete must be ONE IndexedDB transaction (`localDbDeleteMany`) — deleting descendants in a per-id loop can partially fail and orphan children. (2) Rendering is orphan-safe: `localChildrenOf(null)` also surfaces any node whose `parentId` points to a missing/non-folder record, so data can never become invisible. (3) Recursive tree helpers take a `seen` Set cycle-guard against corrupted parent chains. (4) folders are never opened as documents — `openLocalNote` returns early if `type==="folder"`.
 
@@ -26,7 +26,7 @@ There is NO class/registry abstraction — each backend is one file of plain top
 
 ## Drive performance: lazy load + IndexedDB cache (why it's shaped this way)
 
-Drive nav is lazy + cache-first, NOT an eager full crawl. `js/cache.js` (separate db `andysnotes-cache`, stores `treeChildren` per folderId + `docContent` per fileId) is a performance layer only — Drive stays source of truth.
+Drive nav is lazy + cache-first, NOT an eager full crawl. `js/cache.js` (separate db `andysnote-cache`, stores `treeChildren` per folderId + `docContent` per fileId) is a performance layer only — Drive stays source of truth.
 
 - **Never eagerly crawl the whole tree.** The old `loadSubtree` did N serial API calls before first paint. Now `initDriveFilesystem` paints root from cache instantly, then revalidates only the root level (`loadChildrenShallow`). A folder's children load on first expand (`ensureFolderLoaded` via `toggleFolder`); nodes carry a `loaded` flag. `mergeChildren` preserves already-loaded subtrees when a level is revalidated (else you discard deeper loaded data).
 - **openDoc is stale-while-revalidate.** Paint cached body instantly, then ALWAYS re-fetch from Drive. Do NOT hard-skip the network on timestamp equality — `node.modifiedTime` is client/tree-derived and can be stale (external edits) → would serve stale content forever. **Why:** correctness must not depend on cache alone. Guard: only overwrite the visible body if `body.innerText === paintedText` (user hasn't started editing), and re-check `currentFileId !== node.id` after every await (rapid doc-switch race).
@@ -48,7 +48,7 @@ Both backends autosave on a debounce timer (`driveSaveTimer` 3s, `localSaveTimer
 
 ## Settings (single global object + setSetting)
 
-Settings is ONE app-wide object `appSettings` (declared in `state.js` to honor the ironclad globals rule) with exactly 3 groups: `ui` {paragraphMode, compactMode}, `font` {title, body, korean, english}, `behavior` {autoSave, driveSync}. ALL logic lives in `js/settings.js` (function declarations only — no top-level const/var there; the localStorage key `"andysnotes-settings"` is inlined as a literal, NOT a top-level const, to respect the rule). Loaded right after state.js in index.html. **Design intent (user):** start with ONE object + simple list UI, expand later by adding fields to `defaultSettings()` + the `groups` schema inside `renderSettings()` — do NOT split into per-group modules/tabs.
+Settings is ONE app-wide object `appSettings` (declared in `state.js` to honor the ironclad globals rule) with exactly 3 groups: `ui` {paragraphMode, compactMode}, `font` {title, body, korean, english}, `behavior` {autoSave, driveSync}. ALL logic lives in `js/settings.js` (function declarations only — no top-level const/var there; the localStorage key `"andysnote-settings"` is inlined as a literal, NOT a top-level const, to respect the rule). Loaded right after state.js in index.html. **Design intent (user):** start with ONE object + simple list UI, expand later by adding fields to `defaultSettings()` + the `groups` schema inside `renderSettings()` — do NOT split into per-group modules/tabs.
 
 - **Mutation seam:** UI never writes `appSettings` directly — only `setSetting("group.field", value)` (dotted path). `setSetting` → write → `saveSettings()` (localStorage) → `applySettings()`. `getSetting("group.field")` reads. `initSettings()` (called FIRST in app.js DOMContentLoaded) merges saved-over-defaults per-group via `mergeSettings` so newly-added default fields appear for old users.
 - **applySettings() is the single reconciler** (idempotent, safe to call on init): sets CSS vars `--font-content`/`--font-title` (composed as `"body/title", "english", "korean", <fallback>` so all 4 font settings matter — Latin uses first Latin font, Korean falls through to the Korean font), toggles `#doc-body.paragraph-view` + `#btn-paragraph-view.active`, toggles `body.compact`. Font strings pass through `sanitizeFont()` (strips all but `[A-Za-z0-9 -]`) before CSS injection (hand-edited localStorage safety).

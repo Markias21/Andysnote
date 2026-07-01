@@ -24,7 +24,7 @@ async function openDoc(node) {
   const parentNode = findParentOf(node.id, driveTree);
   document.getElementById("meta-folder-name").textContent = parentNode
     ? parentNode.name
-    : WRITER_ROOT_NAME;
+    : ANDYSNOTE_ROOT_NAME;
 
   const modified = node.modifiedTime ? new Date(node.modifiedTime) : null;
   document.getElementById("meta-date-val").textContent = modified

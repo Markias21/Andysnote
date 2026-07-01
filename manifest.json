@@ -1,6 +1,6 @@
 {
-  "name": "Andysnotes",
-  "short_name": "Andysnotes",
+  "name": "AndysNote",
+  "short_name": "AndysNote",
   "description": "A personal writing app backed by Google Drive",
   "display": "standalone",
   "start_url": "./",

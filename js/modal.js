@@ -13,7 +13,7 @@ function onModalTypeChange(type) {
 
 function populateModalFolders() {
   const sel = document.getElementById("modal-folder");
-  sel.innerHTML = '<option value="">Andysnotes/ (root)</option>';
+  sel.innerHTML = '<option value="">AndysNote/ (root)</option>';
   function addOptions(nodes, prefix) {
     for (const n of nodes) {
       if (n.mimeType !== FOLDER_MIME) continue;
@@ -55,7 +55,7 @@ async function createItem() {
   const typeEl = document.getElementById("modal-type");
   const type = typeEl ? typeEl.value : "doc";
   const folderEl = document.getElementById("modal-folder");
-  const folderId = folderEl.value || writerRootId;
+  const folderId = folderEl.value || andysNoteRootId;
 
   if (!title) {
     document.getElementById("modal-title").style.borderColor =
@@ -129,7 +129,7 @@ async function createItem() {
 
 function insertIntoTree(node, parentId) {
   const sort = (arr) => arr.sort((a, b) => a.name.localeCompare(b.name));
-  if (parentId === writerRootId) {
+  if (parentId === andysNoteRootId) {
     driveTree.push(node);
     sort(driveTree);
     return;

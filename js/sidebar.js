@@ -11,7 +11,7 @@ function renderSidebar(filter = "") {
     return;
   }
 
-  if (driveTree.length === 0 && writerRootId) {
+  if (driveTree.length === 0 && andysNoteRootId) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);">' +
       "No folders yet. Use the \u002b button to create one.</div>";
