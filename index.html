@@ -624,14 +624,14 @@
         color: var(--text-muted);
       }
 
-      /* Paragraph spacing is a pure UI view mode: it adds vertical space
-         between the per-line blocks (Korean-document look) without touching the
+      /* Indent mode is a pure UI view mode: it adds visual indentation
+         between the per-line blocks without touching the
          saved plain text or its \n structure. Toggled globally via the
-         .paragraph-view class on #doc-body. */
+         .indent-mode class on #doc-body. */
       #doc-body > div {
         transition: margin-bottom 0.15s ease;
       }
-      #doc-body.paragraph-view > div {
+      #doc-body.indent-mode > div {
         margin-bottom: 0.85em;
       }
 
@@ -1499,27 +1499,6 @@
             <!-- WRITING PANEL -->
             <div class="writing-panel hidden" id="writing-panel">
               <div class="editor-toolbar" id="editor-toolbar">
-                <button
-                  id="btn-paragraph-view"
-                  class="tool-btn active"
-                  title="Paragraph spacing view"
-                  onclick="toggleParagraphView()"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <line x1="4" y1="5" x2="20" y2="5" />
-                    <line x1="4" y1="9" x2="20" y2="9" />
-                    <line x1="4" y1="15" x2="20" y2="15" />
-                    <line x1="4" y1="19" x2="20" y2="19" />
-                  </svg>
-                </button>
-                <div class="sep"></div>
                 <button class="tool-btn" title="Save" onclick="saveDoc()">
                   <svg
                     viewBox="0 0 24 24"
@@ -1598,7 +1577,7 @@
                   </div>
                   <div
                     id="doc-body"
-                    class="paragraph-view"
+                    class="indent-mode"
                     contenteditable="plaintext-only"
                     style="
                       width: 100%;

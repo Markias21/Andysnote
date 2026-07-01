@@ -120,15 +120,10 @@ function showEmptyState() {
 /* ─── EDITOR ─── */
 /* Paragraph-spacing view mode. This is NOT a text-editing feature and never
    changes the saved data: setDocBody already renders each line (Enter-separated
-   paragraph) as its own <div>; this just toggles the .paragraph-view class on
+   paragraph) as its own <div>; this just toggles the .indent-mode class on
    #doc-body so CSS adds vertical space between those blocks. The saved value
    (body.innerText) and its \n structure are unaffected. It's a global display
    mode, applied to every paragraph at once — on by default. */
-function toggleParagraphView() {
-  setSetting("ui.paragraphMode", !getSetting("ui.paragraphMode"));
-  document.getElementById("doc-body").focus();
-}
-
 function onBodyInput() {
   updateWordCount();
   const body = document.getElementById("doc-body");

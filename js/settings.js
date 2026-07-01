@@ -9,7 +9,7 @@
 function defaultSettings() {
   return {
     ui: {
-      paragraphMode: true, // paragraph-spacing view on #doc-body
+      indentMode: true, // indent mode: visual paragraph indentation on #doc-body
       compactMode: false,  // denser layout
     },
     font: {
@@ -122,9 +122,7 @@ function applySettings() {
   root.style.setProperty("--editor-font", stack);
 
   const body = document.getElementById("doc-body");
-  if (body) body.classList.toggle("paragraph-view", !!appSettings.ui.paragraphMode);
-  const pBtn = document.getElementById("btn-paragraph-view");
-  if (pBtn) pBtn.classList.toggle("active", !!appSettings.ui.paragraphMode);
+  if (body) body.classList.toggle("indent-mode", !!appSettings.ui.indentMode);
 
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
 }
@@ -150,7 +148,7 @@ function renderSettings() {
     {
       title: "UI",
       fields: [
-        { path: "ui.paragraphMode", label: "Paragraph spacing", type: "bool" },
+        { path: "ui.indentMode", label: "Indent mode", type: "bool" },
         { path: "ui.compactMode",   label: "Compact mode",      type: "bool" },
       ],
     },
