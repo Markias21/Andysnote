@@ -624,14 +624,16 @@
         color: var(--text-muted);
       }
 
-      /* Indent mode is a pure UI view mode: it adds visual left indentation
-         to every paragraph without touching the saved plain text or its \n
-         structure. Toggled globally via the .indent-mode class on #doc-body. */
+      /* Indent mode is a pure UI view mode: it adds first-line indentation
+         to each paragraph (each newline-separated block) without touching the
+         saved plain text or its \n structure. Toggled globally via the
+         .indent-mode class on #doc-body. Wrapped lines within the same
+         paragraph are NOT indented — only the paragraph boundary is. */
       #doc-body > div {
-        transition: padding-left 0.15s ease;
+        transition: text-indent 0.15s ease;
       }
       #doc-body.indent-mode > div {
-        padding-left: 1.5em;
+        text-indent: 1.5em;
       }
 
       /* ─── EMPTY STATE ─── */
