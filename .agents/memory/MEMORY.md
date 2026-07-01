@@ -1,0 +1,1 @@
+- [Google OAuth CLIENT_ID timing](google-oauth-client-id-timing.md) — login button stuck disabled with NO console error = `gisLoaded()` ran before `type="module"` set `GOOGLE_CLIENT_ID`; use a plain sync head script. Also SW cache-first serves stale JS.
