@@ -16,6 +16,25 @@ function registerLocalHandle(handle, parentId, name, kind) {
   return id;
 }
 
+/* Sidebar "+" button: designate a local folder the first time,
+   then create folders/documents inside it. */
+function handleSidebarAdd() {
+  if (storageMode === "local") {
+    if (!localRootHandle) {
+      connectLocalFolder();
+      return;
+    }
+    openModal();
+    return;
+  }
+  // Drive mode: create items when signed in; otherwise start local folder setup.
+  if (driveAccessToken) {
+    openModal();
+    return;
+  }
+  connectLocalFolder();
+}
+
 /* Connect (or create) a folder on disk and switch to local mode. */
 async function connectLocalFolder() {
   if (!window.showDirectoryPicker) {
@@ -30,7 +49,14 @@ async function connectLocalFolder() {
   } catch (e) {
     if (e && e.name === "AbortError") return; // user cancelled the picker
     console.error("showDirectoryPicker error", e);
-    alert("\uD3F4\uB354\uB97C \uC5EC\uB294 \uB370 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
+    if (window.self !== window.top) {
+      // Browsers block the directory picker inside a cross-origin iframe.
+      alert(
+        "\uBBF8\uB9AC\uBCF4\uAE30 \uCC3D(iframe) \uC548\uC5D0\uC11C\uB294 \uBE0C\uB77C\uC6B0\uC800\uAC00 \uB85C\uCEEC \uD3F4\uB354 \uC811\uADFC\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4.\n\uBBF8\uB9AC\uBCF4\uAE30 \uC624\uB978\uCABD \uC704\uC758 '\uC0C8 \uD0ED\uC5D0\uC11C \uC5F4\uAE30' \uBC84\uD2BC\uC73C\uB85C \uC571\uC744 \uC5F0 \uB4A4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+      );
+    } else {
+      alert("\uD3F4\uB354\uB97C \uC5EC\uB294 \uB370 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
+    }
     return;
   }
   try {
@@ -55,7 +81,6 @@ async function connectLocalFolder() {
     WRITER_ROOT_NAME,
     "directory",
   );
-  updateLocalUI();
   showEmptyState();
   await initLocalFilesystem();
 }
@@ -267,10 +292,4 @@ async function saveLocalNow() {
       false,
     );
   }
-}
-
-/* Reflect local mode in the top bar. */
-function updateLocalUI() {
-  const btn = document.getElementById("btn-local-folder");
-  if (btn) btn.classList.add("active");
 }

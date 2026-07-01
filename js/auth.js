@@ -44,8 +44,6 @@ async function onSignedIn() {
     storageMode = "drive";
     currentFileId = null;
     expandedFolders = new Set();
-    const localBtn = document.getElementById("btn-local-folder");
-    if (localBtn) localBtn.classList.remove("active");
     await initDriveFilesystem();
     }
 

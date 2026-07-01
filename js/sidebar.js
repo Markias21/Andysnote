@@ -8,7 +8,7 @@ function renderSidebar(filter = "") {
     if (!localRootHandle) {
       list.innerHTML =
         '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-        "Open a local folder to load your workspace from this computer.</div>";
+        "Press the \u002b button above to choose a folder on this computer.</div>";
       return;
     }
     if (driveTree.length === 0) {
@@ -24,7 +24,7 @@ function renderSidebar(filter = "") {
   if (!driveAccessToken) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-      "Sign in with Google to load your Andysnotes workspace from Drive.</div>";
+      "Press the \u002b button above to choose a folder on this computer, or sign in with Google to use Drive.</div>";
     return;
   }
 
