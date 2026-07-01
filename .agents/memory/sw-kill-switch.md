@@ -27,3 +27,14 @@ the kill-switch, activates it (skipWaiting), cleans up, and reloads → fresh fi
 reload loop (clean load → register kill-switch → activate → navigate/reload →
 register again → …). If offline/PWA is ever wanted again, use a versioned cache
 with a safe update path, not a re-registered kill-switch.
+
+## HTTP cache was the second culprit
+The SW was only half the problem. The default `python3 -m http.server` lets
+browsers heuristically cache JS and serve it **without revalidating** — so even
+after a fresh `GET /` (new index.html), the browser ran an OLD `js/app.js` from
+memory cache (no request hit the server). Fix: serve via `server.py`, a
+`SimpleHTTPRequestHandler` subclass that sends `Cache-Control: no-store, no-cache,
+must-revalidate` + `Pragma: no-cache` + `Expires: 0` on every response. Workflow
+"Start application" runs `python3 server.py` (not the bare http.server).
+**Tell-tale sign of this bug:** `GET /` returns 200 but the stale JS file has NO
+corresponding request in the server log — it came from browser memory cache.

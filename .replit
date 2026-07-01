@@ -28,10 +28,10 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 -m http.server 8000 --bind 0.0.0.0"
-waitForPort = 8000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 server.py"
+waitForPort = 8000
