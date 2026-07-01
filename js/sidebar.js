@@ -4,6 +4,23 @@ function renderSidebar(filter = "") {
   list.innerHTML = "";
   const q = filter.toLowerCase();
 
+  if (storageMode === "local") {
+    if (!localRootHandle) {
+      list.innerHTML =
+        '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
+        "Open a local folder to load your workspace from this computer.</div>";
+      return;
+    }
+    if (driveTree.length === 0) {
+      list.innerHTML =
+        '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);">' +
+        "No folders yet. Use the \u002b button to create one.</div>";
+      return;
+    }
+    renderNodes(driveTree, list, q, 0);
+    return;
+  }
+
   if (!driveAccessToken) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +

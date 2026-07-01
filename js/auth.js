@@ -15,11 +15,16 @@ async function handleSignoutClick() {
     if (driveAccessToken)
         google.accounts.oauth2.revoke(driveAccessToken, () => {});
     driveAccessToken = null;
+    updateDriveUI(false, null);
+    if (storageMode === "local") {
+        // A local workspace is active — only Drive auth was revoked; keep it.
+        renderSidebar(document.getElementById("search-input").value);
+        return;
+    }
     writerRootId = null;
     driveTree = [];
     expandedFolders = new Set();
     currentFileId = null;
-    updateDriveUI(false, null);
     showEmptyState();
     renderSidebar();
     }
@@ -36,6 +41,11 @@ async function onSignedIn() {
         console.error("Profile fetch failed", e);
     }
     updateDriveUI(true, user);
+    storageMode = "drive";
+    currentFileId = null;
+    expandedFolders = new Set();
+    const localBtn = document.getElementById("btn-local-folder");
+    if (localBtn) localBtn.classList.remove("active");
     await initDriveFilesystem();
     }
 

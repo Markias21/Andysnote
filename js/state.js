@@ -12,3 +12,10 @@ let tokenClient_tc = null;
 let gapiInited = false;
 let gisInited = false;
 let driveAccessToken = null;
+
+/* ─── STORAGE MODE / LOCAL FILESYSTEM ─── */
+let storageMode = "drive"; // "drive" | "local"
+let localRootHandle = null; // FileSystemDirectoryHandle for the local workspace root
+let localHandles = {}; // synthetic node id -> { handle, parentId, name, kind }
+let localIdCounter = 0; // generates unique local node ids
+let localSaveTimer = null; // debounce timer for local autosave

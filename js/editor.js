@@ -1,5 +1,6 @@
 /* ─── OPEN DOC ─── */
 async function openDoc(node) {
+  if (storageMode === "local") return openLocalDoc(node);
   if (!driveAccessToken) return;
   currentFileId = node.id;
 
@@ -69,7 +70,11 @@ function onBodyInput() {
   const body = document.getElementById("doc-body");
   if (body.textContent.trim()) body.classList.remove("empty");
   else body.classList.add("empty");
-  if (driveAccessToken && currentFileId) scheduleDriveSave();
+  if (storageMode === "local") {
+    if (currentFileId) scheduleLocalSave();
+  } else if (driveAccessToken && currentFileId) {
+    scheduleDriveSave();
+  }
 }
 
 function updateWordCount() {

@@ -71,6 +71,10 @@ async function createItem() {
   setSyncStatus("saving", "Creating...");
 
   try {
+    if (storageMode === "local") {
+      await localCreateItem(type, title, folderId);
+      return;
+    }
     if (type === "folder") {
       const created = await drivePost(
         "https://www.googleapis.com/drive/v3/files",

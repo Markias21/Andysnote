@@ -149,6 +149,12 @@ async function loadSubtree(parentId) {
 
 /* ─── SAVE DOC ─── */
 function saveDoc() {
+  if (storageMode === "local") {
+    if (!currentFileId) return;
+    clearTimeout(localSaveTimer);
+    saveLocalNow();
+    return;
+  }
   if (!currentFileId || !driveAccessToken) return;
   clearTimeout(driveSaveTimer);
   saveToDriveNow();
