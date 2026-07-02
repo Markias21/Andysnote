@@ -9,16 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Init the live Markdown engine with an empty document.
   editorOpen("");
 
-  const body = document.getElementById("doc-body");
-  body.classList.add("empty");
-
-  const style = document.createElement("style");
-  style.textContent =
-    "#doc-body.empty:before { content: attr(data-placeholder);" +
-    " position: absolute; top: 0; left: 0; color: var(--text-muted);" +
-    " pointer-events: none; }";
-  document.head.appendChild(style);
-
   document.getElementById("doc-title").addEventListener("input", onTitleInput);
 
   document.addEventListener("keydown", (e) => {

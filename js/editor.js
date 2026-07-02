@@ -112,19 +112,9 @@ function setDocBody(text) {
    The new engine owns the contenteditable surface, so these are no-ops
    or thin wrappers. */
 function onBodyInput() {
-  // Toolbar actions (mdBold, mdItalic, etc.) mutate the DOM directly
-  // and then call onBodyInput() to sync. Ensure the model stays in sync.
-  const body = document.getElementById("doc-body");
-  if (_editorModel && body) {
-    const divs = body.querySelectorAll(":scope > div");
-    const blocks = [];
-    for (const div of divs) blocks.push(div.innerText);
-    _editorModel.blocks = blocks;
+  if (typeof editorSyncFromView === "function") {
+    editorSyncFromView();
   }
-  updateWordCount();
-
-  if (storageMode === "local" && currentFileId) scheduleLocalSave();
-  else if (driveAccessToken && currentFileId) scheduleDriveSave();
 }
 
 function onTitleInput() {

@@ -12,54 +12,26 @@
 
 function mdWrapSelection(before, after = before) {
   const body = document.getElementById("doc-body");
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
+  if (!body) return;
 
-  const range = sel.getRangeAt(0);
-  if (!body.contains(range.startContainer)) return;
+  const start = body.selectionStart;
+  const end = body.selectionEnd;
+  if (start == null || end == null) return;
 
-  const selectedText = range.toString();
+  const selectedText = body.value.slice(start, end);
+  const isWrapped = selectedText.startsWith(before) && selectedText.endsWith(after);
 
-  if (!selectedText) {
-    // No selection: insert markers and place cursor between them
-    const textNode = document.createTextNode(before + after);
-    range.insertNode(textNode);
-
-    const newRange = document.createRange();
-    newRange.setStart(textNode, before.length);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-
-    body.focus();
-    onBodyInput();
-    return;
-  }
-
-  // Toggle: if already wrapped, unwrap; otherwise wrap
-  const alreadyWrapped =
-    selectedText.startsWith(before) && selectedText.endsWith(after);
-  const newText = alreadyWrapped
-    ? selectedText.slice(before.length, -after.length)
+  const replacement = isWrapped
+    ? selectedText.slice(before.length, selectedText.length - after.length)
     : before + selectedText + after;
 
-  range.deleteContents();
-  const newNode = document.createTextNode(newText);
-  range.insertNode(newNode);
+  body.setRangeText(replacement, start, end, "end");
 
-  // Reselect the content (without markers if we just wrapped)
-  const newRange = document.createRange();
-  if (alreadyWrapped) {
-    newRange.selectNodeContents(newNode);
-  } else {
-    newRange.setStart(newNode, before.length);
-    newRange.setEnd(newNode, newText.length - after.length);
-  }
-  sel.removeAllRanges();
-  sel.addRange(newRange);
-
+  const cursorStart = isWrapped ? start : start + before.length;
+  const cursorEnd = isWrapped ? start + replacement.length : start + replacement.length - after.length;
   body.focus();
-  onBodyInput();
+  body.setSelectionRange(cursorStart, cursorEnd);
+  body.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function mdBold()       { mdWrapSelection("**", "**"); }
@@ -68,19 +40,6 @@ function mdStrike()     { mdWrapSelection("~~", "~~"); }
 function mdInlineCode() { mdWrapSelection("`", "`"); }
 
 /* ── Block formatting ── */
-
-function mdGetCurrentBlock() {
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return null;
-  let node = sel.getRangeAt(0).startContainer;
-  const body = document.getElementById("doc-body");
-  if (!body.contains(node)) return null;
-  while (node && node.id !== "doc-body") {
-    if (node.parentElement?.id === "doc-body") return node;
-    node = node.parentElement;
-  }
-  return null;
-}
 
 const MD_BLOCK_PREFIXES = ["# ", "> ", "- ", "- [ ] ", "- [x] "];
 
@@ -95,32 +54,35 @@ function mdStripBlockPrefix(text) {
   return { text, type: null };
 }
 
+function getEditorSelection() {
+  const body = document.getElementById("doc-body");
+  if (!body) return null;
+  return { body, start: body.selectionStart, end: body.selectionEnd };
+}
+
+function replaceCurrentLine(transform) {
+  const selection = getEditorSelection();
+  if (!selection) return;
+
+  const { body, start, end } = selection;
+  const text = body.value;
+  const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+  let lineEnd = text.indexOf("\n", end);
+  if (lineEnd === -1) lineEnd = text.length;
+
+  const lineText = text.slice(lineStart, lineEnd);
+  const updated = transform(lineText);
+  body.setRangeText(updated, lineStart, lineEnd, "end");
+  body.focus();
+  body.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function mdToggleBlockPrefix(prefix) {
-  const block = mdGetCurrentBlock();
-  if (!block) return;
-
-  const text = block.textContent;
-  const stripped = mdStripBlockPrefix(text);
-  const hasThisPrefix = text.startsWith(prefix);
-
-  const newText = hasThisPrefix ? stripped.text : prefix + stripped.text;
-  block.textContent = newText;
-
-  const sel = window.getSelection();
-  const range = document.createRange();
-  const textNode = block.firstChild;
-  const cursorPos = hasThisPrefix ? 0 : prefix.length;
-  if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-    range.setStart(textNode, Math.min(cursorPos, textNode.length));
-  } else {
-    range.setStart(block, 0);
-  }
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-
-  document.getElementById("doc-body").focus();
-  onBodyInput();
+  replaceCurrentLine((text) => {
+    const stripped = mdStripBlockPrefix(text);
+    const hasThisPrefix = text.startsWith(prefix);
+    return hasThisPrefix ? stripped.text : prefix + stripped.text;
+  });
 }
 
 function mdHeading()    { mdToggleBlockPrefix("# "); }
@@ -129,53 +91,16 @@ function mdBulletList() { mdToggleBlockPrefix("- "); }
 function mdChecklist()  { mdToggleBlockPrefix("- [ ] "); }
 
 function mdNumberList() {
-  const block = mdGetCurrentBlock();
-  if (!block) return;
-
-  const text = block.textContent;
-  const numMatch = text.match(/^(\d+)\.\s/);
-
-  const newText = numMatch
-    ? text.slice(numMatch[0].length)
-    : "1. " + mdStripBlockPrefix(text).text;
-
-  block.textContent = newText;
-
-  const sel = window.getSelection();
-  const range = document.createRange();
-  const textNode = block.firstChild;
-  const cursorPos = numMatch ? 0 : "1. ".length;
-  if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-    range.setStart(textNode, Math.min(cursorPos, textNode.length));
-  } else {
-    range.setStart(block, 0);
-  }
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-
-  document.getElementById("doc-body").focus();
-  onBodyInput();
+  replaceCurrentLine((text) => {
+    const numMatch = text.match(/^(\d+)\.\s/);
+    return numMatch ? text.slice(numMatch[0].length) : "1. " + mdStripBlockPrefix(text).text;
+  });
 }
 
 function mdDivider() {
-  const block = mdGetCurrentBlock();
-  if (!block) return;
-
-  const text = block.textContent.trim();
-  block.textContent = text === "---" ? "" : "---";
-
-  document.getElementById("doc-body").focus();
-  onBodyInput();
+  replaceCurrentLine((text) => (text.trim() === "---" ? "" : "---"));
 }
 
 function mdCodeBlock() {
-  const block = mdGetCurrentBlock();
-  if (!block) return;
-
-  const text = block.textContent.trim();
-  block.textContent = text === "```" ? "" : "```";
-
-  document.getElementById("doc-body").focus();
-  onBodyInput();
+  replaceCurrentLine((text) => (text.trim() === "```" ? "" : "```"));
 }

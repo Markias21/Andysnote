@@ -303,7 +303,7 @@ async function saveToDriveNow() {
   if (!driveAccessToken || !currentFileId) return;
   try {
     setSyncStatus("saving", "Saving...");
-    const text = document.getElementById("doc-body").innerText || "";
+    const text = editorGetText();
     const savedId = currentFileId;
     await drivePatch(savedId, text);
     // Update cached modifiedTime + persist the new body so re-opening is instant.
