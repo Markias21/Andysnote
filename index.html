@@ -540,6 +540,35 @@
         background: var(--accent-dim);
         color: var(--accent);
       }
+      .md-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .md-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .md-btn b,
+      .md-btn i,
+      .md-btn s {
+        font-size: 12px;
+      }
+
       .tool-btn svg {
         width: 13px;
         height: 13px;
@@ -1571,6 +1600,98 @@
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 </button>
+                <span class="sep"></span>
+                <button
+                  class="md-btn"
+                  title="Bold (Ctrl+B)"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdBold()"
+                >
+                  <b>B</b>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Italic (Ctrl+I)"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdItalic()"
+                >
+                  <i>I</i>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Strikethrough"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdStrike()"
+                >
+                  <s>S</s>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Inline Code"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdInlineCode()"
+                >
+                  <span style="font-family:monospace">&lt;/&gt;</span>
+                </button>
+                <span class="sep"></span>
+                <button
+                  class="md-btn"
+                  title="Heading"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdHeading()"
+                >
+                  <span style="font-size:11px">H1</span>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Quote"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdQuote()"
+                >
+                  <span style="font-size:13px">❝</span>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Bullet List"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdBulletList()"
+                >
+                  <span>•</span>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Numbered List"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdNumberList()"
+                >
+                  <span>1.</span>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Checklist"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdChecklist()"
+                >
+                  <span>☐</span>
+                </button>
+                <span class="sep"></span>
+                <button
+                  class="md-btn"
+                  title="Divider"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdDivider()"
+                >
+                  <span>—</span>
+                </button>
+                <button
+                  class="md-btn"
+                  title="Code Block"
+                  onmousedown="event.preventDefault()"
+                  onclick="mdCodeBlock()"
+                >
+                  <span style="font-family:monospace">```</span>
+                </button>
+                <span class="sep"></span>
                 <span class="word-count" id="word-count">0 words</span>
               </div>
 
@@ -1735,6 +1856,7 @@
     <script src="js/drive.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/sidebar.js"></script>
+    <script src="js/markdown.js"></script>
     <script src="js/editor.js"></script>
     <script src="js/local.js"></script>
     <script src="js/modal.js"></script>

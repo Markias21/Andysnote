@@ -26,6 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       saveDoc();
     }
+    if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+      e.preventDefault();
+      mdBold();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "i") {
+      e.preventDefault();
+      mdItalic();
+    }
     if (e.key === "Escape") {
       closeModal();
       closeSettings();
