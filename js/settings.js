@@ -15,44 +15,76 @@
    Fonts are loaded once via CDN <link> tags in index.html.
    Never duplicate font loading logic — the CDN links are global. */
 const EDITOR_FONTS = {
-  "pretendard":  { stack: "Pretendard",                 category: "clean",    preview: "Pretendard ┌──────" },
-  "noto-sans":   { stack: "\"Noto Sans KR\"",           category: "clean",    preview: "가가가가 Noto" },
-  "inter":       { stack: "Inter",                      category: "clean",    preview: "Inter abc" },
+  pretendard: {
+    stack: "Pretendard",
+    category: "clean",
+    preview: "Pretendard ",
+  },
+  "noto-sans": {
+    stack: '"Noto Sans KR"',
+    category: "clean",
+    preview: "노토폰트 Noto",
+  },
+  inter: { stack: "Inter", category: "clean", preview: "Inter abc" },
   /* Gmarket Sans is not available on a reliable free CDN. Add via custom
      @font-face if you have the font files, then register here with stack
      "GmarketSans". */
-  "cookierun":   { stack: "\"Jua\"",                    category: "cute",     preview: "가가가가 CookieRun" },
-  "nanum-pen":   { stack: "\"Nanum Pen Script\"",       category: "cute",     preview: "가가가가 Pen" },
-  "noto-serif":  { stack: "\"Noto Serif KR\"",          category: "serif",    preview: "가가가가 Serif" },
-  "nanum-myeongjo": { stack: "\"Nanum Myeongjo\"",      category: "serif",    preview: "가가가가 Myeongjo" },
-  "kopub":       { stack: "\"Gowun Batang\"",           category: "serif",    preview: "가가가가 KoPub" },
-  "jetbrains":   { stack: "\"JetBrains Mono\"",         category: "mono",     preview: "JetBrains Mono" },
-  "fira":        { stack: "\"Fira Code\"",              category: "mono",     preview: "Fira Code" },
-  "ibm-plex":    { stack: "\"IBM Plex Mono\"",          category: "mono",     preview: "IBM Plex Mono" },
-  "system":      { stack: "system-ui",                  category: "clean",    preview: "System abc" },
+  cookierun: { stack: '"Jua"', category: "cute", preview: "쿠키런 CookieRun" },
+  "nanum-pen": {
+    stack: '"Nanum Pen Script"',
+    category: "cute",
+    preview: "나눔펜 Pen",
+  },
+  "noto-serif": {
+    stack: '"Noto Serif KR"',
+    category: "serif",
+    preview: "세리프 Serif",
+  },
+  "nanum-myeongjo": {
+    stack: '"Nanum Myeongjo"',
+    category: "serif",
+    preview: "나눔명조 Myeongjo",
+  },
+  kopub: {
+    stack: '"Gowun Batang"',
+    category: "serif",
+    preview: "고운바탕 KoPub",
+  },
+  jetbrains: {
+    stack: '"JetBrains Mono"',
+    category: "mono",
+    preview: "JetBrains Mono",
+  },
+  fira: { stack: '"Fira Code"', category: "mono", preview: "Fira Code" },
+  "ibm-plex": {
+    stack: '"IBM Plex Mono"',
+    category: "mono",
+    preview: "IBM Plex Mono",
+  },
+  system: { stack: "system-ui", category: "clean", preview: "System abc" },
 };
 
 /* Category labels for the Settings grouped dropdown. */
 const FONT_CATEGORIES = {
   clean: "Clean / Default UI",
-  cute:  "Cute / Friendly",
+  cute: "Cute / Friendly",
   serif: "Serif / Document",
-  mono:  "Code / Technical",
+  mono: "Code / Technical",
 };
 
 /* The single source of truth for shape + defaults. */
 function defaultSettings() {
   return {
     ui: {
-      indentMode: true,   // indent mode: visual paragraph indentation on #doc-body
-      compactMode: false,   // denser layout
+      indentMode: true, // indent mode: visual paragraph indentation on #doc-body
+      compactMode: false, // denser layout
     },
     font: {
       editor: "pretendard", // key into EDITOR_FONTS
     },
     behavior: {
-      autoSave: true,   // debounced autosave on edits
-      driveSync: true,  // push Drive docs to Google Drive automatically
+      autoSave: true, // debounced autosave on edits
+      driveSync: true, // push Drive docs to Google Drive automatically
     },
   };
 }
@@ -171,8 +203,8 @@ function renderSettings() {
     {
       title: "UI",
       fields: [
-        { path: "ui.indentMode",    label: "Indent mode",    type: "bool" },
-        { path: "ui.compactMode",   label: "Compact mode",   type: "bool" },
+        { path: "ui.indentMode", label: "Indent mode", type: "bool" },
+        { path: "ui.compactMode", label: "Compact mode", type: "bool" },
       ],
     },
     {
@@ -190,8 +222,8 @@ function renderSettings() {
     {
       title: "Behavior",
       fields: [
-        { path: "behavior.autoSave",  label: "Auto save",   type: "bool" },
-        { path: "behavior.driveSync", label: "Drive sync",  type: "bool" },
+        { path: "behavior.autoSave", label: "Auto save", type: "bool" },
+        { path: "behavior.driveSync", label: "Drive sync", type: "bool" },
       ],
     },
   ];
@@ -209,14 +241,14 @@ function renderSettings() {
           (val ? "checked" : "") +
           " onchange=\"setSetting('" +
           field.path +
-          "', this.checked)\"><span class=\"slider\"></span></label>";
+          '\', this.checked)"><span class="slider"></span></label>';
       } else if (field.type === "select") {
         control =
           '<select class="settings-select" onchange="setSetting(\'' +
           field.path +
           "', this.value)\">";
         for (const opt of field.options) {
-          const optVal   = typeof opt === "object" ? opt.value : opt;
+          const optVal = typeof opt === "object" ? opt.value : opt;
           const optLabel = typeof opt === "object" ? opt.label : opt;
           control +=
             '<option value="' +
@@ -252,7 +284,7 @@ function buildFontOptions() {
     const f = EDITOR_FONTS[key];
     items.push({
       value: key,
-      label: key.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      label: key.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       preview: f.preview,
       category: f.category,
     });
@@ -270,8 +302,10 @@ function buildFontOptions() {
    Uses a native <select> with <optgroup> for categories.
    The preview text is rendered as part of the option label. */
 function renderFontSelect(path, currentValue, options) {
-  let html = '<select class="settings-select" onchange="setSetting(\'' +
-    path + "', this.value)\">";
+  let html =
+    '<select class="settings-select" onchange="setSetting(\'' +
+    path +
+    "', this.value)\">";
 
   let currentGroup = null;
   for (const opt of options) {
@@ -282,10 +316,17 @@ function renderFontSelect(path, currentValue, options) {
       html += '<optgroup label="' + escapeHtml(groupLabel) + '">';
     }
     const label = escapeHtml(opt.label) + " — " + escapeHtml(opt.preview);
-    html += '<option value="' + escapeHtml(opt.value) + '"' +
+    html +=
+      '<option value="' +
+      escapeHtml(opt.value) +
+      '"' +
       (opt.value === currentValue ? " selected" : "") +
-      ' style="font-family:' + escapeHtml(EDITOR_FONTS[opt.value].stack) + ',sans-serif"' +
-      ">" + label + "</option>";
+      ' style="font-family:' +
+      escapeHtml(EDITOR_FONTS[opt.value].stack) +
+      ',sans-serif"' +
+      ">" +
+      label +
+      "</option>";
   }
   if (currentGroup !== null) html += "</optgroup>";
   html += "</select>";

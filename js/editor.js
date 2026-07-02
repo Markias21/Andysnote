@@ -125,15 +125,114 @@ function showEmptyState() {
    (body.innerText) and its \n structure are unaffected. It's a global display
    mode, applied to every paragraph at once — on by default. */
 function onBodyInput() {
-  updateWordCount();
   const body = document.getElementById("doc-body");
+  normalizeBodyBlocks(body);
   if (body.textContent.trim()) body.classList.remove("empty");
   else body.classList.add("empty");
+  updateWordCount();
   if (storageMode === "local") {
     if (currentFileId) scheduleLocalSave();
   } else if (driveAccessToken && currentFileId) {
     scheduleDriveSave();
   }
+}
+
+/* Ensure #doc-body contains exactly one <div> per paragraph (one per \n).
+   If the browser has merged paragraphs (e.g. <br> inside a single <div>),
+   rebuild from innerText and restore the cursor position. */
+function normalizeBodyBlocks(body) {
+  const children = Array.from(body.childNodes);
+  const allDivs = children.every(
+    n => n.nodeType === Node.ELEMENT_NODE && n.tagName === "DIV"
+  );
+  if (allDivs) return; // already normalized
+
+  const pos = saveBodyCursor(body);
+  renderBodyBlocks(body, body.innerText);
+  restoreBodyCursor(body, pos);
+}
+
+/* Save cursor position as { line, col } where line = paragraph index
+   (0-based, from innerText.split("\n")) and col = character offset within
+   that paragraph. Works across DOM rebuilds because line/col are derived
+   from plain text, not DOM nodes. */
+function saveBodyCursor(body) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+
+  const lines = body.innerText.split("\n");
+  const textNodes = [];
+  const it = document.createNodeIterator(body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = it.nextNode())) textNodes.push(n);
+
+  let offset = 0;
+  for (const node of textNodes) {
+    if (node === range.startContainer) {
+      offset += range.startOffset;
+      let lineStart = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const lineEnd = lineStart + lines[i].length;
+        if (offset <= lineEnd) return { line: i, col: offset - lineStart };
+        lineStart = lineEnd + 1; // +1 for the \n
+      }
+      return { line: lines.length - 1, col: lines[lines.length - 1].length };
+    }
+    offset += node.length;
+  }
+
+  // Cursor not inside a text node (e.g. empty <div>). Find which div.
+  const divs = body.querySelectorAll(":scope > div");
+  for (let i = 0; i < divs.length; i++) {
+    if (divs[i] === range.startContainer || divs[i].contains(range.startContainer)) {
+      return { line: i, col: 0 };
+    }
+  }
+  return null;
+}
+
+/* Restore cursor from a { line, col } position saved before DOM rebuild. */
+function restoreBodyCursor(body, pos) {
+  if (!pos || typeof pos !== "object") return;
+  const divs = body.querySelectorAll(":scope > div");
+  const div = divs[pos.line];
+  if (!div) return;
+
+  const sel = window.getSelection();
+  const range = document.createRange();
+
+  const textNodes = [];
+  const it = document.createNodeIterator(div, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = it.nextNode())) textNodes.push(n);
+
+  let offset = 0;
+  for (const node of textNodes) {
+    const len = node.length;
+    if (offset + len >= pos.col) {
+      range.setStart(node, Math.min(pos.col - offset, len));
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    offset += len;
+  }
+
+  // Past all text in this paragraph: place at end of last text node,
+  // or at start of the div if it only contains <br>.
+  if (textNodes.length) {
+    const last = textNodes[textNodes.length - 1];
+    range.setStart(last, last.length);
+  } else if (div.firstChild) {
+    range.setStartBefore(div.firstChild);
+  } else {
+    range.setStart(div, 0);
+  }
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function updateWordCount() {
