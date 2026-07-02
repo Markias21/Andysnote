@@ -1,0 +1,162 @@
+Before implementing any Markdown features, I want to redesign the overall architecture of AndysNote.
+
+Do NOT write or modify any code yet.
+
+This is an architecture planning phase.
+
+I want AndysNote to become a long-term project that is easy to maintain and extend.
+
+Instead of focusing only on Markdown, I want to establish a clean layered architecture for the entire application.
+
+---
+
+## Goal
+
+Please review the current codebase and propose a modular architecture that can support future growth without major rewrites.
+
+The architecture should prioritize:
+
+- maintainability
+- modularity
+- scalability
+- low coupling
+- high cohesion
+- independent components
+
+---
+
+## Core design principles
+
+Each module should have only one responsibility.
+
+Modules should communicate through clear interfaces.
+
+Avoid putting unrelated logic into the same file.
+
+Future features should require adding new modules instead of modifying existing ones whenever possible.
+
+---
+
+## Proposed layers
+
+Please evaluate and improve this structure if necessary.
+
+UI Layer
+- Sidebar
+- Toolbar
+- Menus
+- Dialogs
+- Settings UI
+
+Editor Layer
+- Text editing
+- Cursor
+- Selection
+- Keyboard handling
+
+Formatting Layer
+- Markdown formatter
+- Block detection
+- Future formatting support
+
+Parser Layer
+- Parse Markdown
+- Detect block types
+- Prepare rendering data
+
+Renderer Layer
+- Render source mode
+- Future live preview
+- Rendering modes
+
+Storage Layer
+- Google Drive
+- Local Repository
+- Future storage providers
+
+Settings Layer
+- Fonts
+- Theme
+- Indent mode
+- Future editor options
+
+Core Layer
+- Shared utilities
+- Events
+- Configuration
+- Constants
+
+---
+
+## Data flow
+
+Please define the recommended data flow between these layers.
+
+Editing flow
+
+Toolbar
+→ Editor
+→ Formatting
+→ Storage
+
+Rendering flow
+
+Storage / Editor
+→ Parser
+→ Renderer
+→ UI
+
+Settings flow
+
+Settings
+→ Renderer
+
+Storage flow
+
+Google Drive
+or
+Local Repository
+
+---
+
+## Future roadmap
+
+The architecture should support future features such as:
+
+- Live Markdown Preview
+- Rich formatting
+- Images
+- Tables
+- Links
+- Search
+- Tags
+- Plugins
+- Multiple editor modes
+
+without requiring major architectural changes.
+
+---
+
+## Output
+
+Do not implement anything.
+
+Instead provide:
+
+1. Folder structure
+
+2. File structure
+
+3. Responsibilities of each module
+
+4. Recommended communication between modules
+
+5. Which current files should be split
+
+6. Which files should remain unchanged
+
+7. Potential architectural problems in the current implementation
+
+8. Suggestions for improving long-term maintainability
+
+I want to review the architecture first before implementing any new feature.
