@@ -6,13 +6,10 @@ document.addEventListener("DOMContentLoaded", () => {
   renderCalendar();
   initLocalNotes();
 
+  // Init the live Markdown engine with an empty document.
+  editorOpen("");
+
   const body = document.getElementById("doc-body");
-  body.addEventListener("focus", () => {
-    if (!body.textContent.trim()) body.classList.add("empty");
-  });
-  body.addEventListener("blur", () => {
-    if (!body.textContent.trim()) body.classList.add("empty");
-  });
   body.classList.add("empty");
 
   const style = document.createElement("style");
@@ -20,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "#doc-body.empty:before { content: attr(data-placeholder);" +
     " color: var(--text-muted); pointer-events: none; }";
   document.head.appendChild(style);
+
+  document.getElementById("doc-title").addEventListener("input", onTitleInput);
 
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {

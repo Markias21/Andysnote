@@ -672,9 +672,131 @@
          paragraph are NOT indented — only the paragraph boundary is. */
       #doc-body > div {
         transition: text-indent 0.15s ease;
+        min-height: 1.85em;
+        padding: 0.1em 0;
       }
       #doc-body.indent-mode > div {
         text-indent: 0.75em;
+      }
+
+      /* ─── MARKDOWN RENDERED STYLES ─── */
+
+      /* Raw editing mode */
+      #doc-body > div.md-raw {
+        font-family: var(--editor-font), system-ui, sans-serif;
+      }
+
+      /* Headings */
+      #doc-body > div.md-h1 {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.4;
+        margin: 0.3em 0 0.15em;
+        padding-bottom: 0.15em;
+        border-bottom: 1px solid var(--border);
+        text-indent: 0 !important;
+      }
+      #doc-body > div.md-h2 {
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: 0.25em 0 0.1em;
+        padding-bottom: 0.1em;
+        border-bottom: 1px solid var(--border);
+        text-indent: 0 !important;
+      }
+      #doc-body > div.md-h3 {
+        font-size: 19px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: 0.2em 0 0.05em;
+        text-indent: 0 !important;
+      }
+
+      /* Quote */
+      #doc-body > div.md-quote {
+        border-left: 3px solid var(--border2);
+        padding-left: 12px;
+        color: var(--text-dim);
+        text-indent: 0 !important;
+      }
+
+      /* List items */
+      #doc-body > div.md-li {
+        position: relative;
+        padding-left: 1.2em;
+        text-indent: 0 !important;
+      }
+      #doc-body > div.md-li::before {
+        content: "\2022";
+        position: absolute;
+        left: 0;
+        color: var(--text-dim);
+        font-size: 14px;
+        line-height: inherit;
+      }
+      #doc-body > div.md-num::before {
+        content: attr(data-num) ".";
+        font-size: 13px;
+      }
+      #doc-body > div.md-check {
+        padding-left: 1.6em;
+      }
+      #doc-body > div.md-check input[type="checkbox"] {
+        position: absolute;
+        left: 0;
+        top: 0.45em;
+        width: 14px;
+        height: 14px;
+        cursor: default;
+        accent-color: var(--accent);
+      }
+
+      /* Divider */
+      #doc-body > div.md-divider {
+        padding: 0.5em 0;
+        text-indent: 0 !important;
+      }
+      #doc-body > div.md-divider hr {
+        border: none;
+        border-top: 1px solid var(--border2);
+        margin: 0;
+      }
+
+      /* Code block */
+      #doc-body > div.md-codeblock {
+        background: var(--surface3);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-family: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        text-indent: 0 !important;
+      }
+      #doc-body > div.md-codeblock pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      /* Inline styles within rendered blocks */
+      #doc-body strong {
+        font-weight: 700;
+      }
+      #doc-body em {
+        font-style: italic;
+      }
+      #doc-body s {
+        text-decoration: line-through;
+        color: var(--text-dim);
+      }
+      #doc-body code {
+        font-family: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+        font-size: 0.9em;
+        background: var(--surface3);
+        padding: 0.05em 0.3em;
+        border-radius: 3px;
+        color: var(--accent);
       }
 
       /* ─── EMPTY STATE ─── */
@@ -1701,7 +1823,6 @@
                     id="doc-title"
                     rows="1"
                     placeholder="Untitled"
-                    oninput="onTitleInput()"
                   ></textarea>
                   <div class="editor-meta">
                     <span class="meta-chip" id="meta-folder">
@@ -1737,7 +1858,6 @@
                   <div
                     id="doc-body"
                     class="indent-mode"
-                    contenteditable="plaintext-only"
                     style="
                       width: 100%;
                       background: transparent;
@@ -1751,7 +1871,6 @@
                       padding: 0;
                     "
                     data-placeholder="Start writing..."
-                    oninput="onBodyInput()"
                   ></div>
                 </div>
               </div>
@@ -1856,7 +1975,12 @@
     <script src="js/drive.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/sidebar.js"></script>
+    <script src="js/editor/markdown.js"></script>
     <script src="js/markdown.js"></script>
+    <script src="js/editor/model.js"></script>
+    <script src="js/editor/cursor.js"></script>
+    <script src="js/editor/renderer.js"></script>
+    <script src="js/editor/engine.js"></script>
     <script src="js/editor.js"></script>
     <script src="js/local.js"></script>
     <script src="js/modal.js"></script>
