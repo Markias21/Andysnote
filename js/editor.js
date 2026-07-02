@@ -54,11 +54,26 @@ async function openDoc(node) {
   let paintedText = null;
   const cached = await cacheGetDoc(node.id);
   if (currentFileId !== node.id) return;
-  if (cached && typeof cached.text === "string") {
-    editorOpen(cached.text);
-    paintedText = cached.text;
+  const cachedText =
+    cached && typeof cached.text === "string" ? cached.text : null;
+  const cachedIsFresh =
+    cachedText !== null &&
+    cached &&
+    cached.modifiedTime &&
+    node.modifiedTime &&
+    cached.modifiedTime === node.modifiedTime;
+
+  if (cachedText !== null) {
+    editorOpen(cachedText);
+    paintedText = cachedText;
     painted = true;
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+  }
+
+  if (cachedIsFresh) {
+    updateWordCount();
+    autoResize(document.getElementById("doc-title"));
+    return;
   }
 
   try {
@@ -70,7 +85,6 @@ async function openDoc(node) {
     const text = await r.text();
     if (currentFileId !== node.id) return;
     cachePutDoc(node.id, text, node.modifiedTime);
-    const body = document.getElementById("doc-body");
     const unedited = !painted || editorGetText() === paintedText;
     if (unedited && text !== editorGetText()) {
       editorOpen(text);

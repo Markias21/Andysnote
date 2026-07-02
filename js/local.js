@@ -68,7 +68,7 @@ function localDbDelete(id) {
 /* ─── CRUD ─── */
 async function initLocalNotes() {
   localNotes = await localDbGetAll();
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
 }
 
 async function createLocalNote(parentId = null) {
@@ -84,7 +84,7 @@ async function createLocalNote(parentId = null) {
   };
   await localDbPut(note);
   localNotes.push(note);
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
   openLocalNote(note.id);
 }
 
@@ -100,7 +100,7 @@ async function createLocalFolder(parentId = null) {
   };
   await localDbPut(folder);
   localNotes.push(folder);
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
 }
 
 async function deleteLocalNote(id) {
@@ -113,10 +113,8 @@ async function deleteLocalNote(id) {
   localNotes = localNotes.filter((n) => n.id !== id);
   if (currentFileId === id) {
     showEmptyState();
-    renderSidebar(currentSearchValue());
-  } else {
-    renderSidebar(currentSearchValue());
   }
+  renderLocalNotes(currentSearchValue());
 }
 
 async function renameLocalNote(id, newTitle) {
@@ -125,7 +123,7 @@ async function renameLocalNote(id, newTitle) {
   note.title = newTitle;
   note.modifiedTime = new Date().toISOString();
   await localDbPut(note);
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
 }
 
 /* ─── OPEN LOCAL NOTE ─── */
@@ -165,6 +163,7 @@ async function openLocalNote(id) {
   editorOpen(note.body || "");
   setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
 
+  renderLocalNotes(currentSearchValue());
   updateWordCount();
   autoResize(document.getElementById("doc-title"));
 }
@@ -207,7 +206,7 @@ async function saveLocalNow() {
 
   await localDbPut(note);
   localDirty = false;
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
   setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
 }
 
@@ -260,9 +259,97 @@ async function onImportInputChange(input) {
   };
   await localDbPut(note);
   localNotes.push(note);
-  renderSidebar(currentSearchValue());
+  renderLocalNotes(currentSearchValue());
   openLocalNote(note.id);
   input.value = "";
+}
+
+/* ─── LOCAL SIDEBAR RENDERING ─── */
+function localSubtreeMatches(node, q) {
+  if (!q) return true;
+  const title = (node.title || "").toLowerCase();
+  if (title.includes(q)) return true;
+  if (node.type !== "folder") return false;
+  return getLocalChildren(node.id).some((child) => localSubtreeMatches(child, q));
+}
+
+function renderLocalNotes(filter = "") {
+  const list = document.getElementById("local-list");
+  if (!list) return;
+
+  const q = (filter || "").trim().toLowerCase();
+  list.innerHTML = "";
+
+  const roots = getLocalRootNodes();
+  if (roots.length === 0) {
+    const empty = document.createElement("div");
+    empty.style.cssText =
+      "padding:10px 8px 12px;color:var(--text-muted);font-size:12px;line-height:1.6;";
+    empty.textContent = q ? "No matching local notes." : "No local notes yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  renderLocalNodes(roots, list, q);
+}
+
+function renderLocalNodes(nodes, container, q) {
+  for (const node of nodes) {
+    if (node.type === "folder") renderLocalFolderNode(node, container, q);
+    else if (node.type === "note") renderLocalNoteRow(node, container, q);
+  }
+}
+
+function renderLocalFolderNode(node, container, q) {
+  if (!localSubtreeMatches(node, q)) return;
+
+  const isOpen = localExpandedFolders.has(node.id) || !!q;
+  const folderEl = document.createElement("div");
+  folderEl.className = "folder" + (isOpen ? " open" : "");
+  folderEl.dataset.id = node.id;
+
+  folderEl.innerHTML = `
+    <div class="folder-header" onclick="toggleLocalFolder('${node.id}')">
+      <svg class="folder-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <svg class="folder-icon closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span class="folder-name">${escHtml(node.title || "New Folder")}</span>
+      <span class="folder-count">${countLocalDocs(node.id)}</span>
+    </div>
+    <div class="folder-items"></div>
+  `;
+
+  const items = folderEl.querySelector(".folder-items");
+  if (isOpen) renderLocalNodes(getLocalChildren(node.id), items, q);
+  container.appendChild(folderEl);
+}
+
+function renderLocalNoteRow(node, container, q) {
+  const title = node.title || "Untitled";
+  if (q && !title.toLowerCase().includes(q)) return;
+
+  const item = document.createElement("div");
+  item.className =
+    "doc-item" + (storageMode === "local" && node.id === currentFileId ? " active" : "");
+  item.dataset.id = node.id;
+  item.onclick = () => openLocalNote(node.id);
+  item.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+    </svg>
+    <span class="doc-name">${escHtml(title)}</span>
+  `;
+  container.appendChild(item);
+}
+
+function toggleLocalFolder(folderId) {
+  if (localExpandedFolders.has(folderId)) localExpandedFolders.delete(folderId);
+  else localExpandedFolders.add(folderId);
+  renderLocalNotes(currentSearchValue());
 }
 
 /* ─── SIDEBAR HELPERS (local tree rendering) ─── */

@@ -648,6 +648,7 @@
       }
 
       #doc-body {
+        position: relative;
         width: 100%;
         background: transparent;
         border: none;
@@ -661,8 +662,13 @@
         padding: 0;
       }
 
-      #doc-body::placeholder {
+      #doc-body.empty::before {
+        content: attr(data-placeholder);
+        position: absolute;
+        top: 0;
+        left: 0;
         color: var(--text-muted);
+        pointer-events: none;
       }
 
       /* Indent mode is a pure UI view mode: it adds first-line indentation
@@ -1604,7 +1610,7 @@
               <button
                 class="sidebar-add"
                 title="New folder"
-                onclick="newLocalFolder()"
+                onclick="createLocalFolder()"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -1624,7 +1630,7 @@
               <button
                 class="sidebar-add"
                 title="New local note"
-                onclick="newLocalNote()"
+                onclick="createLocalNote()"
               >
                 <svg
                   viewBox="0 0 24 24"

@@ -15,7 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const style = document.createElement("style");
   style.textContent =
     "#doc-body.empty:before { content: attr(data-placeholder);" +
-    " color: var(--text-muted); pointer-events: none; }";
+    " position: absolute; top: 0; left: 0; color: var(--text-muted);" +
+    " pointer-events: none; }";
   document.head.appendChild(style);
 
   document.getElementById("doc-title").addEventListener("input", onTitleInput);
