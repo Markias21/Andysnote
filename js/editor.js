@@ -139,13 +139,23 @@ function onBodyInput() {
 
 /* Ensure #doc-body contains exactly one <div> per paragraph (one per \n).
    If the browser has merged paragraphs (e.g. <br> inside a single <div>),
-   rebuild from innerText and restore the cursor position. */
+   rebuild from innerText and restore the cursor position.
+
+   We check TWO things:
+   1. All direct children are <div> elements (no stray text nodes, <br>, etc.)
+   2. The number of <div> children matches the number of \n-separated lines
+      in innerText. This catches cases where the browser inserted <br>
+      inside a div instead of creating a new div on Enter. */
 function normalizeBodyBlocks(body) {
   const children = Array.from(body.childNodes);
   const allDivs = children.every(
     n => n.nodeType === Node.ELEMENT_NODE && n.tagName === "DIV"
   );
-  if (allDivs) return; // already normalized
+  const divCount = body.querySelectorAll(":scope > div").length;
+  const lineCount = body.innerText.split("\n").length;
+  // Allow empty body (0 divs, 1 empty line from "")
+  const needsRebuild = !allDivs || (lineCount > 1 && divCount !== lineCount);
+  if (!needsRebuild) return;
 
   const pos = saveBodyCursor(body);
   renderBodyBlocks(body, body.innerText);
