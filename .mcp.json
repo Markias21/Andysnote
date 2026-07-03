@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "GitHub": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "playwright-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dinesh-nalla-se/playwright-mcp"
+      ],
+      "env": {
+        "YOUR_API_KEY": ""
+      }
+    }
+  }
+}
