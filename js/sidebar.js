@@ -25,7 +25,7 @@ function renderNodes(nodes, container, q, depth) {
   for (const node of nodes) {
     if (node.mimeType === FOLDER_MIME) {
       renderFolderNode(node, container, q, depth);
-    } else if (node.name.endsWith(".txt")) {
+    } else if (isDriveDocName(node.name)) {
       renderFileNode(node, container, q, depth);
     }
   }
@@ -36,10 +36,7 @@ function renderFolderNode(node, container, q, depth) {
 
   if (q) {
     const matchingDocs = flatDocs(node).filter((d) =>
-      d.name
-        .replace(/\.txt$/, "")
-        .toLowerCase()
-        .includes(q),
+      stripDocExt(d.name).toLowerCase().includes(q),
     );
     if (matchingDocs.length === 0) return;
   }
@@ -109,7 +106,7 @@ function renderFolderNode(node, container, q, depth) {
 }
 
 function renderFileNode(node, container, q, depth) {
-  const title = node.name.replace(/\.txt$/, "");
+  const title = stripDocExt(node.name);
   if (q && !title.toLowerCase().includes(q)) return;
 
   const item = document.createElement("div");
@@ -132,7 +129,7 @@ function countDocs(node) {
   let n = 0;
   for (const c of node.children) {
     if (c.mimeType === FOLDER_MIME) n += countDocs(c);
-    else if (c.name.endsWith(".txt")) n++;
+    else if (isDriveDocName(c.name)) n++;
   }
   return n;
 }
@@ -141,7 +138,7 @@ function flatDocs(node) {
   const result = [];
   for (const c of node.children) {
     if (c.mimeType === FOLDER_MIME) result.push(...flatDocs(c));
-    else if (c.name.endsWith(".txt")) result.push(c);
+    else if (isDriveDocName(c.name)) result.push(c);
   }
   return result;
 }

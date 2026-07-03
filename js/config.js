@@ -10,8 +10,20 @@ const DEV_MODE =
 var ANDYSNOTE_ROOT_NAME = "AndysNote";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
 var FILE_MIME = "text/plain";
+var MARKDOWN_MIME = "text/markdown";
+// Both extensions store the same thing: plain-text Markdown. Only the
+// extension differs, so any Drive doc ending in either is a document.
+var DOC_EXT_REGEX = /\.(txt|md)$/i;
 var DRIVE_SCOPE =
   "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
+
+function isDriveDocName(name) {
+  return DOC_EXT_REGEX.test(name);
+}
+
+function stripDocExt(name) {
+  return name.replace(DOC_EXT_REGEX, "");
+}
 
 /* ─── LOCAL (browser) STORE CONFIG ─── */
 var LOCAL_DB_NAME = "andysnote-local";

@@ -11,6 +11,13 @@ function onModalTypeChange(type) {
   }
 }
 
+// type ("doc" | "doc-md") -> { ext, mimeType } for the file about to be created.
+function docFileSpec(type) {
+  return type === "doc-md"
+    ? { ext: ".md", mimeType: MARKDOWN_MIME }
+    : { ext: ".txt", mimeType: FILE_MIME };
+}
+
 function populateModalFolders() {
   const sel = document.getElementById("modal-folder");
   sel.innerHTML = '<option value="">AndysNote/ (root)</option>';
@@ -95,16 +102,17 @@ async function createItem() {
         "Folder created \u00b7 " + formatTime(new Date()),
       );
     } else {
-      const fileName = title.endsWith(".txt") ? title : title + ".txt";
+      const { ext, mimeType } = docFileSpec(type);
+      const fileName = title.endsWith(ext) ? title : title + ext;
       const created = await drivePost(
         "https://www.googleapis.com/upload/drive/v3/files",
-        { name: fileName, mimeType: FILE_MIME, parents: [folderId] },
+        { name: fileName, mimeType, parents: [folderId] },
         "",
       );
       const newNode = {
         id: created.id,
         name: fileName,
-        mimeType: FILE_MIME,
+        mimeType,
         createdTime: new Date().toISOString(),
         modifiedTime: new Date().toISOString(),
         children: [],

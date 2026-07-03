@@ -30,7 +30,7 @@ async function openDoc(node) {
 
   renderSidebar(currentSearchValue());
 
-  const title = node.name.replace(/\.txt$/, "");
+  const title = stripDocExt(node.name);
   document.getElementById("doc-title").value = title;
 
   const parentNode = findParentOf(node.id, driveTree);
