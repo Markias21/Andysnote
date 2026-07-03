@@ -176,8 +176,10 @@ function applySettings() {
 
   document.documentElement.style.setProperty("--editor-font", stack);
 
-  const body = document.getElementById("doc-body");
-  if (body) body.classList.toggle("indent-mode", !!appSettings.ui.indentMode);
+  for (const id of ["doc-body", "doc-body-rich"]) {
+    const body = document.getElementById(id);
+    if (body) body.classList.toggle("indent-mode", !!appSettings.ui.indentMode);
+  }
 
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
 }

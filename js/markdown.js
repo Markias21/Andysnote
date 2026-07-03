@@ -11,6 +11,12 @@
 /* ── Inline formatting ── */
 
 function mdWrapSelection(before, after = before) {
+  if (!isToolbarVisible()) return;
+  if (isRichMarkdownActive()) {
+    richWrapSelection(before, after);
+    return;
+  }
+
   const body = document.getElementById("doc-body");
   if (!body) return;
 
@@ -41,7 +47,10 @@ function mdInlineCode() { mdWrapSelection("`", "`"); }
 
 /* ── Block formatting ── */
 
-const MD_BLOCK_PREFIXES = ["# ", "> ", "- ", "- [ ] ", "- [x] "];
+// Order matters: more specific prefixes must be checked before the generic
+// ones they otherwise get swallowed by (e.g. "- [ ] " starts with "- ", so
+// "- " must come last or every checklist line gets misread as a plain bullet).
+const MD_BLOCK_PREFIXES = ["- [ ] ", "- [x] ", "- [X] ", "### ", "## ", "# ", "> ", "- "];
 
 function mdStripBlockPrefix(text) {
   const numMatch = text.match(/^(\d+)\.\s/);
@@ -61,6 +70,12 @@ function getEditorSelection() {
 }
 
 function replaceCurrentLine(transform) {
+  if (!isToolbarVisible()) return;
+  if (isRichMarkdownActive()) {
+    richTransformCurrentLine(transform);
+    return;
+  }
+
   const selection = getEditorSelection();
   if (!selection) return;
 

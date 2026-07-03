@@ -47,7 +47,12 @@ async function openDoc(node) {
       })
     : "—";
 
-  editorOpen("");
+  // Only .md docs get the live Markdown renderer + formatting toolbar;
+  // .txt docs stay plain text, matching PRINCIPLE.md's storage rules.
+  const richMarkdown = /\.md$/i.test(node.name);
+  const editorOpts = { rich: richMarkdown, toolbar: richMarkdown };
+
+  editorOpen("", editorOpts);
   setSyncStatus("saving", "Opening...");
 
   let painted = false;
@@ -64,7 +69,7 @@ async function openDoc(node) {
     cached.modifiedTime === node.modifiedTime;
 
   if (cachedText !== null) {
-    editorOpen(cachedText);
+    editorOpen(cachedText, editorOpts);
     paintedText = cachedText;
     painted = true;
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
@@ -87,7 +92,7 @@ async function openDoc(node) {
     cachePutDoc(node.id, text, node.modifiedTime);
     const unedited = !painted || editorGetText() === paintedText;
     if (unedited && text !== editorGetText()) {
-      editorOpen(text);
+      editorOpen(text, editorOpts);
     }
     setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
   } catch (e) {
@@ -103,9 +108,15 @@ async function openDoc(node) {
 /* ─── SET BODY ─── */
 function setDocBody(text) {
   editorSetText(text || "");
-  const body = document.getElementById("doc-body");
-  if ((text || "").trim()) body.classList.remove("empty");
-  else body.classList.add("empty");
+  setBodyEmptyClass(text);
+}
+
+function setBodyEmptyClass(text) {
+  const isEmpty = !(text || "").trim();
+  for (const id of ["doc-body", "doc-body-rich"]) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("empty", isEmpty);
+  }
 }
 
 /* ─── INPUT HANDLERS ───
@@ -130,9 +141,7 @@ function updateWordCount() {
   document.getElementById("word-count").textContent =
     count + (count === 1 ? " word" : " words");
 
-  const body = document.getElementById("doc-body");
-  if (text) body.classList.remove("empty");
-  else body.classList.add("empty");
+  setBodyEmptyClass(text);
 }
 
 function autoResize(el) {
