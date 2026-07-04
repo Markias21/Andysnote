@@ -59,7 +59,7 @@ function editorOpen(text, opts) {
     if (_richEl) _richEl.style.display = "none";
     if (_plainEl) {
       _plainEl.style.display = "";
-      _plainEl.value = markdownText;
+      _plainEl.value = indentModeActive() ? applyIndentText(markdownText) : markdownText;
     }
   }
 
@@ -75,37 +75,132 @@ function editorSetText(text) {
   if (richMode) {
     richRenderAll(-1);
   } else if (_plainEl) {
-    _plainEl.value = markdownText;
+    _plainEl.value = indentModeActive() ? applyIndentText(markdownText) : markdownText;
   }
   updateWordCount();
 }
 
 function editorSyncFromView() {
   if (richMode || !_plainEl) return;
-  markdownText = _plainEl.value || "";
+  const raw = _plainEl.value || "";
+  markdownText = indentModeActive() ? stripIndentText(raw) : raw;
   updateWordCount();
   if (storageMode === "local" && currentFileId) scheduleLocalSave();
   else if (driveAccessToken && currentFileId) scheduleDriveSave();
 }
 
-/* Indent mode, .txt only: a small (one-space) typing aid, not a retroactive
-   reformat of existing text. CSS text-indent can't indent every paragraph
-   of a <textarea> (it only ever affects the very first line, even with the
-   "each-line" keyword — textareas don't participate in the line-box model
-   that relies on), so this does it the only way that actually works: insert
-   the indent right when Enter starts a new paragraph. Never applies to
-   local notes or to the rich .md editor (richMode is always false here
-   anyway, since this listener is only on the plain <textarea>, but
-   storageMode also has to be "drive" — local notes use this same textarea
-   and must be excluded). */
+/* Indent mode, .txt / local notes only (never the rich .md editor — richMode
+   is false for both of those, which is exactly the condition we want): a
+   one-space-per-paragraph look, kept entirely out of the saved text. CSS
+   text-indent can't do this (it only ever affects a <textarea>'s very first
+   line, even with the "each-line" keyword — textareas don't participate in
+   the line-box model that relies on), so instead markdownText (the saved
+   source of truth) always stays raw/unindented, and the leading space only
+   ever lives in the live <textarea> DOM value: added on open/toggle
+   (applyIndentText), stripped again on every sync (stripIndentText). Typing
+   itself is left 100% native (IME-safe); only Enter/Backspace at a
+   paragraph boundary need help, since native behavior would otherwise treat
+   the indent space as an ordinary, deletable character. */
+function indentModeActive() {
+  return !richMode && !!getSetting("ui.indentMode");
+}
+
+function applyIndentText(text) {
+  return text
+    .split("\n")
+    .map((line) => " " + line)
+    .join("\n");
+}
+
+function stripIndentText(text) {
+  return text
+    .split("\n")
+    .map((line) => (line.startsWith(" ") ? line.slice(1) : line))
+    .join("\n");
+}
+
 function plainHandleKeyDown(e) {
-  if (richMode || e.key !== "Enter") return;
-  if (storageMode !== "drive") return;
-  if (!getSetting("ui.indentMode")) return;
-  e.preventDefault();
+  if (!indentModeActive()) return;
   const body = _plainEl;
-  body.setRangeText("\n ", body.selectionStart, body.selectionEnd, "end");
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    body.setRangeText("\n ", body.selectionStart, body.selectionEnd, "end");
+    body.dispatchEvent(new Event("input", { bubbles: true }));
+    return;
+  }
+
+  if (e.key === "Backspace") {
+    if (body.selectionStart !== body.selectionEnd) return; // let native range-delete happen
+    const value = body.value;
+    const pos = body.selectionStart;
+    const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
+    // Only the exact spot right after this line's protected indent space
+    // needs help — everywhere else, native Backspace is already correct.
+    if (pos !== lineStart + 1 || value[lineStart] !== " ") return;
+    e.preventDefault();
+    if (lineStart === 0) return; // first line, nothing above to merge into
+    // Delete the preceding newline together with this line's indent space in
+    // one step, so Backspace still merges with the previous paragraph
+    // instead of just peeling the indent off and going nowhere.
+    body.setRangeText("", lineStart - 1, lineStart + 1, "start");
+    body.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
+/* Copy/cut must not leak the indent space into the clipboard — otherwise
+   pasting elsewhere (or back into a non-indented spot) carries a stray
+   leading space. Only strip where the space is actually a protected line
+   start that fell inside the selection, not arbitrary selection-boundary
+   text. */
+function plainStripIndentFromSelection(start, end, value) {
+  const selected = value.slice(start, end);
+  const parts = selected.split("\n");
+  const firstLineStart = value.lastIndexOf("\n", start - 1) + 1;
+  if (start === firstLineStart && value[start] === " ") {
+    parts[0] = parts[0].slice(1);
+  }
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i].startsWith(" ")) parts[i] = parts[i].slice(1);
+  }
+  return parts.join("\n");
+}
+
+function plainHandleCopy(e) {
+  if (!indentModeActive()) return;
+  const body = _plainEl;
+  if (body.selectionStart === body.selectionEnd) return;
+  const stripped = plainStripIndentFromSelection(body.selectionStart, body.selectionEnd, body.value);
+  e.clipboardData.setData("text/plain", stripped);
+  e.preventDefault();
+}
+
+function plainHandleCut(e) {
+  if (!indentModeActive()) return;
+  const body = _plainEl;
+  if (body.selectionStart === body.selectionEnd) return;
+  const stripped = plainStripIndentFromSelection(body.selectionStart, body.selectionEnd, body.value);
+  e.clipboardData.setData("text/plain", stripped);
+  e.preventDefault();
+  body.setRangeText("", body.selectionStart, body.selectionEnd, "start");
   body.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/* Called right when Settings flips ui.indentMode, so a currently open
+   .txt/local doc re-renders with (or without) the indent immediately instead
+   of waiting for the next time it's opened. The caret's new position is
+   approximated by shifting it one char per line above it, since indent only
+   ever changes line-start characters. */
+function editorRefreshIndentDisplay() {
+  if (richMode || !_plainEl) return;
+  const oldValue = _plainEl.value;
+  const pos = _plainEl.selectionStart;
+  const lineIndex = (oldValue.slice(0, pos).match(/\n/g) || []).length;
+  const newValue = indentModeActive() ? applyIndentText(markdownText) : markdownText;
+  const shift = indentModeActive() ? lineIndex + 1 : -(lineIndex + 1);
+  _plainEl.value = newValue;
+  const newPos = Math.max(0, Math.min(newValue.length, pos + shift));
+  _plainEl.setSelectionRange(newPos, newPos);
 }
 
 function isRichMarkdownActive() {
@@ -125,6 +220,8 @@ function wireEditorEvents() {
   if (_plainEl && !_plainEl._editorWired) {
     _plainEl.addEventListener("input", editorSyncFromView);
     _plainEl.addEventListener("keydown", plainHandleKeyDown);
+    _plainEl.addEventListener("copy", plainHandleCopy);
+    _plainEl.addEventListener("cut", plainHandleCut);
     _plainEl._editorWired = true;
   }
   if (_richEl && !_richEl._editorWired) {

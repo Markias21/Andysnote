@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704o" />
+    <link rel="manifest" href="./manifest.json?v=20260704v" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,11 +12,11 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704o" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704v" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;600&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;500;600&family=Nanum+Myeongjo&family=IBM+Plex+Mono:wght@400;500&family=Jua&family=Hi+Melody&family=Gowun+Batang:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;600&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;500;600&family=Nanum+Myeongjo&family=Jua&family=Hi+Melody&family=Gowun+Batang:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Gothic:wght@400;700;800&family=Do+Hyeon&family=Gaegu&family=Gamja+Flower&family=Poor+Story&family=Dongle:wght@300;400;700&family=Single+Day&family=Kirang+Haerang&family=East+Sea+Dokdo&family=Yeon+Sung&family=Song+Myung&family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Stylish&family=Sunflower:wght@300;500;700&family=Fredoka:wght@400;500;600&family=Baloo+2:wght@400;600&family=Comfortaa:wght@400;600&family=Quicksand:wght@400;500;600&family=Varela+Round&family=Nunito:wght@400;600&family=Chewy&family=Patrick+Hand&family=Dancing+Script:wght@400;600&family=Sacramento&family=Great+Vibes&family=Alex+Brush&family=Allura&family=Parisienne&family=Marck+Script&family=Petit+Formal+Script&family=League+Script&family=Pinyon+Script&family=Arimo:wght@400;500;600&family=Tinos:wght@400;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600&family=PT+Serif:wght@400;700&family=Roboto:wght@400;500;600&family=EB+Garamond:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <link
@@ -25,12 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/jetbrains-mono@1.0.6/css/jetbrains-mono.min.css"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=20260704v"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css"
-    />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=20260704v" />
     <style>
       *,
       *::before,
@@ -57,7 +54,8 @@
         --sidebar-w: 240px;
         --topbar-h: 48px;
         --font-ui: "Inter", sans-serif;
-        --editor-font: system-ui, sans-serif;
+        --editor-font-kr: system-ui, sans-serif;
+        --editor-font-en: system-ui, sans-serif;
         --radius: 6px;
       }
 
@@ -636,7 +634,7 @@
         background: transparent;
         border: none;
         color: var(--text);
-        font-family: var(--editor-font), system-ui, sans-serif;
+        font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
         font-size: 32px;
         font-weight: 500;
         line-height: 1.3;
@@ -678,7 +676,7 @@
         border: none;
         background: transparent;
         color: var(--text);
-        font-family: var(--editor-font), system-ui, sans-serif;
+        font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
         font-size: 17px;
         line-height: 1.85;
         outline: none;
@@ -706,7 +704,7 @@
         min-height: 400px;
         background: transparent;
         color: var(--text);
-        font-family: var(--editor-font), system-ui, sans-serif;
+        font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
         font-size: 17px;
         line-height: 1.85;
         outline: none;
@@ -1029,7 +1027,7 @@
         background: var(--surface);
         border: 1px solid var(--border2);
         border-radius: 10px;
-        width: 420px;
+        width: 460px;
         max-width: calc(100vw - 32px);
         max-height: 80vh;
         margin-top: 64px;
@@ -1046,7 +1044,7 @@
         border-bottom: 1px solid var(--border);
       }
       .settings-head h3 {
-        font-size: 15px;
+        font-size: 17px;
         font-weight: 600;
       }
       .settings-close {
@@ -1075,9 +1073,9 @@
         background: transparent;
         color: var(--text-dim);
         font-family: var(--font-ui);
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 500;
-        padding: 10px 8px;
+        padding: 10px 10px;
         margin-bottom: -1px;
         border-bottom: 2px solid transparent;
         cursor: pointer;
@@ -1110,7 +1108,7 @@
         border-bottom: none;
       }
       .settings-group-title {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -1122,10 +1120,10 @@
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 8px 0;
+        padding: 10px 0;
       }
       .settings-label {
-        font-size: 14px;
+        font-size: 16px;
         color: var(--text);
       }
       .settings-select {
@@ -1134,11 +1132,11 @@
         border-radius: var(--radius);
         color: var(--text);
         font-family: var(--font-ui);
-        font-size: 13px;
-        padding: 6px 10px;
+        font-size: 15px;
+        padding: 8px 12px;
         outline: none;
         cursor: pointer;
-        min-width: 150px;
+        min-width: 170px;
       }
       .settings-select:focus {
         border-color: var(--border2);
@@ -1987,24 +1985,24 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704o"></script>
-    <script src="js/state.js?v=20260704o"></script>
-    <script src="js/settings.js?v=20260704o"></script>
-    <script src="js/ui.js?v=20260704o"></script>
-    <script src="js/cache.js?v=20260704o"></script>
-    <script src="js/drive.js?v=20260704o"></script>
-    <script src="js/auth.js?v=20260704o"></script>
-    <script src="js/sidebar.js?v=20260704o"></script>
-    <script src="js/markdown.js?v=20260704o"></script>
-    <script src="js/editor/parser.js?v=20260704o"></script>
-    <script src="js/editor/renderer.js?v=20260704o"></script>
-    <script src="js/editor/cursor.js?v=20260704o"></script>
-    <script src="js/editor/engine.js?v=20260704o"></script>
-    <script src="js/editor.js?v=20260704o"></script>
-    <script src="js/local.js?v=20260704o"></script>
-    <script src="js/modal.js?v=20260704o"></script>
-    <script src="js/calendar.js?v=20260704o"></script>
-    <script src="js/app.js?v=20260704o"></script>
+    <script src="js/config.js?v=20260704v"></script>
+    <script src="js/state.js?v=20260704v"></script>
+    <script src="js/settings.js?v=20260704v"></script>
+    <script src="js/ui.js?v=20260704v"></script>
+    <script src="js/cache.js?v=20260704v"></script>
+    <script src="js/drive.js?v=20260704v"></script>
+    <script src="js/auth.js?v=20260704v"></script>
+    <script src="js/sidebar.js?v=20260704v"></script>
+    <script src="js/markdown.js?v=20260704v"></script>
+    <script src="js/editor/parser.js?v=20260704v"></script>
+    <script src="js/editor/renderer.js?v=20260704v"></script>
+    <script src="js/editor/cursor.js?v=20260704v"></script>
+    <script src="js/editor/engine.js?v=20260704v"></script>
+    <script src="js/editor.js?v=20260704v"></script>
+    <script src="js/local.js?v=20260704v"></script>
+    <script src="js/modal.js?v=20260704v"></script>
+    <script src="js/calendar.js?v=20260704v"></script>
+    <script src="js/app.js?v=20260704v"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

@@ -1,0 +1,95 @@
+/* Naver Clova "나눔손글씨" (Nanum Handwriting) fonts — self-hosted woff2.
+   Free for personal/business use, no resale (per https://clova.ai/handwriting).
+   Downloaded from Naver's own CDN and compressed locally; each font-family
+   name below matches the `stack` registered for it in js/settings.js. */
+
+@font-face {
+  font-family: "NanumGaRamYeonGgoc";
+  src: url("NanumGaRamYeonGgoc.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumGangBuJangNimCe";
+  src: url("NanumGangBuJangNimCe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumGoDigANiGoGoDing";
+  src: url("NanumGoDigANiGoGoDing.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumGomSinCe";
+  src: url("NanumGomSinCe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumGyuRiEuiIrGi";
+  src: url("NanumGyuRiEuiIrGi.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumGiBbeumBarkEum";
+  src: url("NanumGiBbeumBarkEum.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumNaMuJeongWeon";
+  src: url("NanumNaMuJeongWeon.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumDdarEGeEomMaGa";
+  src: url("NanumDdarEGeEomMaGa.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumBuJangNimNunCiCe";
+  src: url("NanumBuJangNimNunCiCe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumSaRangHaeADeur";
+  src: url("NanumSaRangHaeADeur.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumOgBiCe";
+  src: url("NanumOgBiCe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumOeHarMeoNiGeurSsi";
+  src: url("NanumOeHarMeoNiGeurSsi.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumJeongEunCe";
+  src: url("NanumJeongEunCe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumCeorPirGeurSsi";
+  src: url("NanumCeorPirGeurSsi.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumHaengBogHanDoBi";
+  src: url("NanumHaengBogHanDoBi.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumHeuinGgoRiSuRi";
+  src: url("NanumHeuinGgoRiSuRi.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumHyeogICe";
+  src: url("NanumHyeogICe.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumHarABeoJiEuiNaNum";
+  src: url("NanumHarABeoJiEuiNaNum.woff2") format("woff2");
+  font-display: swap;
+}
