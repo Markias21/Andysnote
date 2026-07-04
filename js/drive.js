@@ -248,6 +248,26 @@ async function deepLoadNodes(nodes) {
   return results.every(Boolean);
 }
 
+/* Fill a <select> with one <option> per Drive folder, indented by nesting
+   depth, ahead of whatever rootOptionHtml the caller wants as the first
+   (unfiltered/root) choice. Shared by the "new document" modal's folder
+   picker and the calendar's folder-scope filter so both look and behave
+   the same way. */
+function populateDriveFolderSelect(sel, rootOptionHtml) {
+  sel.innerHTML = rootOptionHtml;
+  function addOptions(nodes, prefix) {
+    for (const n of nodes) {
+      if (n.mimeType !== FOLDER_MIME) continue;
+      const opt = document.createElement("option");
+      opt.value = n.id;
+      opt.textContent = prefix + n.name;
+      sel.appendChild(opt);
+      addOptions(n.children, prefix + "  ");
+    }
+  }
+  addOptions(driveTree, "");
+}
+
 async function findOrCreateAndysNoteRoot() {
   const r = await driveGet("https://www.googleapis.com/drive/v3/files", {
     q: `name='${ANDYSNOTE_ROOT_NAME}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,

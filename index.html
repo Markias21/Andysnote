@@ -847,6 +847,10 @@
         justify-self: end;
       }
 
+      .cal-filter-group {
+        justify-self: start;
+      }
+
       .cal-month-input {
         background: var(--surface2);
         border: 1px solid var(--border);
@@ -2069,7 +2073,15 @@
           <!-- CALENDAR VIEW -->
           <div class="calendar-view hidden" id="calendar-view">
             <div class="calendar-header" id="calendar-header">
-              <div class="cal-header-spacer"></div>
+              <div class="cal-filter-group">
+                <select
+                  class="cal-month-input"
+                  id="cal-folder-filter"
+                  onchange="calSetFolderFilter(this.value)"
+                >
+                  <option value="">All folders</option>
+                </select>
+              </div>
               <div class="cal-nav-group">
                 <button class="cal-nav" onclick="calNav(-1)">
                   <svg
