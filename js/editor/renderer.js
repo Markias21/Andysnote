@@ -1,19 +1,20 @@
 /* ─── RENDERER ────────────────────────────────────────────────────────────
    Turns one line of raw Markdown text into DOM + a raw-offset mapping.
-   Never mutates markdownText, never touches the selection, never depends
-   on cursor position — once a pattern is recognized it renders styled with
-   its syntax hidden, full stop (no "reveal raw text on focus" mode).
+   Never mutates markdownText, never touches the selection.
 
-   renderLine(text, oldText) -> { frag, mapping }
-     text    – raw text of this single line, right now
-     oldText – this same line's text right before the edit that produced
-               `text` (or null/undefined if unknown, e.g. on first paint).
-               Used only to decide whether a block prefix (heading/quote/
-               list/...) that just became recognizable is safe to collapse
-               immediately: safe if the line already had this same block
-               type, or if there's no content after the prefix yet. This
-               stops "> " typed at the front of an existing paragraph from
-               retroactively swallowing that paragraph's text.
+   renderLine(text, isFocused) -> { frag, mapping }
+     text       – raw text of this single line, right now
+     isFocused  – true if the caret is currently on this line. A focused
+                  line renders as one plain, fully-raw text node — nothing
+                  hidden, nothing styled — and is deliberately never
+                  touched again until focus leaves it (see engine.js).
+                  This is what makes typing, including IME composition,
+                  reliable: the engine never rebuilds a text node out from
+                  under an edit in progress. Styling (hidden markers, bold,
+                  block types, ...) is applied the moment focus moves away,
+                  based purely on the line's final content at that point —
+                  same as Typora: leave a line starting with "> " and it
+                  renders as a quote, regardless of how it got that way.
 
    mapping is an array of { node, rawStart, rawEnd } in document order,
    one entry per text node placed in `frag`. It always covers the FULL
@@ -22,9 +23,29 @@
    the line's textContent and so the caret can always be mapped back to
    a raw offset regardless of which spans are collapsed. */
 
-function renderLine(text, oldText) {
+function renderLine(text, isFocused) {
   const frag = document.createDocumentFragment();
   const mapping = [];
+
+  if (isFocused) {
+    if (text.length === 0) {
+      // A truly empty (zero-length) text node is not a reliable native
+      // insertion anchor in Chromium — the very first character typed can
+      // land as a stray sibling instead of inside it. A lone <br> is the
+      // standard, battle-tested way browsers represent an empty
+      // contenteditable line, and typing into it works correctly. It
+      // contributes "" to .textContent, so richHandleInput's sync is
+      // unaffected; no mapping entry is needed since there's no raw
+      // content to map a caret back to (placeCaretInLine's "past the end"
+      // fallback already places the caret right here).
+      frag.appendChild(document.createElement("br"));
+      return { frag, mapping };
+    }
+    const node = document.createTextNode(text);
+    frag.appendChild(node);
+    mapping.push({ node, rawStart: 0, rawEnd: text.length });
+    return { frag, mapping };
+  }
 
   function addText(str, rawStart, rawEnd, parent) {
     const node = document.createTextNode(str);
@@ -68,14 +89,6 @@ function renderLine(text, oldText) {
   }
 
   const ast = parseBlock(text);
-
-  if (MD_BLOCK_TYPES_LINE_LEVEL.includes(ast.type) && !shouldStyleBlock(ast, text, oldText)) {
-    // Not (yet) safe to collapse — e.g. "> " just got stuck in front of an
-    // existing populated paragraph. Show the untouched raw line instead of
-    // guessing.
-    addText(text, 0, text.length, frag);
-    return { frag, mapping };
-  }
 
   const lineDiv = document.createElement("div");
   lineDiv.className = "md-block md-" + ast.type;
@@ -150,11 +163,4 @@ function renderLine(text, oldText) {
 
   frag.appendChild(lineDiv);
   return { frag, mapping };
-}
-
-function shouldStyleBlock(ast, text, oldText) {
-  const contentAfterPrefix = text.slice(ast.prefixEnd);
-  if (!contentAfterPrefix) return true; // prefix just completed, nothing typed after it yet
-  if (oldText == null) return true; // no history to compare against (e.g. doc just opened) — trust the content
-  return parseBlock(oldText).type === ast.type; // was already this block type before this edit
 }

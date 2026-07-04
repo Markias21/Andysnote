@@ -7,19 +7,27 @@
      - rich mode   : a contenteditable <div> with Typora-style live Markdown
        rendering. Used for Drive .md docs.
 
-   Rich mode never trusts the browser's native contenteditable editing
-   (Enter/Backspace handling is inconsistent across browsers and is exactly
-   what caused problems before). Instead every edit is intercepted via
-   `beforeinput`, applied to markdownText as a plain string splice, and every
-   line is re-rendered from that string. IME composition is the one
-   exception: composition text lands in a live DOM text node normally, and
-   is resynced into markdownText once composition ends (or is force-ended,
-   see richHandleBeforeInput).
+   Rich mode's core rule: THE FOCUSED LINE IS NEVER REBUILT WHILE YOU'RE
+   TYPING ON IT. It renders as one plain, fully-raw text node, and the
+   browser edits it 100% natively — that's what makes regular typing, Enter,
+   Space and (especially) IME composition reliable. We only mirror its text
+   into markdownText afterward, via the native `input` event.
 
-   Rendering never depends on cursor/focus position — once a pattern is
-   recognized it renders styled with its syntax hidden, always. There is no
-   "reveal raw text while the caret is on it" mode, so nothing needs to
-   track which line is focused. */
+   Earlier versions rebuilt the whole line's DOM on every keystroke (via
+   `beforeinput` interception) to hide Markdown syntax live. That fought the
+   browser's own composition machinery: Korean input in particular fires far
+   more frequent composition cycles than English, and each rebuild could tear
+   down the very text node an in-progress composition was tracking — which is
+   what caused Enter/Space to misbehave specifically (and only) with Korean
+   input. Styling (hidden markers, bold, block types, ...) is now applied the
+   moment focus moves to a different line, not while you're still on it.
+
+   The only things still intercepted structurally are: Enter (split the
+   line), Backspace at the very start of a non-first line (merge with the
+   previous one), Delete at the very end of a non-last line (merge with the
+   next one), and paste/drop (insert as plain text). Everything else —
+   ordinary character insertion, ordinary deletion, IME composition — is left
+   entirely to the browser. */
 
 let markdownText = "";
 let _plainEl = null; // <textarea id="doc-body">
@@ -28,7 +36,7 @@ let richMode = false; // true only for Drive .md docs
 let toolbarVisible = true; // false only for Drive .txt docs
 let _lineEls = [];
 let _lineMappings = [];
-let _composing = false;
+let _focusedLine = -1; // which line index is currently rendered raw (has the caret)
 
 /* ─── Public API (shared by both modes) ─── */
 
@@ -46,7 +54,7 @@ function editorOpen(text, opts) {
   if (richMode) {
     if (_plainEl) _plainEl.style.display = "none";
     if (_richEl) _richEl.style.display = "";
-    richRenderAll(null);
+    richRenderAll(-1);
   } else {
     if (_richEl) _richEl.style.display = "none";
     if (_plainEl) {
@@ -65,7 +73,7 @@ function editorGetText() {
 function editorSetText(text) {
   markdownText = text || "";
   if (richMode) {
-    richRenderAll(null);
+    richRenderAll(-1);
   } else if (_plainEl) {
     _plainEl.value = markdownText;
   }
@@ -101,27 +109,22 @@ function wireEditorEvents() {
   if (_richEl && !_richEl._editorWired) {
     _richEl.addEventListener("keydown", richHandleKeyDown);
     _richEl.addEventListener("beforeinput", richHandleBeforeInput);
-    _richEl.addEventListener("compositionstart", richHandleCompositionStart);
-    _richEl.addEventListener("compositionend", richHandleCompositionEnd);
+    _richEl.addEventListener("input", richHandleInput);
     _richEl.addEventListener("click", richHandleClick);
+    // selectionchange fires asynchronously, so a click immediately followed
+    // by typing can get ahead of it — keystrokes would land before the
+    // clicked line has been converted to its plain, editable raw form
+    // (worst case: characters inserted directly into the root, outside any
+    // line, since the browser's own click-driven caret placement raced
+    // ahead of our conversion too). mousedown fires, and lets us compute the
+    // click target ourselves via caretPositionFromPoint, *before* the
+    // browser processes its own default caret placement — so by the time it
+    // does, the target line is already in its final plain form and native
+    // placement just lands correctly, with nothing left to race.
+    _richEl.addEventListener("mousedown", richHandleMouseDown);
     document.addEventListener("selectionchange", richHandleSelectionChange);
     _richEl._editorWired = true;
   }
-}
-
-/* Enter is handled at keydown, not beforeinput: some browser/IME
-   combinations don't reliably fire beforeinput's "insertParagraph" for a
-   real physical Enter press (that's what made Enter silently do nothing
-   before). Preventing the keydown itself is the traditional, more robust
-   way editors take full control of this specific key — Chrome/Firefox
-   don't fire the corresponding beforeinput once keydown's default is
-   prevented, so this is the single source of truth for Enter now. */
-function richHandleKeyDown(e) {
-  if (!richMode || e.key !== "Enter" || e.isComposing) return;
-  e.preventDefault();
-  const { start, end } = richGetSelectionOffsets();
-  if (start == null) return;
-  richHandleEnter(start, end);
 }
 
 function richHandleClick(e) {
@@ -132,23 +135,13 @@ function richHandleClick(e) {
 }
 
 /* Toolbar Bold/Italic/Strike/Code buttons reflect whether the caret is
-   currently inside that formatting (Word/한글-style), via a lightweight
-   selectionchange listener that only toggles button classes — it never
-   touches content or the caret, so it can't reintroduce the bugs the old
-   render-on-selectionchange logic had. */
+   currently inside that formatting (Word/한글-style). */
 const TOOLBAR_BUTTON_IDS = {
   bold: "md-btn-bold",
   italic: "md-btn-italic",
   strike: "md-btn-strike",
   code: "md-btn-code",
 };
-
-function richHandleSelectionChange() {
-  if (!richMode || !_richEl) return;
-  const sel = window.getSelection();
-  if (!sel.rangeCount || !_richEl.contains(sel.getRangeAt(0).startContainer)) return;
-  updateToolbarActiveStates();
-}
 
 function updateToolbarActiveStates() {
   const { start, end } = richGetSelectionOffsets();
@@ -217,7 +210,24 @@ function domPointToAbsolute(node, offset) {
   }
   const lineIndex = lineIndexForNode(node);
   if (lineIndex === -1) return null;
-  const rawInLine = rawOffsetFromCaret(_lineMappings[lineIndex], node, offset) ?? 0;
+
+  let rawInLine;
+  if (lineIndex === _focusedLine) {
+    // The focused line is edited natively — the browser can (and does, per
+    // e.g. Chromium never using a zero-length text node as an insertion
+    // anchor) restructure its DOM on its own. Its cached mapping only
+    // reflects however it looked at the last render, so it can't be
+    // trusted here; compute the raw offset straight from the live DOM
+    // instead. A Range from the container's start to this point stringifies
+    // to exactly the text that precedes it (a <br>, if any, contributes
+    // nothing, same as it contributes nothing to .textContent).
+    const range = document.createRange();
+    range.selectNodeContents(_lineEls[lineIndex]);
+    range.setEnd(node, offset);
+    rawInLine = range.toString().length;
+  } else {
+    rawInLine = rawOffsetFromCaret(_lineMappings[lineIndex], node, offset) ?? 0;
+  }
   return lineStartOffset(lineIndex) + rawInLine;
 }
 
@@ -252,27 +262,36 @@ function findEnclosingInlineSpan(type, start, end) {
 }
 
 /* ─── Rich mode: rendering ───
-   oldLines (or null) is the line array from right before the change that
-   produced the current markdownText — passed straight to the Renderer so
-   it can tell "this block type is brand new here" apart from "this line
-   was already this type," which decides whether a completed prefix like
-   "> " is safe to collapse immediately. See renderer.js's shouldStyleBlock. */
+   focusedLine is the line index that should render fully raw (or -1). */
 
-function richRenderAll(oldLines) {
+function richRenderAll(focusedLine) {
   const lines = markdownText.split("\n");
   _richEl.innerHTML = "";
   _lineEls = [];
   _lineMappings = [];
+  _focusedLine = focusedLine;
   lines.forEach((lineText, i) => {
     const container = document.createElement("div");
     container.className = "doc-line";
-    const oldText = oldLines ? oldLines[i] : null;
-    const { frag, mapping } = renderLine(lineText, oldText);
+    const { frag, mapping } = renderLine(lineText, i === focusedLine);
     container.appendChild(frag);
     _richEl.appendChild(container);
     _lineEls.push(container);
     _lineMappings.push(mapping);
   });
+}
+
+/* Re-render just one line in place (used when focus moves between lines —
+   far cheaper, and far less disruptive, than rebuilding the whole document
+   on every keystroke). */
+function rerenderSingleLine(index, isFocused) {
+  const container = _lineEls[index];
+  if (!container) return;
+  const lineText = markdownText.split("\n")[index] ?? "";
+  container.innerHTML = "";
+  const { frag, mapping } = renderLine(lineText, isFocused);
+  container.appendChild(frag);
+  _lineMappings[index] = mapping;
 }
 
 /* ─── Rich mode: selection / editing ─── */
@@ -288,9 +307,10 @@ function richGetSelectionOffsets() {
 
 /* Apply a raw-text splice, then re-render and place the caret/selection.
    selStart/selEnd (absolute offsets) default to a collapsed caret right
-   after the inserted text. */
+   after the inserted text. Used for structural edits (Enter, line merges,
+   paste, toolbar actions) — NOT for ordinary typing, which the browser
+   handles natively (see richHandleInput). */
 function richApplyEdit(start, end, text, selStart, selEnd) {
-  const oldLines = markdownText.split("\n");
   markdownText = markdownText.slice(0, start) + text + markdownText.slice(end);
   scheduleRichChangeCallbacks();
 
@@ -299,182 +319,188 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
   const from = lineAndOffsetForAbsolute(finalStart);
   const to = lineAndOffsetForAbsolute(finalEnd);
 
-  richRenderAll(oldLines);
+  richRenderAll(from.line);
 
   if (from.line === to.line) {
     placeCaretRangeInLine(_lineEls[from.line], _lineMappings[from.line], from.offset, to.offset);
   } else {
     placeCaretInLine(_lineEls[from.line], _lineMappings[from.line], from.offset);
   }
-  // Don't wait for the async selectionchange event to reflect this in the
-  // toolbar — under fast typing it can lag a keystroke or more behind,
-  // which looked like "the active indicator doesn't work while typing."
   updateToolbarActiveStates();
 }
 
-/* If a composition is (or might still be, per stale event ordering — see
-   richHandleBeforeInput) in progress, read its line's live text back out of
-   the DOM into markdownText before anything else touches it. Hidden syntax
-   marks are never removed from the DOM, only CSS-hidden, so textContent is
-   always the true raw text. Returns the resynced line index, or -1. */
-function finishComposition() {
-  if (!_composing) return -1;
-  _composing = false;
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return -1;
-  const range = sel.getRangeAt(0);
-  const index = resolveLineIndex(range.startContainer, range.startOffset);
-  if (index === -1 || !_lineEls[index]) return -1;
-
-  const newLineText = _lineEls[index].textContent;
+/* Mirrors the focused line's live (natively-edited) text into markdownText.
+   Fires on every native `input` — including every step of IME composition —
+   but never touches the DOM itself, so it can't disrupt an edit in
+   progress. The focused line is always exactly one plain text node (see
+   renderer.js), so its container's textContent IS the raw line text. */
+function richHandleInput() {
+  if (!richMode || _focusedLine === -1) return;
+  const container = _lineEls[_focusedLine];
+  if (!container) return;
   const lines = markdownText.split("\n");
-  lines[index] = newLineText;
+  if (lines[_focusedLine] === container.textContent) return;
+  lines[_focusedLine] = container.textContent;
   markdownText = lines.join("\n");
-  return index;
+  scheduleRichChangeCallbacks();
+}
+
+/* Enter is handled at keydown, unconditionally (including mid-IME-
+   composition — you can't compose a Hangul syllable across a line break
+   anyway, so finalizing it here is correct, not disruptive). This is also
+   just a more robust way to own this specific key than relying on
+   beforeinput's "insertParagraph" alone. */
+function richHandleKeyDown(e) {
+  if (!richMode || e.key !== "Enter") return;
+  e.preventDefault();
+  const { start, end } = richGetSelectionOffsets();
+  if (start == null) return;
+  richApplyEdit(start, end, "\n");
 }
 
 function richHandleBeforeInput(e) {
   if (!richMode) return;
-  // Let the IME edit its own text node natively — never intercept this.
-  if (e.inputType === "insertCompositionText") return;
-
-  // Some IMEs use Enter (or another key) to confirm/commit a composition in
-  // a way where compositionend hasn't fired yet by the time this event
-  // arrives — our own _composing flag can still read stale-true here. Don't
-  // trust it as a gate; resync first if needed, then always handle the
-  // event on its actual inputType. (This is what made Enter appear to do
-  // nothing after typing Korean: we skipped the newline, the browser's own
-  // uncontrolled default ran instead, and the next re-render silently
-  // reverted it.)
-  const resyncedLine = finishComposition();
-
-  e.preventDefault();
-  let { start, end } = richGetSelectionOffsets();
-  if (start == null && resyncedLine !== -1) {
-    // The selection can momentarily fail to resolve right after a DOM text
-    // node's content changed out from under a stale mapping; fall back to
-    // the end of the just-resynced line.
-    const lines = markdownText.split("\n");
-    start = end = lineStartOffset(resyncedLine) + lines[resyncedLine].length;
-  }
-  if (start == null) return;
 
   switch (e.inputType) {
-    case "insertText":
-    case "insertReplacementText":
-      richApplyEdit(start, end, e.data != null ? e.data : "");
+    case "insertParagraph":
+    case "insertLineBreak":
+      // Normally already handled by richHandleKeyDown; kept as a fallback.
+      e.preventDefault();
+      {
+        const { start, end } = richGetSelectionOffsets();
+        if (start != null) richApplyEdit(start, end, "\n");
+      }
       return;
+
     case "insertFromPaste":
     case "insertFromDrop": {
+      e.preventDefault();
+      const { start, end } = richGetSelectionOffsets();
+      if (start == null) return;
       const text = e.dataTransfer ? e.dataTransfer.getData("text/plain") : e.data || "";
       richApplyEdit(start, end, text);
       return;
     }
-    case "insertParagraph":
-    case "insertLineBreak":
-      // Normally handled by richHandleKeyDown before this ever fires; kept
-      // as a fallback in case some environment doesn't respect keydown's
-      // preventDefault the same way.
-      richHandleEnter(start, end);
-      return;
-    case "deleteContentBackward":
-    case "deleteWordBackward":
-    case "deleteSoftLineBackward":
-    case "deleteHardLineBackward": {
-      if (start !== end) {
-        richApplyEdit(start, end, "");
-        return;
-      }
+
+    case "deleteContentBackward": {
+      const { start, end } = richGetSelectionOffsets();
+      if (start == null || start !== end) return; // let native handle deleting a real selection
       const { line, offset } = lineAndOffsetForAbsolute(start);
-      const lineText = markdownText.split("\n")[line];
-      const ast = parseBlock(lineText);
-      if (ast.prefixEnd > 0 && offset === ast.prefixEnd) {
-        // Caret sits right after a recognized (hidden) block prefix — one
-        // Backspace removes the whole prefix instead of just its last
-        // character, so e.g. a checklist reverts to a plain line in one go.
-        const from = lineStartOffset(line);
-        richApplyEdit(from, from + ast.prefixEnd, "");
-        return;
+      if (offset === 0 && line > 0) {
+        // Start of a non-first line: merge with the previous one. Native
+        // contenteditable's own cross-block backspace behavior is exactly
+        // the kind of thing that's inconsistent across browsers, so this
+        // one boundary case stays intercepted.
+        e.preventDefault();
+        richApplyEdit(start - 1, start, "");
       }
-      richApplyEdit(Math.max(0, start - 1), start, "");
+      // Otherwise: an ordinary in-place delete — let the browser handle it.
       return;
     }
-    case "deleteContentForward":
-    case "deleteWordForward":
-    case "deleteSoftLineForward":
-    case "deleteHardLineForward":
-      if (start !== end) richApplyEdit(start, end, "");
-      else richApplyEdit(start, Math.min(markdownText.length, start + 1), "");
+
+    case "deleteContentForward": {
+      const { start, end } = richGetSelectionOffsets();
+      if (start == null || start !== end) return;
+      const lines = markdownText.split("\n");
+      const { line, offset } = lineAndOffsetForAbsolute(start);
+      if (offset === lines[line].length && line < lines.length - 1) {
+        e.preventDefault();
+        richApplyEdit(start, start + 1, "");
+      }
       return;
+    }
+
     default:
-      return; // unhandled: no-op rather than risk corrupting the text
-  }
-}
-
-const DELIM_BY_INLINE_TYPE = { bold: "**", italic: "*", strike: "~~", code: "`" };
-
-/* Enter commits the current line, Notepad-style: formatting never silently
-   carries across a line break — each line is always a self-contained,
-   fully-closed unit.
-
-   Two distinct situations, handled differently:
-   - The cursor sits inside an ALREADY-COMPLETE span (e.g. the toolbar
-     pre-inserts a full "**|**" pair before you've typed a word into it).
-     The line must be split by properly closing that span for line 1 and,
-     only if there's real content left after the cursor, reopening a fresh
-     instance for line 2 — never just inserting a second closer next to the
-     original one, which orphans it as stray literal "**" (this was the
-     "**bold** made via the toolbar, then Enter, leaves stray stars" bug).
-   - The cursor is mid-way through typing a marker that was never closed at
-     all (plain "**bold" with no closing pair yet): just close it off. */
-function richHandleEnter(start, end) {
-  if (start === end) {
-    for (const [type, delim] of Object.entries(DELIM_BY_INLINE_TYPE)) {
-      const span = findEnclosingInlineSpan(type, start, end);
-      if (!span) continue;
-      const remainder = markdownText.slice(start, span.innerEnd);
-      const reopened = remainder ? delim + remainder + delim : "";
-      const caretPos = start + delim.length + 1;
-      richApplyEdit(start, span.rawEnd, delim + "\n" + reopened, caretPos, caretPos);
+      // insertText, insertCompositionText, deleteWordBackward/Forward, etc:
+      // left entirely to the browser's native editing within the focused
+      // line's plain text node. richHandleInput resyncs markdownText.
       return;
-    }
   }
-
-  const { line, offset } = lineAndOffsetForAbsolute(start);
-  const beforeCursor = markdownText.split("\n")[line].slice(0, offset);
-  const closers = detectUnclosedMarkers(beforeCursor).join("");
-  richApplyEdit(start, end, closers + "\n");
 }
 
-function richHandleCompositionStart() {
-  _composing = true;
+/* Switch which line renders raw (focused) vs. styled. Touches at most two
+   lines — never the whole document, never mid-typing. */
+function switchFocusedLine(idx) {
+  if (idx === _focusedLine) return;
+  const oldLine = _focusedLine;
+  _focusedLine = idx;
+  if (oldLine >= 0 && oldLine < _lineEls.length) rerenderSingleLine(oldLine, false);
+  rerenderSingleLine(idx, true);
 }
 
-/* Normal end-of-composition path (e.g. the IME auto-commits after a pause,
-   or focus moves away) — richHandleBeforeInput's finishComposition() covers
-   the case where composition is still "active" per our flag when a real
-   edit (typically Enter) arrives first. */
-function richHandleCompositionEnd() {
-  // Capture the precise caret offset against the still-valid pre-resync
-  // mapping/DOM before finishComposition() touches markdownText.
-  let offset = null;
+/* Caret moved (keyboard navigation, or any other selection change not
+   already handled at mousedown). If it landed on a different line, swap
+   which one renders raw vs. styled. */
+function richHandleSelectionChange() {
+  if (!richMode || !_richEl) return;
   const sel = window.getSelection();
-  if (sel.rangeCount) {
-    const range = sel.getRangeAt(0);
-    const idx = resolveLineIndex(range.startContainer, range.startOffset);
-    if (idx !== -1 && _lineMappings[idx]) {
-      offset = rawOffsetFromCaret(_lineMappings[idx], range.startContainer, range.startOffset);
-    }
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (!_richEl.contains(range.startContainer)) return;
+  if (!range.collapsed) return; // don't disturb an active text selection
+
+  const idx = resolveLineIndex(range.startContainer, range.startOffset);
+  if (idx === -1) return;
+
+  if (idx === _focusedLine) {
+    updateToolbarActiveStates();
+    return;
   }
 
-  const index = finishComposition();
-  if (index === -1) return;
-  scheduleRichChangeCallbacks();
-  const lines = markdownText.split("\n");
-  const finalOffset = offset != null ? offset : lines[index].length;
-  richRenderAll(lines);
-  placeCaretInLine(_lineEls[index], _lineMappings[index], finalOffset);
+  const offset = rawOffsetFromCaret(_lineMappings[idx], range.startContainer, range.startOffset) ?? 0;
+  switchFocusedLine(idx);
+  placeCaretInLine(_lineEls[idx], _lineMappings[idx], offset);
   updateToolbarActiveStates();
+}
+
+/* Precompute the click target ourselves (before the browser's own default
+   mousedown handling runs) and convert that line to its plain, editable raw
+   form right away. By the time the browser actually places its native
+   caret, the line already looks the way it's going to — so that placement
+   just lands correctly the first time, with no rebuild racing behind it. */
+function richHandleMouseDown(e) {
+  if (!richMode) return;
+  // Clicking a decorative, non-editable control (the checklist checkbox) is
+  // a toggle action, not "start editing this line" — suppress the browser's
+  // own default entirely so it can't plant a selection on this line either
+  // (which would otherwise make richHandleSelectionChange flip the line
+  // into raw/editing mode right after the toggle, undoing it visually).
+  // richHandleClick's checkbox handler still runs — preventDefault on
+  // mousedown doesn't stop the later click event.
+  if (e.target.closest(".md-checkbox")) {
+    e.preventDefault();
+    return;
+  }
+  let node, offset;
+  if (document.caretPositionFromPoint) {
+    const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+    if (!pos) return;
+    node = pos.offsetNode;
+    offset = pos.offset;
+  } else if (document.caretRangeFromPoint) {
+    const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    if (!range) return;
+    node = range.startContainer;
+    offset = range.startOffset;
+  } else {
+    return;
+  }
+  const idx = resolveLineIndex(node, offset);
+  if (idx === -1) return;
+
+  // Compute the raw offset against the mapping as it exists right now
+  // (pre-conversion), then convert and place the caret ourselves. We also
+  // preventDefault so the browser doesn't additionally try to place its own
+  // caret afterward — for a short/empty line that has no real clickable
+  // surface, its own hit-testing can land one level too high (as a child
+  // index on the line's container rather than inside the text node),
+  // which is exactly the "characters get typed outside the line" bug this
+  // replaces.
+  const rawOffset = rawOffsetFromCaret(_lineMappings[idx], node, offset) ?? 0;
+  e.preventDefault();
+  switchFocusedLine(idx);
+  placeCaretInLine(_lineEls[idx], _lineMappings[idx], rawOffset);
+  _richEl.focus();
 }
 
 /* ─── Rich mode: toolbar actions (called from js/markdown.js) ─── */
@@ -519,17 +545,24 @@ function richWrapSelection(before, after = before) {
   richApplyEdit(start, end, replacement, selStart, selEnd);
 }
 
-/* Sidebar checkbox click: toggle "- [ ] " <-> "- [x] " for that line. */
+/* Checkbox click: toggle "- [ ] " <-> "- [x] " for that line. This is a
+   click on a decorative control, not the start of an edit — unlike
+   richApplyEdit (used for actual text edits), it must NOT flip the line
+   into focused/raw mode, or the checkbox would visually "come undone"
+   into plain raw text right after every toggle. Whatever line the user
+   was actually editing (if any) is left completely alone. */
 function richToggleChecklistAt(box) {
   const lineEl = box.closest(".doc-line");
   const index = _lineEls.indexOf(lineEl);
   if (index === -1) return;
-  const lineText = markdownText.split("\n")[index];
+  const lines = markdownText.split("\n");
+  const lineText = lines[index];
   const ast = parseBlock(lineText);
   if (ast.type !== "checklist") return;
-  const newLineText = (ast.checked ? "- [ ] " : "- [x] ") + lineText.slice(ast.prefixEnd);
-  const from = lineStartOffset(index);
-  richApplyEdit(from, from + lineText.length, newLineText, from + newLineText.length);
+  lines[index] = (ast.checked ? "- [ ] " : "- [x] ") + lineText.slice(ast.prefixEnd);
+  markdownText = lines.join("\n");
+  scheduleRichChangeCallbacks();
+  rerenderSingleLine(index, false);
 }
 
 function richTransformCurrentLine(transform) {
