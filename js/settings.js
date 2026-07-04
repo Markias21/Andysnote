@@ -77,7 +77,8 @@ const FONT_CATEGORIES = {
 function defaultSettings() {
   return {
     ui: {
-      indentMode: true, // indent mode: visual paragraph indentation on #doc-body
+      theme: "dark", // "dark" | "light"
+      indentMode: true, // .txt only: new paragraphs (Enter) start with a one-space indent
       compactMode: false, // denser layout
     },
     font: {
@@ -162,25 +163,27 @@ function setSetting(path, value) {
   }
 }
 
-/* Reflect the current settings into the live DOM (fonts, view modes).
+/* Reflect the current settings into the live DOM (theme, fonts, view modes).
    The font stack is injected into --editor-font. The CSS in index.html
    already appends `system-ui, sans-serif` after the variable:
      font-family: var(--editor-font), system-ui, sans-serif;
    So the stack here only needs the primary + any essential fallbacks.
    (For web fonts we rely on the CDN link; for system fonts we keep the
-   token minimal and let the CSS fallback do the rest.) */
+   token minimal and let the CSS fallback do the rest.)
+
+   Indent mode isn't applied here — CSS text-indent can't indent every
+   paragraph of a <textarea> (only its very first line), so it's done as a
+   typing behavior instead, right where Enter is handled for .txt docs (see
+   js/editor/engine.js's plainHandleKeyDown). This function only needs to
+   know the setting exists to expose it in the panel via getSetting(). */
 function applySettings() {
   if (!appSettings) return;
 
+  document.documentElement.dataset.theme = appSettings.ui.theme === "light" ? "light" : "dark";
+
   const meta = EDITOR_FONTS[appSettings.font.editor];
   const stack = meta ? meta.stack : "system-ui";
-
   document.documentElement.style.setProperty("--editor-font", stack);
-
-  for (const id of ["doc-body", "doc-body-rich"]) {
-    const body = document.getElementById(id);
-    if (body) body.classList.toggle("indent-mode", !!appSettings.ui.indentMode);
-  }
 
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
 }
@@ -201,7 +204,16 @@ function settingsTabs() {
         {
           title: "UI",
           fields: [
-            { path: "ui.indentMode", label: "Indent mode", type: "bool" },
+            {
+              path: "ui.theme",
+              label: "Theme",
+              type: "select",
+              options: [
+                { value: "dark", label: "Dark" },
+                { value: "light", label: "Light" },
+              ],
+            },
+            { path: "ui.indentMode", label: "Indent mode (.txt only)", type: "bool" },
             { path: "ui.compactMode", label: "Compact mode", type: "bool" },
           ],
         },

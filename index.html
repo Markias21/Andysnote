@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704h" />
+    <link rel="manifest" href="./manifest.json?v=20260704o" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704h" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704o" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -50,14 +50,35 @@
         --text: #e8e8e8;
         --text-dim: #888;
         --text-muted: #555;
-        --accent: #c8a96e;
-        --accent-dim: rgba(200, 169, 110, 0.15);
-        --accent-hover: rgba(200, 169, 110, 0.08);
+        --accent: #b5a400;
+        --accent-text: #141414;
+        --accent-dim: rgba(181, 164, 0, 0.15);
+        --accent-hover: rgba(181, 164, 0, 0.08);
         --sidebar-w: 240px;
         --topbar-h: 48px;
         --font-ui: "Inter", sans-serif;
         --editor-font: system-ui, sans-serif;
         --radius: 6px;
+      }
+
+      /* ─── LIGHT THEME (Chrome-like neutrals; brand accent kept, tuned
+           brighter/more golden-yellow than a literal darkened version of
+           the dark-mode accent needs for contrast) — toggled via Settings
+           > Library > Theme, which stamps data-theme on <html>. ─── */
+      :root[data-theme="light"] {
+        --bg: #ffffff;
+        --surface: #f8f9fa;
+        --surface2: #f1f3f4;
+        --surface3: #e8eaed;
+        --border: #e2e4e7;
+        --border2: #d2d5d9;
+        --text: #202124;
+        --text-dim: #5f6368;
+        --text-muted: #80868b;
+        --accent: #b5a400;
+        --accent-text: #202124;
+        --accent-dim: rgba(181, 164, 0, 0.18);
+        --accent-hover: rgba(181, 164, 0, 0.1);
       }
 
       html,
@@ -375,7 +396,7 @@
         color: var(--accent);
       }
       .folder-icon.closed {
-        color: #666;
+        color: var(--text-dim);
       }
 
       .folder-name {
@@ -1221,7 +1242,7 @@
       }
       .btn-accent {
         background: var(--accent);
-        color: #141414;
+        color: var(--accent-text);
       }
 
       /* ─── ANIMATIONS ─── */
@@ -1860,12 +1881,10 @@
                   </div>
                   <textarea
                     id="doc-body"
-                    class="indent-mode"
                     placeholder="Start writing..."
                   ></textarea>
                   <div
                     id="doc-body-rich"
-                    class="indent-mode"
                     contenteditable="true"
                     spellcheck="false"
                     data-placeholder="Start writing..."
@@ -1968,24 +1987,24 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704h"></script>
-    <script src="js/state.js?v=20260704h"></script>
-    <script src="js/settings.js?v=20260704h"></script>
-    <script src="js/ui.js?v=20260704h"></script>
-    <script src="js/cache.js?v=20260704h"></script>
-    <script src="js/drive.js?v=20260704h"></script>
-    <script src="js/auth.js?v=20260704h"></script>
-    <script src="js/sidebar.js?v=20260704h"></script>
-    <script src="js/markdown.js?v=20260704h"></script>
-    <script src="js/editor/parser.js?v=20260704h"></script>
-    <script src="js/editor/renderer.js?v=20260704h"></script>
-    <script src="js/editor/cursor.js?v=20260704h"></script>
-    <script src="js/editor/engine.js?v=20260704h"></script>
-    <script src="js/editor.js?v=20260704h"></script>
-    <script src="js/local.js?v=20260704h"></script>
-    <script src="js/modal.js?v=20260704h"></script>
-    <script src="js/calendar.js?v=20260704h"></script>
-    <script src="js/app.js?v=20260704h"></script>
+    <script src="js/config.js?v=20260704o"></script>
+    <script src="js/state.js?v=20260704o"></script>
+    <script src="js/settings.js?v=20260704o"></script>
+    <script src="js/ui.js?v=20260704o"></script>
+    <script src="js/cache.js?v=20260704o"></script>
+    <script src="js/drive.js?v=20260704o"></script>
+    <script src="js/auth.js?v=20260704o"></script>
+    <script src="js/sidebar.js?v=20260704o"></script>
+    <script src="js/markdown.js?v=20260704o"></script>
+    <script src="js/editor/parser.js?v=20260704o"></script>
+    <script src="js/editor/renderer.js?v=20260704o"></script>
+    <script src="js/editor/cursor.js?v=20260704o"></script>
+    <script src="js/editor/engine.js?v=20260704o"></script>
+    <script src="js/editor.js?v=20260704o"></script>
+    <script src="js/local.js?v=20260704o"></script>
+    <script src="js/modal.js?v=20260704o"></script>
+    <script src="js/calendar.js?v=20260704o"></script>
+    <script src="js/app.js?v=20260704o"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

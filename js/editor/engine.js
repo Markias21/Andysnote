@@ -88,6 +88,26 @@ function editorSyncFromView() {
   else if (driveAccessToken && currentFileId) scheduleDriveSave();
 }
 
+/* Indent mode, .txt only: a small (one-space) typing aid, not a retroactive
+   reformat of existing text. CSS text-indent can't indent every paragraph
+   of a <textarea> (it only ever affects the very first line, even with the
+   "each-line" keyword — textareas don't participate in the line-box model
+   that relies on), so this does it the only way that actually works: insert
+   the indent right when Enter starts a new paragraph. Never applies to
+   local notes or to the rich .md editor (richMode is always false here
+   anyway, since this listener is only on the plain <textarea>, but
+   storageMode also has to be "drive" — local notes use this same textarea
+   and must be excluded). */
+function plainHandleKeyDown(e) {
+  if (richMode || e.key !== "Enter") return;
+  if (storageMode !== "drive") return;
+  if (!getSetting("ui.indentMode")) return;
+  e.preventDefault();
+  const body = _plainEl;
+  body.setRangeText("\n ", body.selectionStart, body.selectionEnd, "end");
+  body.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function isRichMarkdownActive() {
   return richMode;
 }
@@ -104,6 +124,7 @@ function setToolbarVisible(visible) {
 function wireEditorEvents() {
   if (_plainEl && !_plainEl._editorWired) {
     _plainEl.addEventListener("input", editorSyncFromView);
+    _plainEl.addEventListener("keydown", plainHandleKeyDown);
     _plainEl._editorWired = true;
   }
   if (_richEl && !_richEl._editorWired) {
