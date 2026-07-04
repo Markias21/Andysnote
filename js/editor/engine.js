@@ -99,6 +99,7 @@ function wireEditorEvents() {
     _plainEl._editorWired = true;
   }
   if (_richEl && !_richEl._editorWired) {
+    _richEl.addEventListener("keydown", richHandleKeyDown);
     _richEl.addEventListener("beforeinput", richHandleBeforeInput);
     _richEl.addEventListener("compositionstart", richHandleCompositionStart);
     _richEl.addEventListener("compositionend", richHandleCompositionEnd);
@@ -106,6 +107,21 @@ function wireEditorEvents() {
     document.addEventListener("selectionchange", richHandleSelectionChange);
     _richEl._editorWired = true;
   }
+}
+
+/* Enter is handled at keydown, not beforeinput: some browser/IME
+   combinations don't reliably fire beforeinput's "insertParagraph" for a
+   real physical Enter press (that's what made Enter silently do nothing
+   before). Preventing the keydown itself is the traditional, more robust
+   way editors take full control of this specific key — Chrome/Firefox
+   don't fire the corresponding beforeinput once keydown's default is
+   prevented, so this is the single source of truth for Enter now. */
+function richHandleKeyDown(e) {
+  if (!richMode || e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault();
+  const { start, end } = richGetSelectionOffsets();
+  if (start == null) return;
+  richHandleEnter(start, end);
 }
 
 function richHandleClick(e) {
@@ -290,6 +306,10 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
   } else {
     placeCaretInLine(_lineEls[from.line], _lineMappings[from.line], from.offset);
   }
+  // Don't wait for the async selectionchange event to reflect this in the
+  // toolbar — under fast typing it can lag a keystroke or more behind,
+  // which looked like "the active indicator doesn't work while typing."
+  updateToolbarActiveStates();
 }
 
 /* If a composition is (or might still be, per stale event ordering — see
@@ -351,18 +371,12 @@ function richHandleBeforeInput(e) {
       return;
     }
     case "insertParagraph":
-    case "insertLineBreak": {
-      // Enter commits the current line, Notepad-style: any dangling,
-      // never-closed inline marker (an unfinished **bold, *italic, ...) gets
-      // its closing delimiter appended right at the cursor before the new
-      // line starts, so formatting never silently carries across a line
-      // break — each line is always a self-contained, fully-closed unit.
-      const { line, offset } = lineAndOffsetForAbsolute(start);
-      const beforeCursor = markdownText.split("\n")[line].slice(0, offset);
-      const closers = detectUnclosedMarkers(beforeCursor).join("");
-      richApplyEdit(start, end, closers + "\n");
+    case "insertLineBreak":
+      // Normally handled by richHandleKeyDown before this ever fires; kept
+      // as a fallback in case some environment doesn't respect keydown's
+      // preventDefault the same way.
+      richHandleEnter(start, end);
       return;
-    }
     case "deleteContentBackward":
     case "deleteWordBackward":
     case "deleteSoftLineBackward":
@@ -397,6 +411,41 @@ function richHandleBeforeInput(e) {
   }
 }
 
+const DELIM_BY_INLINE_TYPE = { bold: "**", italic: "*", strike: "~~", code: "`" };
+
+/* Enter commits the current line, Notepad-style: formatting never silently
+   carries across a line break — each line is always a self-contained,
+   fully-closed unit.
+
+   Two distinct situations, handled differently:
+   - The cursor sits inside an ALREADY-COMPLETE span (e.g. the toolbar
+     pre-inserts a full "**|**" pair before you've typed a word into it).
+     The line must be split by properly closing that span for line 1 and,
+     only if there's real content left after the cursor, reopening a fresh
+     instance for line 2 — never just inserting a second closer next to the
+     original one, which orphans it as stray literal "**" (this was the
+     "**bold** made via the toolbar, then Enter, leaves stray stars" bug).
+   - The cursor is mid-way through typing a marker that was never closed at
+     all (plain "**bold" with no closing pair yet): just close it off. */
+function richHandleEnter(start, end) {
+  if (start === end) {
+    for (const [type, delim] of Object.entries(DELIM_BY_INLINE_TYPE)) {
+      const span = findEnclosingInlineSpan(type, start, end);
+      if (!span) continue;
+      const remainder = markdownText.slice(start, span.innerEnd);
+      const reopened = remainder ? delim + remainder + delim : "";
+      const caretPos = start + delim.length + 1;
+      richApplyEdit(start, span.rawEnd, delim + "\n" + reopened, caretPos, caretPos);
+      return;
+    }
+  }
+
+  const { line, offset } = lineAndOffsetForAbsolute(start);
+  const beforeCursor = markdownText.split("\n")[line].slice(0, offset);
+  const closers = detectUnclosedMarkers(beforeCursor).join("");
+  richApplyEdit(start, end, closers + "\n");
+}
+
 function richHandleCompositionStart() {
   _composing = true;
 }
@@ -425,6 +474,7 @@ function richHandleCompositionEnd() {
   const finalOffset = offset != null ? offset : lines[index].length;
   richRenderAll(lines);
   placeCaretInLine(_lineEls[index], _lineMappings[index], finalOffset);
+  updateToolbarActiveStates();
 }
 
 /* ─── Rich mode: toolbar actions (called from js/markdown.js) ─── */
