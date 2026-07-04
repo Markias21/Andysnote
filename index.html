@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704x" />
+    <link rel="manifest" href="./manifest.json?v=20260704z" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704x" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704z" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=20260704x"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=20260704z"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=20260704x" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=20260704z" />
     <style>
       *,
       *::before,
@@ -826,10 +826,67 @@
       }
 
       .calendar-header {
+        width: 100%;
+        max-width: 980px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        margin-bottom: 32px;
+      }
+
+      .cal-nav-group {
         display: flex;
         align-items: center;
         gap: 16px;
-        margin-bottom: 32px;
+        justify-content: center;
+      }
+
+      .cal-jump-group {
+        justify-self: end;
+      }
+
+      .cal-month-input {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        padding: 6px 10px;
+        outline: none;
+        cursor: pointer;
+        color-scheme: dark;
+      }
+      .cal-month-input:focus {
+        border-color: var(--border2);
+      }
+      /* The picker popup itself is OS-rendered and out of CSS's reach, but
+         color-scheme tells the browser to draw it in a dark palette instead
+         of defaulting to light-on-light against our dark theme. The little
+         calendar-icon button, unlike the popup, IS reachable — it's redrawn
+         via mask-image (same Feather calendar glyph used elsewhere in the
+         app) filled with background-color, so it's the exact accent color
+         rather than an approximation via filter(). */
+      .cal-month-input::-webkit-calendar-picker-indicator {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        background-color: var(--accent);
+        opacity: 0.85;
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+      }
+      .cal-month-input::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+      }
+      :root[data-theme="light"] .cal-month-input {
+        color-scheme: light;
       }
 
       .cal-nav {
@@ -867,6 +924,9 @@
         width: 100%;
         max-width: 980px;
       }
+      .cal-grid.hidden {
+        display: none;
+      }
 
       .cal-weekdays {
         display: grid;
@@ -903,6 +963,9 @@
         overflow: hidden;
       }
 
+      .cal-day:not(.other-month) {
+        cursor: pointer;
+      }
       .cal-day:hover {
         background: var(--surface2);
       }
@@ -945,6 +1008,76 @@
         color: var(--text-muted);
         padding: 2px 6px;
         flex-shrink: 0;
+      }
+
+      /* ─── CALENDAR DAY VIEW ─── */
+      .cal-day-view {
+        width: 100%;
+        max-width: 980px;
+      }
+      .cal-day-view.hidden {
+        display: none;
+      }
+
+      .cal-back-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        cursor: pointer;
+        padding: 6px 0;
+        margin-bottom: 16px;
+        transition: color 0.12s;
+      }
+      .cal-back-btn:hover {
+        color: var(--text);
+      }
+      .cal-back-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .cal-day-view-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 20px;
+      }
+
+      .cal-day-view-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .cal-day-view-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        color: var(--text);
+        font-size: 14px;
+      }
+      .cal-day-view-row:hover {
+        background: var(--surface2);
+      }
+      .cal-day-view-row svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      .cal-day-view-empty {
+        color: var(--text-muted);
+        font-size: 13px;
+        padding: 20px 0;
       }
 
       /* ─── NEW DOC MODAL ─── */
@@ -1930,34 +2063,45 @@
 
           <!-- CALENDAR VIEW -->
           <div class="calendar-view hidden" id="calendar-view">
-            <div class="calendar-header">
-              <button class="cal-nav" onclick="calNav(-1)">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <span class="cal-month-label" id="cal-month-label"></span>
-              <button class="cal-nav" onclick="calNav(1)">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
+            <div class="calendar-header" id="calendar-header">
+              <div class="cal-header-spacer"></div>
+              <div class="cal-nav-group">
+                <button class="cal-nav" onclick="calNav(-1)">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <span class="cal-month-label" id="cal-month-label"></span>
+                <button class="cal-nav" onclick="calNav(1)">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+              <div class="cal-jump-group">
+                <input
+                  type="month"
+                  class="cal-month-input"
+                  id="cal-month-jump"
+                  onchange="calJumpToMonth(this.value)"
+                />
+              </div>
             </div>
-            <div class="cal-grid">
+            <div class="cal-grid" id="cal-grid">
               <div class="cal-weekdays">
                 <div class="cal-weekday">Sun</div>
                 <div class="cal-weekday">Mon</div>
@@ -1968,6 +2112,23 @@
                 <div class="cal-weekday">Sat</div>
               </div>
               <div class="cal-days" id="cal-days"></div>
+            </div>
+            <div class="cal-day-view hidden" id="cal-day-view">
+              <button class="cal-back-btn" onclick="calBackToMonth()">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Back to month
+              </button>
+              <h3 class="cal-day-view-title" id="cal-day-view-title"></h3>
+              <div class="cal-day-view-list" id="cal-day-view-list"></div>
             </div>
           </div>
         </main>
@@ -2020,24 +2181,24 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704x"></script>
-    <script src="js/state.js?v=20260704x"></script>
-    <script src="js/settings.js?v=20260704x"></script>
-    <script src="js/ui.js?v=20260704x"></script>
-    <script src="js/cache.js?v=20260704x"></script>
-    <script src="js/drive.js?v=20260704x"></script>
-    <script src="js/auth.js?v=20260704x"></script>
-    <script src="js/sidebar.js?v=20260704x"></script>
-    <script src="js/markdown.js?v=20260704x"></script>
-    <script src="js/editor/parser.js?v=20260704x"></script>
-    <script src="js/editor/renderer.js?v=20260704x"></script>
-    <script src="js/editor/cursor.js?v=20260704x"></script>
-    <script src="js/editor/engine.js?v=20260704x"></script>
-    <script src="js/editor.js?v=20260704x"></script>
-    <script src="js/local.js?v=20260704x"></script>
-    <script src="js/modal.js?v=20260704x"></script>
-    <script src="js/calendar.js?v=20260704x"></script>
-    <script src="js/app.js?v=20260704x"></script>
+    <script src="js/config.js?v=20260704z"></script>
+    <script src="js/state.js?v=20260704z"></script>
+    <script src="js/settings.js?v=20260704z"></script>
+    <script src="js/ui.js?v=20260704z"></script>
+    <script src="js/cache.js?v=20260704z"></script>
+    <script src="js/drive.js?v=20260704z"></script>
+    <script src="js/auth.js?v=20260704z"></script>
+    <script src="js/sidebar.js?v=20260704z"></script>
+    <script src="js/markdown.js?v=20260704z"></script>
+    <script src="js/editor/parser.js?v=20260704z"></script>
+    <script src="js/editor/renderer.js?v=20260704z"></script>
+    <script src="js/editor/cursor.js?v=20260704z"></script>
+    <script src="js/editor/engine.js?v=20260704z"></script>
+    <script src="js/editor.js?v=20260704z"></script>
+    <script src="js/local.js?v=20260704z"></script>
+    <script src="js/modal.js?v=20260704z"></script>
+    <script src="js/calendar.js?v=20260704z"></script>
+    <script src="js/app.js?v=20260704z"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

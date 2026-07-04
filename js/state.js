@@ -5,6 +5,8 @@ let andysNoteRootId = null; // Drive folder ID of "AndysNote/"
 let expandedFolders = new Set(); // which folder IDs are open in sidebar
 let currentFileId = null; // Drive file ID of the open document
 let calDate = new Date();
+let calViewMode = "month"; // "month" | "day" — "day" drills into a single date's full entry list
+let calSelectedDay = null; // { year, month, day } when calViewMode === "day"
 let driveSaveTimer = null;
 let driveDirty = false; // true when the open Drive doc has unsaved edits
 
