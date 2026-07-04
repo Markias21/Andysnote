@@ -10,10 +10,16 @@
    Rich mode never trusts the browser's native contenteditable editing
    (Enter/Backspace handling is inconsistent across browsers and is exactly
    what caused problems before). Instead every edit is intercepted via
-   `beforeinput`, applied to markdownText as a plain string splice, and the
-   affected line(s) are re-rendered from that string. IME composition is the
-   one exception: composition text lands in a live DOM text node normally,
-   and is resynced into markdownText only once composition ends. */
+   `beforeinput`, applied to markdownText as a plain string splice, and every
+   line is re-rendered from that string. IME composition is the one
+   exception: composition text lands in a live DOM text node normally, and
+   is resynced into markdownText once composition ends (or is force-ended,
+   see richHandleBeforeInput).
+
+   Rendering never depends on cursor/focus position — once a pattern is
+   recognized it renders styled with its syntax hidden, always. There is no
+   "reveal raw text while the caret is on it" mode, so nothing needs to
+   track which line is focused. */
 
 let markdownText = "";
 let _plainEl = null; // <textarea id="doc-body">
@@ -22,10 +28,7 @@ let richMode = false; // true only for Drive .md docs
 let toolbarVisible = true; // false only for Drive .txt docs
 let _lineEls = [];
 let _lineMappings = [];
-let _focusLine = -1;
-let _focusOffset = 0;
 let _composing = false;
-let _programmaticSelection = false;
 
 /* ─── Public API (shared by both modes) ─── */
 
@@ -43,9 +46,7 @@ function editorOpen(text, opts) {
   if (richMode) {
     if (_plainEl) _plainEl.style.display = "none";
     if (_richEl) _richEl.style.display = "";
-    _focusLine = -1;
-    _focusOffset = 0;
-    richRenderAll(-1, 0);
+    richRenderAll(null);
   } else {
     if (_richEl) _richEl.style.display = "none";
     if (_plainEl) {
@@ -64,9 +65,7 @@ function editorGetText() {
 function editorSetText(text) {
   markdownText = text || "";
   if (richMode) {
-    _focusLine = -1;
-    _focusOffset = 0;
-    richRenderAll(-1, 0);
+    richRenderAll(null);
   } else if (_plainEl) {
     _plainEl.value = markdownText;
   }
@@ -103,7 +102,6 @@ function wireEditorEvents() {
     _richEl.addEventListener("beforeinput", richHandleBeforeInput);
     _richEl.addEventListener("compositionstart", richHandleCompositionStart);
     _richEl.addEventListener("compositionend", richHandleCompositionEnd);
-    document.addEventListener("selectionchange", richHandleSelectionChange);
     _richEl._editorWired = true;
   }
 }
@@ -169,9 +167,14 @@ function domPointToAbsolute(node, offset) {
   return lineStartOffset(lineIndex) + rawInLine;
 }
 
-/* ─── Rich mode: rendering ─── */
+/* ─── Rich mode: rendering ───
+   oldLines (or null) is the line array from right before the change that
+   produced the current markdownText — passed straight to the Renderer so
+   it can tell "this block type is brand new here" apart from "this line
+   was already this type," which decides whether a completed prefix like
+   "> " is safe to collapse immediately. See renderer.js's shouldStyleBlock. */
 
-function richRenderAll(focusLine, focusOffset) {
+function richRenderAll(oldLines) {
   const lines = markdownText.split("\n");
   _richEl.innerHTML = "";
   _lineEls = [];
@@ -179,23 +182,13 @@ function richRenderAll(focusLine, focusOffset) {
   lines.forEach((lineText, i) => {
     const container = document.createElement("div");
     container.className = "doc-line";
-    const focused = i === focusLine;
-    const { frag, mapping } = renderLine(lineText, focused, focused ? focusOffset : null);
+    const oldText = oldLines ? oldLines[i] : null;
+    const { frag, mapping } = renderLine(lineText, oldText);
     container.appendChild(frag);
     _richEl.appendChild(container);
     _lineEls.push(container);
     _lineMappings.push(mapping);
   });
-}
-
-function richRenderLine(index, focused, offset) {
-  const container = _lineEls[index];
-  if (!container) return;
-  const lineText = markdownText.split("\n")[index] ?? "";
-  container.innerHTML = "";
-  const { frag, mapping } = renderLine(lineText, focused, focused ? offset : null);
-  container.appendChild(frag);
-  _lineMappings[index] = mapping;
 }
 
 /* ─── Rich mode: selection / editing ─── */
@@ -213,6 +206,7 @@ function richGetSelectionOffsets() {
    selStart/selEnd (absolute offsets) default to a collapsed caret right
    after the inserted text. */
 function richApplyEdit(start, end, text, selStart, selEnd) {
+  const oldLines = markdownText.split("\n");
   markdownText = markdownText.slice(0, start) + text + markdownText.slice(end);
   scheduleRichChangeCallbacks();
 
@@ -221,11 +215,8 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
   const from = lineAndOffsetForAbsolute(finalStart);
   const to = lineAndOffsetForAbsolute(finalEnd);
 
-  _focusLine = from.line;
-  _focusOffset = from.offset;
-  richRenderAll(from.line, from.offset);
+  richRenderAll(oldLines);
 
-  _programmaticSelection = true;
   if (from.line === to.line) {
     placeCaretRangeInLine(_lineEls[from.line], _lineMappings[from.line], from.offset, to.offset);
   } else {
@@ -233,10 +224,51 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
   }
 }
 
+/* If a composition is (or might still be, per stale event ordering — see
+   richHandleBeforeInput) in progress, read its line's live text back out of
+   the DOM into markdownText before anything else touches it. Hidden syntax
+   marks are never removed from the DOM, only CSS-hidden, so textContent is
+   always the true raw text. Returns the resynced line index, or -1. */
+function finishComposition() {
+  if (!_composing) return -1;
+  _composing = false;
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return -1;
+  const range = sel.getRangeAt(0);
+  const index = resolveLineIndex(range.startContainer, range.startOffset);
+  if (index === -1 || !_lineEls[index]) return -1;
+
+  const newLineText = _lineEls[index].textContent;
+  const lines = markdownText.split("\n");
+  lines[index] = newLineText;
+  markdownText = lines.join("\n");
+  return index;
+}
+
 function richHandleBeforeInput(e) {
-  if (!richMode || _composing) return;
+  if (!richMode) return;
+  // Let the IME edit its own text node natively — never intercept this.
+  if (e.inputType === "insertCompositionText") return;
+
+  // Some IMEs use Enter (or another key) to confirm/commit a composition in
+  // a way where compositionend hasn't fired yet by the time this event
+  // arrives — our own _composing flag can still read stale-true here. Don't
+  // trust it as a gate; resync first if needed, then always handle the
+  // event on its actual inputType. (This is what made Enter appear to do
+  // nothing after typing Korean: we skipped the newline, the browser's own
+  // uncontrolled default ran instead, and the next re-render silently
+  // reverted it.)
+  const resyncedLine = finishComposition();
+
   e.preventDefault();
-  const { start, end } = richGetSelectionOffsets();
+  let { start, end } = richGetSelectionOffsets();
+  if (start == null && resyncedLine !== -1) {
+    // The selection can momentarily fail to resolve right after a DOM text
+    // node's content changed out from under a stale mapping; fall back to
+    // the end of the just-resynced line.
+    const lines = markdownText.split("\n");
+    start = end = lineStartOffset(resyncedLine) + lines[resyncedLine].length;
+  }
   if (start == null) return;
 
   switch (e.inputType) {
@@ -277,67 +309,30 @@ function richHandleCompositionStart() {
   _composing = true;
 }
 
-/* IME composition edits a live text node directly (uncontrolled, by design
-   — this is what lets Korean/Japanese/Chinese input work naturally). Once
-   composition ends, read that line's true text back out of the DOM (hidden
-   syntax marks included, since they're only CSS-hidden, never removed) and
-   resync markdownText from it. */
+/* Normal end-of-composition path (e.g. the IME auto-commits after a pause,
+   or focus moves away) — richHandleBeforeInput's finishComposition() covers
+   the case where composition is still "active" per our flag when a real
+   edit (typically Enter) arrives first. */
 function richHandleCompositionEnd() {
-  _composing = false;
+  // Capture the precise caret offset against the still-valid pre-resync
+  // mapping/DOM before finishComposition() touches markdownText.
+  let offset = null;
   const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  const index = resolveLineIndex(range.startContainer, range.startOffset);
+  if (sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    const idx = resolveLineIndex(range.startContainer, range.startOffset);
+    if (idx !== -1 && _lineMappings[idx]) {
+      offset = rawOffsetFromCaret(_lineMappings[idx], range.startContainer, range.startOffset);
+    }
+  }
+
+  const index = finishComposition();
   if (index === -1) return;
-
-  const container = _lineEls[index];
-  const newLineText = container.textContent;
-  const offset = rawOffsetFromCaret(_lineMappings[index], range.startContainer, range.startOffset);
-
-  const lines = markdownText.split("\n");
-  lines[index] = newLineText;
-  markdownText = lines.join("\n");
   scheduleRichChangeCallbacks();
-
-  const finalOffset = offset != null ? offset : newLineText.length;
-  _focusLine = index;
-  _focusOffset = finalOffset;
-  richRenderAll(index, finalOffset);
-  _programmaticSelection = true;
+  const lines = markdownText.split("\n");
+  const finalOffset = offset != null ? offset : lines[index].length;
+  richRenderAll(lines);
   placeCaretInLine(_lineEls[index], _lineMappings[index], finalOffset);
-}
-
-function richHandleSelectionChange() {
-  if (!richMode || _composing) return;
-  if (_programmaticSelection) {
-    _programmaticSelection = false;
-    return;
-  }
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  if (!_richEl || !_richEl.contains(range.startContainer)) return;
-  // A real (non-collapsed) selection — e.g. dragging text to bold it — must
-  // never be collapsed back to a caret here. Leave rendering alone; reveal
-  // resumes once the selection collapses again.
-  if (!range.collapsed) return;
-
-  const idx = resolveLineIndex(range.startContainer, range.startOffset);
-  if (idx === -1) return;
-  const offset = rawOffsetFromCaret(_lineMappings[idx], range.startContainer, range.startOffset) ?? 0;
-  if (idx === _focusLine && offset === _focusOffset) return;
-
-  const oldLine = _focusLine;
-  _focusLine = idx;
-  _focusOffset = offset;
-
-  if (oldLine !== idx && oldLine >= 0 && oldLine < _lineEls.length) {
-    richRenderLine(oldLine, false, null);
-  }
-  richRenderLine(idx, true, offset);
-
-  _programmaticSelection = true;
-  placeCaretInLine(_lineEls[idx], _lineMappings[idx], offset);
 }
 
 /* ─── Rich mode: toolbar actions (called from js/markdown.js) ─── */
