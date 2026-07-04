@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704z" />
+    <link rel="manifest" href="./manifest.json?v=202607041" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704z" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607041" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=20260704z"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607041"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=20260704z" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607041" />
     <style>
       *,
       *::before,
@@ -47,10 +47,10 @@
         --text: #e8e8e8;
         --text-dim: #888;
         --text-muted: #555;
-        --accent: #b5a400;
+        --accent: #ffffff;
         --accent-text: #141414;
-        --accent-dim: rgba(181, 164, 0, 0.15);
-        --accent-hover: rgba(181, 164, 0, 0.08);
+        --accent-dim: rgba(255, 255, 255, 0.12);
+        --accent-hover: rgba(255, 255, 255, 0.06);
         --sidebar-w: 240px;
         --topbar-h: 48px;
         --font-ui: "Inter", sans-serif;
@@ -59,10 +59,12 @@
         --radius: 6px;
       }
 
-      /* ─── LIGHT THEME (Chrome-like neutrals; brand accent kept, tuned
-           brighter/more golden-yellow than a literal darkened version of
-           the dark-mode accent needs for contrast) — toggled via Settings
-           > Library > Theme, which stamps data-theme on <html>. ─── */
+      /* ─── LIGHT THEME (Chrome-like neutrals) — toggled via Settings
+           > Library > Theme, which stamps data-theme on <html>. Both
+           themes are intentionally monochrome: "active/selected/on" is
+           communicated by brightness/weight contrast (Notion-style),
+           not by hue, so --accent is just the strongest neutral each
+           theme has rather than a brand color. ─── */
       :root[data-theme="light"] {
         --bg: #ffffff;
         --surface: #f8f9fa;
@@ -73,10 +75,10 @@
         --text: #202124;
         --text-dim: #5f6368;
         --text-muted: #80868b;
-        --accent: #b5a400;
-        --accent-text: #202124;
-        --accent-dim: rgba(181, 164, 0, 0.18);
-        --accent-hover: rgba(181, 164, 0, 0.1);
+        --accent: #181818;
+        --accent-text: #ffffff;
+        --accent-dim: rgba(0, 0, 0, 0.06);
+        --accent-hover: rgba(0, 0, 0, 0.04);
       }
 
       html,
@@ -1527,7 +1529,10 @@
         background: var(--text-muted);
       }
       .sync-dot.saving {
-        background: var(--accent);
+        /* Deliberately not var(--accent) — the theme is monochrome now, but
+           this status dot still wants its own color alongside .saved
+           (green) and .error (red), independent of theme. */
+        background: #b5a400;
         animation: pulse 1s ease infinite;
       }
       .sync-dot.saved {
@@ -2181,24 +2186,24 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704z"></script>
-    <script src="js/state.js?v=20260704z"></script>
-    <script src="js/settings.js?v=20260704z"></script>
-    <script src="js/ui.js?v=20260704z"></script>
-    <script src="js/cache.js?v=20260704z"></script>
-    <script src="js/drive.js?v=20260704z"></script>
-    <script src="js/auth.js?v=20260704z"></script>
-    <script src="js/sidebar.js?v=20260704z"></script>
-    <script src="js/markdown.js?v=20260704z"></script>
-    <script src="js/editor/parser.js?v=20260704z"></script>
-    <script src="js/editor/renderer.js?v=20260704z"></script>
-    <script src="js/editor/cursor.js?v=20260704z"></script>
-    <script src="js/editor/engine.js?v=20260704z"></script>
-    <script src="js/editor.js?v=20260704z"></script>
-    <script src="js/local.js?v=20260704z"></script>
-    <script src="js/modal.js?v=20260704z"></script>
-    <script src="js/calendar.js?v=20260704z"></script>
-    <script src="js/app.js?v=20260704z"></script>
+    <script src="js/config.js?v=202607041"></script>
+    <script src="js/state.js?v=202607041"></script>
+    <script src="js/settings.js?v=202607041"></script>
+    <script src="js/ui.js?v=202607041"></script>
+    <script src="js/cache.js?v=202607041"></script>
+    <script src="js/drive.js?v=202607041"></script>
+    <script src="js/auth.js?v=202607041"></script>
+    <script src="js/sidebar.js?v=202607041"></script>
+    <script src="js/markdown.js?v=202607041"></script>
+    <script src="js/editor/parser.js?v=202607041"></script>
+    <script src="js/editor/renderer.js?v=202607041"></script>
+    <script src="js/editor/cursor.js?v=202607041"></script>
+    <script src="js/editor/engine.js?v=202607041"></script>
+    <script src="js/editor.js?v=202607041"></script>
+    <script src="js/local.js?v=202607041"></script>
+    <script src="js/modal.js?v=202607041"></script>
+    <script src="js/calendar.js?v=202607041"></script>
+    <script src="js/app.js?v=202607041"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script
