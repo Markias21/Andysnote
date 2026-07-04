@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704" />
+    <link rel="manifest" href="./manifest.json?v=20260704b" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704b" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -562,6 +562,10 @@
       .md-btn:hover {
         background: var(--surface3);
         color: var(--text);
+      }
+      .md-btn.active {
+        background: var(--accent-dim);
+        color: var(--accent);
       }
       .md-btn b,
       .md-btn i,
@@ -1510,7 +1514,7 @@
             <button
               class="sidebar-add"
               title="Choose folder / new item"
-              onclick="handleSidebarAdd()"
+              onclick="openModal()"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -1682,6 +1686,7 @@
                 <span class="md-toolbar-group" id="md-toolbar-group">
                   <span class="sep"></span>
                   <button
+                    id="md-btn-bold"
                     class="md-btn"
                     title="Bold (Ctrl+B)"
                     onmousedown="event.preventDefault()"
@@ -1690,6 +1695,7 @@
                     <b>B</b>
                   </button>
                   <button
+                    id="md-btn-italic"
                     class="md-btn"
                     title="Italic (Ctrl+I)"
                     onmousedown="event.preventDefault()"
@@ -1698,6 +1704,7 @@
                     <i>I</i>
                   </button>
                   <button
+                    id="md-btn-strike"
                     class="md-btn"
                     title="Strikethrough"
                     onmousedown="event.preventDefault()"
@@ -1706,6 +1713,7 @@
                     <s>S</s>
                   </button>
                   <button
+                    id="md-btn-code"
                     class="md-btn"
                     title="Inline Code"
                     onmousedown="event.preventDefault()"
@@ -1923,24 +1931,24 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704"></script>
-    <script src="js/state.js?v=20260704"></script>
-    <script src="js/settings.js?v=20260704"></script>
-    <script src="js/ui.js?v=20260704"></script>
-    <script src="js/cache.js?v=20260704"></script>
-    <script src="js/drive.js?v=20260704"></script>
-    <script src="js/auth.js?v=20260704"></script>
-    <script src="js/sidebar.js?v=20260704"></script>
-    <script src="js/markdown.js?v=20260704"></script>
-    <script src="js/editor/parser.js?v=20260704"></script>
-    <script src="js/editor/renderer.js?v=20260704"></script>
-    <script src="js/editor/cursor.js?v=20260704"></script>
-    <script src="js/editor/engine.js?v=20260704"></script>
-    <script src="js/editor.js?v=20260704"></script>
-    <script src="js/local.js?v=20260704"></script>
-    <script src="js/modal.js?v=20260704"></script>
-    <script src="js/calendar.js?v=20260704"></script>
-    <script src="js/app.js?v=20260704"></script>
+    <script src="js/config.js?v=20260704b"></script>
+    <script src="js/state.js?v=20260704b"></script>
+    <script src="js/settings.js?v=20260704b"></script>
+    <script src="js/ui.js?v=20260704b"></script>
+    <script src="js/cache.js?v=20260704b"></script>
+    <script src="js/drive.js?v=20260704b"></script>
+    <script src="js/auth.js?v=20260704b"></script>
+    <script src="js/sidebar.js?v=20260704b"></script>
+    <script src="js/markdown.js?v=20260704b"></script>
+    <script src="js/editor/parser.js?v=20260704b"></script>
+    <script src="js/editor/renderer.js?v=20260704b"></script>
+    <script src="js/editor/cursor.js?v=20260704b"></script>
+    <script src="js/editor/engine.js?v=20260704b"></script>
+    <script src="js/editor.js?v=20260704b"></script>
+    <script src="js/local.js?v=20260704b"></script>
+    <script src="js/modal.js?v=20260704b"></script>
+    <script src="js/calendar.js?v=20260704b"></script>
+    <script src="js/app.js?v=20260704b"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

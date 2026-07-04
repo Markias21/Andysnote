@@ -110,3 +110,24 @@ function parseInline(text) {
   }
   return nodes;
 }
+
+/* Which closing delimiters (in order) are needed to balance any dangling,
+   never-closed inline marker in `text` — e.g. "**bold" -> ["**"]. Used to
+   auto-finalize a line's formatting when Enter commits it (see engine.js).
+
+   Any marker that parseInline already matched into a real span is, by
+   definition, balanced — so only the "text"-type leftover nodes can still
+   contain a stray, unclosed delimiter. Bold is checked before italic so a
+   dangling "**" isn't also miscounted as a dangling "*". */
+function detectUnclosedMarkers(text) {
+  const leftover = parseInline(text)
+    .filter((n) => n.type === "text")
+    .map((n) => n.text)
+    .join("");
+  const needed = [];
+  if (leftover.includes("**")) needed.push("**");
+  if (leftover.split("**").join("").includes("*")) needed.push("*");
+  if (leftover.includes("~~")) needed.push("~~");
+  if (leftover.includes("`")) needed.push("`");
+  return needed;
+}

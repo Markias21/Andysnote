@@ -102,7 +102,45 @@ function wireEditorEvents() {
     _richEl.addEventListener("beforeinput", richHandleBeforeInput);
     _richEl.addEventListener("compositionstart", richHandleCompositionStart);
     _richEl.addEventListener("compositionend", richHandleCompositionEnd);
+    _richEl.addEventListener("click", richHandleClick);
+    document.addEventListener("selectionchange", richHandleSelectionChange);
     _richEl._editorWired = true;
+  }
+}
+
+function richHandleClick(e) {
+  const box = e.target.closest(".md-checkbox");
+  if (!box) return;
+  e.preventDefault();
+  richToggleChecklistAt(box);
+}
+
+/* Toolbar Bold/Italic/Strike/Code buttons reflect whether the caret is
+   currently inside that formatting (Word/한글-style), via a lightweight
+   selectionchange listener that only toggles button classes — it never
+   touches content or the caret, so it can't reintroduce the bugs the old
+   render-on-selectionchange logic had. */
+const TOOLBAR_BUTTON_IDS = {
+  bold: "md-btn-bold",
+  italic: "md-btn-italic",
+  strike: "md-btn-strike",
+  code: "md-btn-code",
+};
+
+function richHandleSelectionChange() {
+  if (!richMode || !_richEl) return;
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !_richEl.contains(sel.getRangeAt(0).startContainer)) return;
+  updateToolbarActiveStates();
+}
+
+function updateToolbarActiveStates() {
+  const { start, end } = richGetSelectionOffsets();
+  for (const [type, id] of Object.entries(TOOLBAR_BUTTON_IDS)) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    const active = start != null && !!findEnclosingInlineSpan(type, start, end);
+    btn.classList.toggle("active", active);
   }
 }
 
@@ -165,6 +203,36 @@ function domPointToAbsolute(node, offset) {
   if (lineIndex === -1) return null;
   const rawInLine = rawOffsetFromCaret(_lineMappings[lineIndex], node, offset) ?? 0;
   return lineStartOffset(lineIndex) + rawInLine;
+}
+
+/* Is the raw range [start, end] fully inside one inline span of `type` on a
+   single line? Returns that span's absolute raw/inner offsets, or null.
+   Used both to decide toolbar button active state and to decide what a
+   toolbar click should do (unwrap vs. split-at-cursor vs. wrap). */
+function findEnclosingInlineSpan(type, start, end) {
+  const from = lineAndOffsetForAbsolute(start);
+  const to = lineAndOffsetForAbsolute(end);
+  if (from.line !== to.line) return null;
+
+  const lineText = markdownText.split("\n")[from.line];
+  const ast = parseBlock(lineText);
+  const relStart = from.offset - ast.prefixEnd;
+  const relEnd = to.offset - ast.prefixEnd;
+  if (relStart < 0 || relEnd < 0) return null;
+
+  const content = lineText.slice(ast.prefixEnd);
+  const node = parseInline(content).find(
+    (n) => n.type === type && n.innerStart <= relStart && n.innerEnd >= relEnd,
+  );
+  if (!node) return null;
+
+  const base = lineStartOffset(from.line) + ast.prefixEnd;
+  return {
+    rawStart: base + node.rawStart,
+    rawEnd: base + node.rawEnd,
+    innerStart: base + node.innerStart,
+    innerEnd: base + node.innerEnd,
+  };
 }
 
 /* ─── Rich mode: rendering ───
@@ -283,16 +351,40 @@ function richHandleBeforeInput(e) {
       return;
     }
     case "insertParagraph":
-    case "insertLineBreak":
-      richApplyEdit(start, end, "\n");
+    case "insertLineBreak": {
+      // Enter commits the current line, Notepad-style: any dangling,
+      // never-closed inline marker (an unfinished **bold, *italic, ...) gets
+      // its closing delimiter appended right at the cursor before the new
+      // line starts, so formatting never silently carries across a line
+      // break — each line is always a self-contained, fully-closed unit.
+      const { line, offset } = lineAndOffsetForAbsolute(start);
+      const beforeCursor = markdownText.split("\n")[line].slice(0, offset);
+      const closers = detectUnclosedMarkers(beforeCursor).join("");
+      richApplyEdit(start, end, closers + "\n");
       return;
+    }
     case "deleteContentBackward":
     case "deleteWordBackward":
     case "deleteSoftLineBackward":
-    case "deleteHardLineBackward":
-      if (start !== end) richApplyEdit(start, end, "");
-      else richApplyEdit(Math.max(0, start - 1), start, "");
+    case "deleteHardLineBackward": {
+      if (start !== end) {
+        richApplyEdit(start, end, "");
+        return;
+      }
+      const { line, offset } = lineAndOffsetForAbsolute(start);
+      const lineText = markdownText.split("\n")[line];
+      const ast = parseBlock(lineText);
+      if (ast.prefixEnd > 0 && offset === ast.prefixEnd) {
+        // Caret sits right after a recognized (hidden) block prefix — one
+        // Backspace removes the whole prefix instead of just its last
+        // character, so e.g. a checklist reverts to a plain line in one go.
+        const from = lineStartOffset(line);
+        richApplyEdit(from, from + ast.prefixEnd, "");
+        return;
+      }
+      richApplyEdit(Math.max(0, start - 1), start, "");
       return;
+    }
     case "deleteContentForward":
     case "deleteWordForward":
     case "deleteSoftLineForward":
@@ -337,22 +429,57 @@ function richHandleCompositionEnd() {
 
 /* ─── Rich mode: toolbar actions (called from js/markdown.js) ─── */
 
+const MARK_TYPE_BY_DELIM = { "**": "bold", "*": "italic", "~~": "strike", "`": "code" };
+
 function richWrapSelection(before, after = before) {
   const { start, end } = richGetSelectionOffsets();
   if (start == null) return;
+
+  const type = MARK_TYPE_BY_DELIM[before];
+  const existing = type ? findEnclosingInlineSpan(type, start, end) : null;
+
+  if (existing) {
+    if (start === end) {
+      // Collapsed caret inside already-formatted text: split it into two
+      // adjacent, complete spans right at the cursor. Existing text on
+      // both sides keeps its formatting; new typing from here on doesn't
+      // (Word/한글-style "turn this off from here").
+      const seam = after + before;
+      const caretPos = start + after.length;
+      richApplyEdit(start, start, seam, caretPos, caretPos);
+      return;
+    }
+    // A real selection sits inside one formatted run: remove that whole
+    // span's markers (this is the "click Bold again to turn it off" case).
+    const innerText = markdownText.slice(existing.innerStart, existing.innerEnd);
+    richApplyEdit(
+      existing.rawStart,
+      existing.rawEnd,
+      innerText,
+      existing.rawStart,
+      existing.rawStart + innerText.length,
+    );
+    return;
+  }
+
   const selected = markdownText.slice(start, end);
-  const isWrapped =
-    selected.length >= before.length + after.length &&
-    selected.startsWith(before) &&
-    selected.endsWith(after);
-
-  const replacement = isWrapped
-    ? selected.slice(before.length, selected.length - after.length)
-    : before + selected + after;
-
-  const selStart = isWrapped ? start : start + before.length;
-  const selEnd = isWrapped ? start + replacement.length : start + replacement.length - after.length;
+  const replacement = before + selected + after;
+  const selStart = start + before.length;
+  const selEnd = selStart + selected.length;
   richApplyEdit(start, end, replacement, selStart, selEnd);
+}
+
+/* Sidebar checkbox click: toggle "- [ ] " <-> "- [x] " for that line. */
+function richToggleChecklistAt(box) {
+  const lineEl = box.closest(".doc-line");
+  const index = _lineEls.indexOf(lineEl);
+  if (index === -1) return;
+  const lineText = markdownText.split("\n")[index];
+  const ast = parseBlock(lineText);
+  if (ast.type !== "checklist") return;
+  const newLineText = (ast.checked ? "- [ ] " : "- [x] ") + lineText.slice(ast.prefixEnd);
+  const from = lineStartOffset(index);
+  richApplyEdit(from, from + lineText.length, newLineText, from + newLineText.length);
 }
 
 function richTransformCurrentLine(transform) {
