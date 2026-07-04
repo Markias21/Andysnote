@@ -1,9 +1,10 @@
 /* ─── SETTINGS ───────────────────────────────────────────────────────────
    One app-wide settings object (declared as `appSettings` in state.js).
-   Groups: UI / Font / Behavior. Font is a single editor-wide choice.
-   The UI never mutates settings directly — it only calls setSetting().
-   Expand later by adding fields to defaultSettings() + the list in
-   renderSettings(); no structural split needed. */
+   The panel is tabbed (Library / Fonts / Calendar / ...) — see
+   settingsTabs() below. The UI never mutates settings directly — it only
+   calls setSetting(). Expand later by adding fields to defaultSettings()
+   and to the relevant tab's groups in settingsTabs(); add a whole new tab
+   by adding one entry there. */
 
 /* ── Font registry ──
    All editor fonts are registered in one place.
@@ -184,7 +185,60 @@ function applySettings() {
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
 }
 
-/* ─── SETTINGS PANEL (simple list, no tabs) ─── */
+/* ─── SETTINGS PANEL (tabbed — Library / Fonts / Calendar / ...) ───────────
+   Each tab is just { id, label, groups } — groups are the same shape
+   renderSettingsBody() already knew how to draw. Adding a new settings
+   section later (e.g. filling in Calendar) means adding fields to that
+   tab's groups here; adding a whole new tab means adding one entry to
+   SETTINGS_TABS. No other structural change needed. */
+
+function settingsTabs() {
+  return [
+    {
+      id: "library",
+      label: "Library",
+      groups: [
+        {
+          title: "UI",
+          fields: [
+            { path: "ui.indentMode", label: "Indent mode", type: "bool" },
+            { path: "ui.compactMode", label: "Compact mode", type: "bool" },
+          ],
+        },
+        {
+          title: "Behavior",
+          fields: [
+            { path: "behavior.autoSave", label: "Auto save", type: "bool" },
+            { path: "behavior.driveSync", label: "Drive sync", type: "bool" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "fonts",
+      label: "Fonts",
+      groups: [
+        {
+          title: "Font",
+          fields: [
+            {
+              path: "font.editor",
+              label: "Editor font",
+              type: "font-select",
+              // grouped by category; each option carries preview text
+              options: buildFontOptions(),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "calendar",
+      label: "Calendar",
+      groups: [], // nothing here yet
+    },
+  ];
+}
 
 function openSettings() {
   renderSettings();
@@ -200,35 +254,36 @@ function closeSettingsOutside(e) {
   if (e.target === document.getElementById("settings-overlay")) closeSettings();
 }
 
+function switchSettingsTab(id) {
+  settingsActiveTab = id;
+  renderSettings();
+}
+
 function renderSettings() {
-  const groups = [
-    {
-      title: "UI",
-      fields: [
-        { path: "ui.indentMode", label: "Indent mode", type: "bool" },
-        { path: "ui.compactMode", label: "Compact mode", type: "bool" },
-      ],
-    },
-    {
-      title: "Font",
-      fields: [
-        {
-          path: "font.editor",
-          label: "Editor font",
-          type: "font-select",
-          // grouped by category; each option carries preview text
-          options: buildFontOptions(),
-        },
-      ],
-    },
-    {
-      title: "Behavior",
-      fields: [
-        { path: "behavior.autoSave", label: "Auto save", type: "bool" },
-        { path: "behavior.driveSync", label: "Drive sync", type: "bool" },
-      ],
-    },
-  ];
+  const tabs = settingsTabs();
+  if (!tabs.some((t) => t.id === settingsActiveTab)) settingsActiveTab = tabs[0].id;
+
+  let tabsHtml = "";
+  for (const tab of tabs) {
+    tabsHtml +=
+      '<button class="settings-tab' +
+      (tab.id === settingsActiveTab ? " active" : "") +
+      '" onclick="switchSettingsTab(\'' +
+      tab.id +
+      "')\">" +
+      escapeHtml(tab.label) +
+      "</button>";
+  }
+  document.getElementById("settings-tabs").innerHTML = tabsHtml;
+
+  const activeTab = tabs.find((t) => t.id === settingsActiveTab);
+  document.getElementById("settings-body").innerHTML = renderSettingsGroups(activeTab.groups);
+}
+
+function renderSettingsGroups(groups) {
+  if (!groups.length) {
+    return '<div class="settings-empty">More settings coming soon.</div>';
+  }
 
   let html = "";
   for (const g of groups) {
@@ -274,7 +329,7 @@ function renderSettings() {
     }
     html += "</div>";
   }
-  document.getElementById("settings-body").innerHTML = html;
+  return html;
 }
 
 /* Build grouped font options from EDITOR_FONTS registry.

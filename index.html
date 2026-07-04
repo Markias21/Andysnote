@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=20260704g" />
+    <link rel="manifest" href="./manifest.json?v=20260704h" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704g" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=20260704h" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1042,6 +1042,41 @@
         color: var(--text);
         background: var(--surface3);
       }
+      .settings-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .settings-tab {
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 500;
+        padding: 10px 8px;
+        margin-bottom: -1px;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .settings-tab:hover {
+        color: var(--text);
+      }
+      .settings-tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .settings-empty {
+        padding: 28px 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
       .settings-body {
         padding: 8px 20px 16px;
         overflow-y: auto;
@@ -1928,28 +1963,29 @@
           <h3>Settings</h3>
           <button class="settings-close" onclick="closeSettings()">✕</button>
         </div>
+        <div class="settings-tabs" id="settings-tabs"></div>
         <div class="settings-body" id="settings-body"></div>
       </div>
     </div>
 
-    <script src="js/config.js?v=20260704g"></script>
-    <script src="js/state.js?v=20260704g"></script>
-    <script src="js/settings.js?v=20260704g"></script>
-    <script src="js/ui.js?v=20260704g"></script>
-    <script src="js/cache.js?v=20260704g"></script>
-    <script src="js/drive.js?v=20260704g"></script>
-    <script src="js/auth.js?v=20260704g"></script>
-    <script src="js/sidebar.js?v=20260704g"></script>
-    <script src="js/markdown.js?v=20260704g"></script>
-    <script src="js/editor/parser.js?v=20260704g"></script>
-    <script src="js/editor/renderer.js?v=20260704g"></script>
-    <script src="js/editor/cursor.js?v=20260704g"></script>
-    <script src="js/editor/engine.js?v=20260704g"></script>
-    <script src="js/editor.js?v=20260704g"></script>
-    <script src="js/local.js?v=20260704g"></script>
-    <script src="js/modal.js?v=20260704g"></script>
-    <script src="js/calendar.js?v=20260704g"></script>
-    <script src="js/app.js?v=20260704g"></script>
+    <script src="js/config.js?v=20260704h"></script>
+    <script src="js/state.js?v=20260704h"></script>
+    <script src="js/settings.js?v=20260704h"></script>
+    <script src="js/ui.js?v=20260704h"></script>
+    <script src="js/cache.js?v=20260704h"></script>
+    <script src="js/drive.js?v=20260704h"></script>
+    <script src="js/auth.js?v=20260704h"></script>
+    <script src="js/sidebar.js?v=20260704h"></script>
+    <script src="js/markdown.js?v=20260704h"></script>
+    <script src="js/editor/parser.js?v=20260704h"></script>
+    <script src="js/editor/renderer.js?v=20260704h"></script>
+    <script src="js/editor/cursor.js?v=20260704h"></script>
+    <script src="js/editor/engine.js?v=20260704h"></script>
+    <script src="js/editor.js?v=20260704h"></script>
+    <script src="js/local.js?v=20260704h"></script>
+    <script src="js/modal.js?v=20260704h"></script>
+    <script src="js/calendar.js?v=20260704h"></script>
+    <script src="js/app.js?v=20260704h"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

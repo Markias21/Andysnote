@@ -25,6 +25,7 @@ let localExpandedFolders = new Set(); // which notes_local folder IDs are open
 
 /* ─── SETTINGS (single app-wide global state; logic lives in settings.js) ─── */
 let appSettings = null; // one settings object: { ui, font, behavior } — mutate only via setSetting()
+let settingsActiveTab = "library"; // which settings-panel tab is open: "library" | "fonts" | "calendar" | ...
 
 /* ─── DRIVE CACHE (IndexedDB performance layer) ─── */
 let driveCacheDbPromise = null; // cached IndexedDB connection for the Drive cache
