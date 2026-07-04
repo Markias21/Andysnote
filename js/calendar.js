@@ -1,4 +1,62 @@
-/* ─── CALENDAR (uses Drive modifiedTime) ─── */
+/* ─── CALENDAR ───────────────────────────────────────────────────────────
+   Shows every document (Drive + local notes) on the day it was created —
+   creation date only; a doc's modified date is shown when you open it, not
+   here. Folders themselves never appear, only actual documents.
+
+   collectDayEntries() takes an optional scopeFolderId so a future "limit to
+   this folder" filter can reuse it without changing how entries are
+   gathered — not wired to any UI yet, just kept open for it. */
+function collectDayEntries(year, month, scopeFolderId) {
+  const byDay = new Map();
+  function push(day, entry) {
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day).push(entry);
+  }
+
+  function walkDrive(nodes) {
+    for (const n of nodes) {
+      if (n.mimeType === FOLDER_MIME) {
+        walkDrive(n.children);
+        continue;
+      }
+      if (!n.createdTime) continue;
+      const d = new Date(n.createdTime);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        push(d.getDate(), { kind: "drive", id: n.id, title: stripDocExt(n.name) });
+      }
+    }
+  }
+  let driveStart = driveTree;
+  if (scopeFolderId) {
+    const folderNode = findNodeById(scopeFolderId, driveTree);
+    driveStart = folderNode ? folderNode.children : [];
+  }
+  walkDrive(driveStart);
+
+  for (const note of localNotes) {
+    if (note.type !== "note" || !note.createdTime) continue;
+    if (scopeFolderId && note.parentId !== scopeFolderId) continue;
+    const d = new Date(note.createdTime);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      push(d.getDate(), { kind: "local", id: note.id, title: note.title || "Untitled" });
+    }
+  }
+
+  return byDay;
+}
+
+function calOpenEntry(kind, id) {
+  switchView("library");
+  if (kind === "drive") {
+    const node = findNodeById(id, driveTree);
+    if (node) openDoc(node);
+  } else {
+    openLocalNote(id);
+  }
+}
+
+const CAL_MAX_ENTRIES_SHOWN = 3;
+
 function renderCalendar() {
   const months = [
     "January",
@@ -27,54 +85,55 @@ function renderCalendar() {
   const daysInPrev = new Date(year, month, 0).getDate();
   const today = new Date();
 
-  // Collect days that have a modified Drive file
-  const modDays = new Set();
-  function collectDates(nodes) {
-    for (const n of nodes) {
-      if (n.mimeType === FOLDER_MIME) {
-        collectDates(n.children);
-        continue;
+  const dayEntries = collectDayEntries(year, month, null);
+
+  function buildDayCell(dayNum, isOtherMonth, isToday) {
+    const cell = document.createElement("div");
+    cell.className =
+      "cal-day" + (isOtherMonth ? " other-month" : "") + (isToday ? " today" : "");
+
+    const num = document.createElement("div");
+    num.className = "cal-day-num";
+    num.textContent = dayNum;
+    cell.appendChild(num);
+
+    if (!isOtherMonth) {
+      const entries = dayEntries.get(dayNum) || [];
+      const shown = entries.slice(0, CAL_MAX_ENTRIES_SHOWN);
+      for (const entry of shown) {
+        const chip = document.createElement("div");
+        chip.className = "cal-entry";
+        chip.textContent = entry.title;
+        chip.title = entry.title;
+        chip.onclick = () => calOpenEntry(entry.kind, entry.id);
+        cell.appendChild(chip);
       }
-      if (n.modifiedTime) {
-        const d = new Date(n.modifiedTime);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          modDays.add(d.getDate());
-        }
+      if (entries.length > shown.length) {
+        const more = document.createElement("div");
+        more.className = "cal-entry-more";
+        more.textContent = `+${entries.length - shown.length} more`;
+        cell.appendChild(more);
       }
     }
+
+    return cell;
   }
-  collectDates(driveTree);
 
   // Trailing days from previous month
   for (let i = firstDay - 1; i >= 0; i--) {
-    const d = document.createElement("div");
-    d.className = "cal-day other-month";
-    d.textContent = daysInPrev - i;
-    days.appendChild(d);
+    days.appendChild(buildDayCell(daysInPrev - i, true, false));
   }
   // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
-    const d = document.createElement("div");
-    d.className = "cal-day";
-    if (
-      year === today.getFullYear() &&
-      month === today.getMonth() &&
-      i === today.getDate()
-    ) {
-      d.classList.add("today");
-    }
-    if (modDays.has(i)) d.classList.add("has-entry");
-    d.textContent = i;
-    days.appendChild(d);
+    const isToday =
+      year === today.getFullYear() && month === today.getMonth() && i === today.getDate();
+    days.appendChild(buildDayCell(i, false, isToday));
   }
   // Next month fill
   const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
   let nextDay = 1;
   for (let i = firstDay + daysInMonth; i < totalCells; i++) {
-    const d = document.createElement("div");
-    d.className = "cal-day other-month";
-    d.textContent = nextDay++;
-    days.appendChild(d);
+    days.appendChild(buildDayCell(nextDay++, true, false));
   }
 }
 

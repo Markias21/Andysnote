@@ -151,8 +151,17 @@ async function openLocalNote(id) {
     ? parent.title
     : "notes_local";
 
+  const created = note.createdTime ? new Date(note.createdTime) : null;
+  document.getElementById("meta-date-val").textContent = created
+    ? created.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
   const modified = note.modifiedTime ? new Date(note.modifiedTime) : null;
-  document.getElementById("meta-date-val").textContent = modified
+  document.getElementById("meta-modified-val").textContent = modified
     ? modified.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",

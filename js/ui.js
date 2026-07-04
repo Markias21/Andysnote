@@ -58,6 +58,13 @@ function switchView(view) {
     calView.classList.remove("hidden");
     sidebar.style.display = "none";
     renderCalendar();
+    // The Drive tree is lazy-loaded (only expanded folders have their
+    // children fetched), so the calendar would otherwise miss anything
+    // inside a folder nobody has opened yet. loadEntireTree() is a no-op if
+    // everything's already loaded, so this is cheap on repeat visits.
+    if (driveAccessToken && !driveTreeFullyLoaded) {
+      loadEntireTree().then(renderCalendar);
+    }
   }
 }
 

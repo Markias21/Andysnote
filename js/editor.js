@@ -38,8 +38,17 @@ async function openDoc(node) {
     ? parentNode.name
     : ANDYSNOTE_ROOT_NAME;
 
+  const created = node.createdTime ? new Date(node.createdTime) : null;
+  document.getElementById("meta-date-val").textContent = created
+    ? created.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
   const modified = node.modifiedTime ? new Date(node.modifiedTime) : null;
-  document.getElementById("meta-date-val").textContent = modified
+  document.getElementById("meta-modified-val").textContent = modified
     ? modified.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
