@@ -160,7 +160,10 @@ async function openLocalNote(id) {
       })
     : "—";
 
-  editorOpen(note.body || "");
+  // Local notes are plain text only (no live Markdown rendering yet), so
+  // the formatting toolbar shouldn't appear here either — same as Drive
+  // .txt docs.
+  editorOpen(note.body || "", { toolbar: false });
   setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
 
   renderLocalNotes(currentSearchValue());
