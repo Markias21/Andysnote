@@ -77,7 +77,7 @@ async function createLocalNote(parentId = null) {
     id: genLocalId(),
     type: "note",
     parentId: parentId,
-    title: "Untitled",
+    title: t("editor.titlePlaceholder"),
     body: "",
     createdTime: now,
     modifiedTime: now,
@@ -94,7 +94,7 @@ async function createLocalFolder(parentId = null) {
     id: genLocalId(),
     type: "folder",
     parentId: parentId,
-    title: "New Folder",
+    title: t("local.newFolderDefaultName"),
     createdTime: now,
     modifiedTime: now,
   };
@@ -142,7 +142,7 @@ async function openLocalNote(id) {
   document.getElementById("writing-panel").classList.remove("hidden");
   renderSidebar(currentSearchValue());
 
-  document.getElementById("doc-title").value = note.title || "Untitled";
+  document.getElementById("doc-title").value = note.title || t("editor.titlePlaceholder");
 
   const parent = note.parentId
     ? localNotes.find((n) => n.id === note.parentId)
@@ -153,7 +153,7 @@ async function openLocalNote(id) {
 
   const created = note.createdTime ? new Date(note.createdTime) : null;
   document.getElementById("meta-date-val").textContent = created
-    ? created.toLocaleDateString("en-US", {
+    ? created.toLocaleDateString(localeTag(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -162,7 +162,7 @@ async function openLocalNote(id) {
 
   const modified = note.modifiedTime ? new Date(note.modifiedTime) : null;
   document.getElementById("meta-modified-val").textContent = modified
-    ? modified.toLocaleDateString("en-US", {
+    ? modified.toLocaleDateString(localeTag(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -173,7 +173,7 @@ async function openLocalNote(id) {
   // the formatting toolbar shouldn't appear here either — same as Drive
   // .txt docs.
   editorOpen(note.body || "", { toolbar: false });
-  setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+  setSyncStatus("saved", t("sync.opened") + " \u00b7 " + formatTime(new Date()));
 
   renderLocalNotes(currentSearchValue());
   updateWordCount();
@@ -204,7 +204,7 @@ async function saveLocalNow() {
   const note = localNotes.find((n) => n.id === currentFileId);
   if (!note) return;
 
-  const newTitle = document.getElementById("doc-title").value.trim() || "Untitled";
+  const newTitle = document.getElementById("doc-title").value.trim() || t("editor.titlePlaceholder");
   const newBody = editorGetText();
 
   if (note.title === newTitle && note.body === newBody) {
@@ -219,7 +219,7 @@ async function saveLocalNow() {
   await localDbPut(note);
   localDirty = false;
   renderLocalNotes(currentSearchValue());
-  setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
+  setSyncStatus("saved", t("sync.saved") + " \u00b7 " + formatTime(new Date()));
 }
 
 /* ─── IMPORT / EXPORT ─── */
@@ -229,13 +229,13 @@ async function exportLocalNote() {
   if (!note) return;
 
   const blob = new Blob([note.body || ""], { type: "text/plain" });
-  const filename = (note.title || "Untitled") + ".txt";
+  const filename = (note.title || t("editor.titlePlaceholder")) + ".txt";
 
   if (window.showSaveFilePicker) {
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName: filename,
-        types: [{ description: "Text file", accept: { "text/plain": [".txt"] } }],
+        types: [{ description: t("local.textFileDescription"), accept: { "text/plain": [".txt"] } }],
       });
       const writable = await handle.createWritable();
       await writable.write(blob);
@@ -258,7 +258,7 @@ async function onImportInputChange(input) {
   const file = input.files[0];
   if (!file) return;
   const text = await file.text();
-  const title = file.name.replace(/\.txt$/, "") || "Imported";
+  const title = file.name.replace(/\.txt$/, "") || t("local.importedTitle");
   const now = new Date().toISOString();
   const note = {
     id: genLocalId(),
@@ -297,7 +297,7 @@ function renderLocalNotes(filter = "") {
     const empty = document.createElement("div");
     empty.style.cssText =
       "padding:10px 8px 12px;color:var(--text-muted);font-size:12px;line-height:1.6;";
-    empty.textContent = q ? "No matching local notes." : "No local notes yet.";
+    empty.textContent = q ? t("sidebar.noMatchingLocalNotes") : t("sidebar.noLocalNotesYet");
     list.appendChild(empty);
     return;
   }
@@ -328,7 +328,7 @@ function renderLocalFolderNode(node, container, q) {
       <svg class="folder-icon closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
       </svg>
-      <span class="folder-name">${escHtml(node.title || "New Folder")}</span>
+      <span class="folder-name">${escHtml(node.title || t("local.newFolderDefaultName"))}</span>
       <span class="folder-count">${countLocalDocs(node.id)}</span>
     </div>
     <div class="folder-items"></div>
@@ -340,7 +340,7 @@ function renderLocalFolderNode(node, container, q) {
 }
 
 function renderLocalNoteRow(node, container, q) {
-  const title = node.title || "Untitled";
+  const title = node.title || t("editor.titlePlaceholder");
   if (q && !title.toLowerCase().includes(q)) return;
 
   const item = document.createElement("div");

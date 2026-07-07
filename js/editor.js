@@ -40,7 +40,7 @@ async function openDoc(node) {
 
   const created = node.createdTime ? new Date(node.createdTime) : null;
   document.getElementById("meta-date-val").textContent = created
-    ? created.toLocaleDateString("en-US", {
+    ? created.toLocaleDateString(localeTag(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -49,7 +49,7 @@ async function openDoc(node) {
 
   const modified = node.modifiedTime ? new Date(node.modifiedTime) : null;
   document.getElementById("meta-modified-val").textContent = modified
-    ? modified.toLocaleDateString("en-US", {
+    ? modified.toLocaleDateString(localeTag(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -62,7 +62,7 @@ async function openDoc(node) {
   const editorOpts = { rich: richMarkdown, toolbar: richMarkdown };
 
   editorOpen("", editorOpts);
-  setSyncStatus("saving", "Opening...");
+  setSyncStatus("saving", t("sync.opening"));
 
   let painted = false;
   let paintedText = null;
@@ -81,7 +81,7 @@ async function openDoc(node) {
     editorOpen(cachedText, editorOpts);
     paintedText = cachedText;
     painted = true;
-    setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+    setSyncStatus("saved", t("sync.opened") + " \u00b7 " + formatTime(new Date()));
   }
 
   if (cachedIsFresh) {
@@ -103,11 +103,11 @@ async function openDoc(node) {
     if (unedited && text !== editorGetText()) {
       editorOpen(text, editorOpts);
     }
-    setSyncStatus("saved", "Opened \u00b7 " + formatTime(new Date()));
+    setSyncStatus("saved", t("sync.opened") + " \u00b7 " + formatTime(new Date()));
   } catch (e) {
     console.error("openDoc error", e);
     if (!painted)
-      setSyncStatus("error", "Open failed \u00b7 " + formatTime(new Date()), true);
+      setSyncStatus("error", t("sync.openFailed") + " \u00b7 " + formatTime(new Date()), true);
   }
 
   updateWordCount();
@@ -147,8 +147,7 @@ function onTitleInput() {
 function updateWordCount() {
   const text = (editorGetText() || "").trim();
   const count = text ? text.split(/\s+/).length : 0;
-  document.getElementById("word-count").textContent =
-    count + (count === 1 ? " word" : " words");
+  document.getElementById("word-count").textContent = tWordCount(count);
 
   setBodyEmptyClass(text);
 }

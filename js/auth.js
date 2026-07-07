@@ -1,19 +1,37 @@
 "use strict";
 async function handleAuthClick() {
     if (!tokenClient_tc) {
-        alert(
-        "Google Sign-In is not configured. Please set window.GOOGLE_CLIENT_ID in js/config.js.",
-        );
+        alert(t("auth.notConfigured"));
         return;
     }
+    // select_account forces Google's account chooser to actually show up.
+    // Revoking a token on sign-out clears OUR app's grant, but the browser
+    // stays logged into the underlying Google session — without
+    // select_account, requestAccessToken silently re-issues a token for
+    // that same still-logged-in account instead of prompting, which looks
+    // exactly like "sign out did nothing" from the user's side.
     tokenClient_tc.requestAccessToken({
-        prompt: "consent",
+        prompt: "select_account consent",
     });
     }
 
 async function handleSignoutClick() {
-    if (driveAccessToken)
-        google.accounts.oauth2.revoke(driveAccessToken, () => {});
+    // Defensive: if the GIS script hasn't loaded (or revoke itself errors),
+    // this must not throw and abort before the state below gets cleared —
+    // that would leave the app showing "signed in" with a token we already
+    // consider gone, i.e. exactly the "sign out doesn't work" symptom.
+    try {
+        if (
+            driveAccessToken &&
+            typeof google !== "undefined" &&
+            google.accounts &&
+            google.accounts.oauth2
+        ) {
+            google.accounts.oauth2.revoke(driveAccessToken, () => {});
+        }
+    } catch (e) {
+        console.error("Token revoke failed (continuing sign-out anyway)", e);
+    }
     driveAccessToken = null;
     updateDriveUI(false, null);
     andysNoteRootId = null;
@@ -77,7 +95,7 @@ function maybeEnableButton() {
 async function handleTokenResponse(resp) {
   if (resp.error) {
     console.error("OAuth error", resp);
-    setSyncStatus("error", "Sign-in failed", true);
+    setSyncStatus("error", t("sync.signInFailed"), true);
     return;
   }
   driveAccessToken = resp.access_token;
@@ -121,11 +139,11 @@ function updateDriveUI(signedIn, user) {
     if (user.picture) {
       avatar.innerHTML = `<img src="${user.picture}" alt="${name}">`;
     }
-    setSyncStatus("saving", "Connecting...");
+    setSyncStatus("saving", t("sync.connecting"));
   } else {
     loginBtn.style.display = "flex";
     userInfo.style.display = "none";
-    setSyncStatus("local", "Local only");
+    setSyncStatus("local", t("sync.local"));
   }
 }
 

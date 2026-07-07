@@ -99,7 +99,7 @@ async function driveListChildren(parentId) {
    (loadEntireTree). */
 async function initDriveFilesystem() {
   try {
-    setSyncStatus("saving", "Loading...");
+    setSyncStatus("saving", t("sync.loading"));
     driveTreeFullyLoaded = false;
     andysNoteRootId = await findOrCreateAndysNoteRoot();
 
@@ -109,7 +109,7 @@ async function initDriveFilesystem() {
       driveTree = cached.map(driveNodeFrom);
       renderSidebar(currentSearchValue());
       populateModalFolders();
-      setSyncStatus("saved", "Loaded from cache");
+      setSyncStatus("saved", t("sync.loadedFromCache"));
     }
 
     // 2) Revalidate the root level against Drive.
@@ -117,14 +117,14 @@ async function initDriveFilesystem() {
     driveTree = mergeChildren(driveTree, fresh);
     renderSidebar(currentSearchValue());
     populateModalFolders();
-    setSyncStatus("saved", "Loaded \u00b7 " + formatTime(new Date()));
+    setSyncStatus("saved", t("sync.loaded") + " \u00b7 " + formatTime(new Date()));
   } catch (e) {
     const msg = e instanceof Error ? e.message : JSON.stringify(e);
     console.error("initDriveFilesystem error (full):", e);
     console.error("initDriveFilesystem error (message):", msg);
     setSyncStatus(
       "error",
-      "Load failed \u00b7 " + formatTime(new Date()),
+      t("sync.loadFailed") + " \u00b7 " + formatTime(new Date()),
       true,
     );
   }
@@ -302,7 +302,7 @@ function scheduleDriveSave() {
     return;
   driveDirty = true;
   clearTimeout(driveSaveTimer);
-  setSyncStatus("saving", "Saving...");
+  setSyncStatus("saving", t("sync.saving"));
   driveSaveTimer = setTimeout(saveToDriveNow, 3000);
 }
 
@@ -322,7 +322,7 @@ async function flushDriveSave() {
 async function saveToDriveNow() {
   if (!driveAccessToken || !currentFileId) return;
   try {
-    setSyncStatus("saving", "Saving...");
+    setSyncStatus("saving", t("sync.saving"));
     const text = editorGetText();
     const savedId = currentFileId;
     await drivePatch(savedId, text);
@@ -332,12 +332,12 @@ async function saveToDriveNow() {
     if (node) node.modifiedTime = stamp;
     cachePutDoc(savedId, text, stamp);
     driveDirty = false;
-    setSyncStatus("saved", "Saved \u00b7 " + formatTime(new Date()));
+    setSyncStatus("saved", t("sync.saved") + " \u00b7 " + formatTime(new Date()));
   } catch (e) {
     console.error("saveToDriveNow error", e);
     setSyncStatus(
       "error",
-      "Save failed \u00b7 " + formatTime(new Date()),
+      t("sync.saveFailed") + " \u00b7 " + formatTime(new Date()),
       true,
     );
   }

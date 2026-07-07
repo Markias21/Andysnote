@@ -7,14 +7,16 @@ function renderSidebar(filter = "") {
   if (!driveAccessToken) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);line-height:1.6;">' +
-      "Sign in with Google to load your Drive workspace. Notes you create in notes_local below stay in this browser.</div>";
+      escapeHtml(t("sidebar.signInPrompt")) +
+      "</div>";
     return;
   }
 
   if (driveTree.length === 0 && andysNoteRootId) {
     list.innerHTML =
       '<div style="padding:16px 12px;font-size:12px;color:var(--text-muted);">' +
-      "No folders yet. Use the \u002b button to create one.</div>";
+      escapeHtml(t("sidebar.noFoldersYet")) +
+      "</div>";
     return;
   }
 
@@ -84,7 +86,7 @@ function renderFolderNode(node, container, q, depth) {
       loadingEl.className = "doc-item loading";
       loadingEl.style.cssText =
         "opacity:.6;font-style:italic;pointer-events:none;";
-      loadingEl.textContent = "Loading\u2026";
+      loadingEl.textContent = t("sidebar.loading");
       items.appendChild(loadingEl);
     }
     renderNodes(node.children, items, q, depth + 1);
@@ -98,7 +100,7 @@ function renderFolderNode(node, container, q, depth) {
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
       ' stroke-linecap="round" stroke-linejoin="round">' +
       '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-      " New document";
+      " " + escapeHtml(t("sidebar.newDocument"));
     items.appendChild(addBtn);
   }
 

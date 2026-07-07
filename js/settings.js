@@ -105,18 +105,26 @@ const EDITOR_FONTS = {
   "eb-garamond": { stack: '"EB Garamond"', category: "formal", langs: ["en"], preview: "EB Garamond abc", label: "EB Garamond" },
 };
 
-/* Category labels for the Settings grouped dropdown, in display order. */
-const FONT_CATEGORIES = {
-  cute: "Cute / Rounded",
-  handwriting: "Mature Handwriting",
-  formal: "Serif & Gothic (Document)",
-};
+/* Category labels for the Settings grouped dropdown, in display order.
+   A function (not a plain object) so it re-reads the current language each
+   call instead of freezing whatever language was active when the script
+   first parsed. */
+function fontCategoryLabel(category) {
+  return (
+    {
+      cute: t("fontCat.cute"),
+      handwriting: t("fontCat.handwriting"),
+      formal: t("fontCat.formal"),
+    }[category] || category
+  );
+}
 
 /* The single source of truth for shape + defaults. */
 function defaultSettings() {
   return {
     ui: {
       theme: "dark", // "dark" | "light"
+      language: "en", // "en" | "ko" — app UI language, see js/i18n.js
       indentMode: true, // .txt only: new paragraphs (Enter) start with a one-space indent
       compactMode: false, // denser layout
     },
@@ -190,6 +198,7 @@ function setSetting(path, value) {
   saveSettings();
   applySettings();
   if (path === "ui.indentMode") editorRefreshIndentDisplay();
+  if (path === "ui.language") refreshUiLanguage();
 
   // Disabling autosave/sync must take effect immediately: cancel any save
   // already queued on a debounce timer before the toggle flipped.
@@ -242,6 +251,8 @@ function applySettings() {
   document.documentElement.style.setProperty("--editor-font-en", enMeta ? (enMeta.enStack || enMeta.stack) : "sans-serif");
 
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
+
+  applyTranslations();
 }
 
 /* ─── SETTINGS PANEL (tabbed — Library / Fonts / Calendar / ...) ───────────
@@ -255,50 +266,59 @@ function settingsTabs() {
   return [
     {
       id: "library",
-      label: "Library",
+      label: t("settings.tabLibrary"),
       groups: [
         {
-          title: "UI",
+          title: t("settings.groupUI"),
           fields: [
             {
               path: "ui.theme",
-              label: "Theme",
+              label: t("settings.theme"),
               type: "select",
               options: [
-                { value: "dark", label: "Dark" },
-                { value: "light", label: "Light" },
+                { value: "dark", label: t("settings.themeDark") },
+                { value: "light", label: t("settings.themeLight") },
               ],
             },
-            { path: "ui.indentMode", label: "Indent mode (.txt / local notes)", type: "bool" },
-            { path: "ui.compactMode", label: "Compact mode", type: "bool" },
+            {
+              path: "ui.language",
+              label: t("settings.language"),
+              type: "select",
+              options: [
+                { value: "en", label: t("settings.languageEnglish") },
+                { value: "ko", label: t("settings.languageKorean") },
+              ],
+            },
+            { path: "ui.indentMode", label: t("settings.indentMode"), type: "bool" },
+            { path: "ui.compactMode", label: t("settings.compactMode"), type: "bool" },
           ],
         },
         {
-          title: "Behavior",
+          title: t("settings.groupBehavior"),
           fields: [
-            { path: "behavior.autoSave", label: "Auto save", type: "bool" },
-            { path: "behavior.driveSync", label: "Drive sync", type: "bool" },
+            { path: "behavior.autoSave", label: t("settings.autoSave"), type: "bool" },
+            { path: "behavior.driveSync", label: t("settings.driveSync"), type: "bool" },
           ],
         },
       ],
     },
     {
       id: "fonts",
-      label: "Fonts",
+      label: t("settings.tabFonts"),
       groups: [
         {
-          title: "Font",
+          title: t("settings.groupFont"),
           fields: [
             {
               path: "font.korean",
-              label: "Korean font",
+              label: t("settings.koreanFont"),
               type: "font-select",
               // grouped by category; each option carries preview text
               options: buildFontOptions("kr"),
             },
             {
               path: "font.english",
-              label: "English font",
+              label: t("settings.englishFont"),
               type: "font-select",
               options: buildFontOptions("en"),
             },
@@ -308,7 +328,7 @@ function settingsTabs() {
     },
     {
       id: "calendar",
-      label: "Calendar",
+      label: t("settings.tabCalendar"),
       groups: [], // nothing here yet
     },
   ];
@@ -377,7 +397,7 @@ function renderSettings() {
 
 function renderSettingsGroups(groups) {
   if (!groups.length) {
-    return '<div class="settings-empty">More settings coming soon.</div>';
+    return '<div class="settings-empty">' + escapeHtml(t("settings.emptyMore")) + "</div>";
   }
 
   let html = "";
@@ -467,7 +487,7 @@ function renderFontSelect(path, currentValue, options) {
     if (opt.category !== currentGroup) {
       if (currentGroup !== null) html += "</optgroup>";
       currentGroup = opt.category;
-      const groupLabel = FONT_CATEGORIES[currentGroup] || currentGroup;
+      const groupLabel = fontCategoryLabel(currentGroup);
       html += '<optgroup label="' + escapeHtml(groupLabel) + '">';
     }
     const label = escapeHtml(opt.label) + " — " + escapeHtml(opt.preview);

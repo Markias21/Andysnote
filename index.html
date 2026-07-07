@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=202607041" />
+    <link rel="manifest" href="./manifest.json?v=202607044" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607041" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607044" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607041"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607044"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607041" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607044" />
     <style>
       *,
       *::before,
@@ -1605,7 +1605,7 @@
                 d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
               />
             </svg>
-            Library
+            <span data-i18n="nav.library">Library</span>
           </button>
           <button
             class="nav-btn"
@@ -1625,7 +1625,7 @@
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            Calendar
+            <span data-i18n="nav.calendar">Calendar</span>
           </button>
         </nav>
         <div class="topbar-right">
@@ -1635,6 +1635,7 @@
             class="settings-gear"
             id="btn-settings"
             title="Settings"
+            data-i18n-title="topbar.settings"
             onclick="openSettings()"
           >
             <svg
@@ -1654,14 +1655,14 @@
           <!-- Sync status (shown when logged in) -->
           <div class="sync-status" id="sync-status">
             <div class="sync-dot local" id="sync-dot"></div>
-            <span id="sync-label">Local only</span>
+            <span id="sync-label" data-i18n="sync.local">Local only</span>
             <button
               class="sync-retry"
               id="sync-retry"
               onclick="retryDriveSave()"
               style="display: none"
             >
-              Retry
+              <span data-i18n="sync.retry">Retry</span>
             </button>
           </div>
           <!-- Login button -->
@@ -1692,7 +1693,7 @@
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            <span data-i18n="auth.signIn">Sign in with Google</span>
           </button>
           <!-- User info (shown when logged in) -->
           <div class="user-info" id="user-info">
@@ -1703,6 +1704,7 @@
             <button
               class="signout-btn"
               title="Sign out"
+              data-i18n-title="auth.signOut"
               onclick="handleSignoutClick()"
             >
               <svg
@@ -1727,10 +1729,11 @@
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
           <div class="sidebar-header">
-            <span class="sidebar-title">Folders</span>
+            <span class="sidebar-title" data-i18n="sidebar.folders">Folders</span>
             <button
               class="sidebar-add"
               title="Choose folder / new item"
+              data-i18n-title="sidebar.chooseFolder"
               onclick="openModal()"
             >
               <svg
@@ -1751,6 +1754,7 @@
               class="search-input"
               type="search"
               placeholder="Search..."
+              data-i18n-placeholder="sidebar.search"
               id="search-input"
               oninput="filterDocs(this.value)"
             />
@@ -1764,6 +1768,7 @@
               <button
                 class="sidebar-add"
                 title="Import a .txt file"
+                data-i18n-title="sidebar.importTxt"
                 onclick="importLocalNote()"
               >
                 <svg
@@ -1782,6 +1787,7 @@
               <button
                 class="sidebar-add"
                 title="New folder"
+                data-i18n-title="sidebar.newFolder"
                 onclick="createLocalFolder()"
               >
                 <svg
@@ -1802,6 +1808,7 @@
               <button
                 class="sidebar-add"
                 title="New local note"
+                data-i18n-title="sidebar.newLocalNote"
                 onclick="createLocalNote()"
               >
                 <svg
@@ -1859,14 +1866,14 @@
                 <line x1="16" y1="17" x2="8" y2="17" />
                 <polyline points="10 9 9 9 8 9" />
               </svg>
-              <h3>No document selected</h3>
-              <p>Choose a document from the sidebar or create a new one</p>
+              <h3 data-i18n="empty.title">No document selected</h3>
+              <p data-i18n="empty.desc">Choose a document from the sidebar or create a new one</p>
             </div>
 
             <!-- WRITING PANEL -->
             <div class="writing-panel hidden" id="writing-panel">
               <div class="editor-toolbar" id="editor-toolbar">
-                <button class="tool-btn" title="Save" onclick="saveDoc()">
+                <button class="tool-btn" title="Save" data-i18n-title="editor.save" onclick="saveDoc()">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -1885,6 +1892,7 @@
                 <button
                   class="tool-btn"
                   title="Export as .txt"
+                  data-i18n-title="editor.export"
                   onclick="exportLocalNote()"
                 >
                   <svg
@@ -1906,6 +1914,7 @@
                     id="md-btn-bold"
                     class="md-btn"
                     title="Bold (Ctrl+B)"
+                    data-i18n-title="editor.bold"
                     onmousedown="event.preventDefault()"
                     onclick="mdBold()"
                   >
@@ -1915,6 +1924,7 @@
                     id="md-btn-italic"
                     class="md-btn"
                     title="Italic (Ctrl+I)"
+                    data-i18n-title="editor.italic"
                     onmousedown="event.preventDefault()"
                     onclick="mdItalic()"
                   >
@@ -1924,6 +1934,7 @@
                     id="md-btn-strike"
                     class="md-btn"
                     title="Strikethrough"
+                    data-i18n-title="editor.strike"
                     onmousedown="event.preventDefault()"
                     onclick="mdStrike()"
                   >
@@ -1933,6 +1944,7 @@
                     id="md-btn-code"
                     class="md-btn"
                     title="Inline Code"
+                    data-i18n-title="editor.inlineCode"
                     onmousedown="event.preventDefault()"
                     onclick="mdInlineCode()"
                   >
@@ -1942,6 +1954,7 @@
                   <button
                     class="md-btn"
                     title="Heading"
+                    data-i18n-title="editor.heading"
                     onmousedown="event.preventDefault()"
                     onclick="mdHeading()"
                   >
@@ -1950,6 +1963,7 @@
                   <button
                     class="md-btn"
                     title="Quote"
+                    data-i18n-title="editor.quote"
                     onmousedown="event.preventDefault()"
                     onclick="mdQuote()"
                   >
@@ -1958,6 +1972,7 @@
                   <button
                     class="md-btn"
                     title="Bullet List"
+                    data-i18n-title="editor.bullet"
                     onmousedown="event.preventDefault()"
                     onclick="mdBulletList()"
                   >
@@ -1966,6 +1981,7 @@
                   <button
                     class="md-btn"
                     title="Numbered List"
+                    data-i18n-title="editor.numbered"
                     onmousedown="event.preventDefault()"
                     onclick="mdNumberList()"
                   >
@@ -1974,6 +1990,7 @@
                   <button
                     class="md-btn"
                     title="Checklist"
+                    data-i18n-title="editor.checklist"
                     onmousedown="event.preventDefault()"
                     onclick="mdChecklist()"
                   >
@@ -1983,6 +2000,7 @@
                   <button
                     class="md-btn"
                     title="Divider"
+                    data-i18n-title="editor.divider"
                     onmousedown="event.preventDefault()"
                     onclick="mdDivider()"
                   >
@@ -1991,6 +2009,7 @@
                   <button
                     class="md-btn"
                     title="Code Block"
+                    data-i18n-title="editor.codeBlock"
                     onmousedown="event.preventDefault()"
                     onclick="mdCodeBlock()"
                   >
@@ -2007,6 +2026,7 @@
                     id="doc-title"
                     rows="1"
                     placeholder="Untitled"
+                    data-i18n-placeholder="editor.titlePlaceholder"
                   ></textarea>
                   <div class="editor-meta">
                     <span class="meta-chip" id="meta-folder">
@@ -2024,7 +2044,7 @@
                       </svg>
                       <span id="meta-folder-name">—</span>
                     </span>
-                    <span class="meta-chip" id="meta-date" title="Created">
+                    <span class="meta-chip" id="meta-date" title="Created" data-i18n-title="editor.metaCreated">
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
@@ -2040,7 +2060,7 @@
                       </svg>
                       <span id="meta-date-val">—</span>
                     </span>
-                    <span class="meta-chip" id="meta-modified" title="Last modified">
+                    <span class="meta-chip" id="meta-modified" title="Last modified" data-i18n-title="editor.metaModified">
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
@@ -2057,6 +2077,7 @@
                   <textarea
                     id="doc-body"
                     placeholder="Start writing..."
+                    data-i18n-placeholder="editor.bodyPlaceholder"
                   ></textarea>
                   <div
                     id="doc-body-rich"
@@ -2120,13 +2141,13 @@
             </div>
             <div class="cal-grid" id="cal-grid">
               <div class="cal-weekdays">
-                <div class="cal-weekday">Sun</div>
-                <div class="cal-weekday">Mon</div>
-                <div class="cal-weekday">Tue</div>
-                <div class="cal-weekday">Wed</div>
-                <div class="cal-weekday">Thu</div>
-                <div class="cal-weekday">Fri</div>
-                <div class="cal-weekday">Sat</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.sun">Sun</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.mon">Mon</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.tue">Tue</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.wed">Wed</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.thu">Thu</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.fri">Fri</div>
+                <div class="cal-weekday" data-i18n="cal.weekday.sat">Sat</div>
               </div>
               <div class="cal-days" id="cal-days"></div>
             </div>
@@ -2142,7 +2163,7 @@
                 >
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
-                Back to month
+                <span data-i18n="cal.backToMonth">Back to month</span>
               </button>
               <h3 class="cal-day-view-title" id="cal-day-view-title"></h3>
               <div class="cal-day-view-list" id="cal-day-view-list"></div>
@@ -2165,9 +2186,9 @@
           onchange="onModalTypeChange(this.value)"
           style="margin-bottom: 12px"
         >
-          <option value="doc">Document (.txt)</option>
-          <option value="doc-md">Document (.md)</option>
-          <option value="folder">Folder</option>
+          <option value="doc" data-i18n="modal.typeDoc">Document (.txt)</option>
+          <option value="doc-md" data-i18n="modal.typeDocMd">Document (.md)</option>
+          <option value="folder" data-i18n="modal.typeFolder">Folder</option>
         </select>
         <input type="text" id="modal-title" placeholder="Name..." />
         <select id="modal-folder">
@@ -2176,8 +2197,8 @@
           </option>
         </select>
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-accent" onclick="createItem()">Create</button>
+          <button class="btn btn-ghost" onclick="closeModal()" data-i18n="modal.cancel">Cancel</button>
+          <button class="btn btn-accent" onclick="createItem()" data-i18n="modal.create">Create</button>
         </div>
       </div>
     </div>
@@ -2190,7 +2211,7 @@
     >
       <div class="settings-panel">
         <div class="settings-head">
-          <h3>Settings</h3>
+          <h3 data-i18n="settings.heading">Settings</h3>
           <button class="settings-close" onclick="closeSettings()">✕</button>
         </div>
         <div class="settings-tabs" id="settings-tabs"></div>
@@ -2198,24 +2219,25 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=202607041"></script>
-    <script src="js/state.js?v=202607041"></script>
-    <script src="js/settings.js?v=202607041"></script>
-    <script src="js/ui.js?v=202607041"></script>
-    <script src="js/cache.js?v=202607041"></script>
-    <script src="js/drive.js?v=202607041"></script>
-    <script src="js/auth.js?v=202607041"></script>
-    <script src="js/sidebar.js?v=202607041"></script>
-    <script src="js/markdown.js?v=202607041"></script>
-    <script src="js/editor/parser.js?v=202607041"></script>
-    <script src="js/editor/renderer.js?v=202607041"></script>
-    <script src="js/editor/cursor.js?v=202607041"></script>
-    <script src="js/editor/engine.js?v=202607041"></script>
-    <script src="js/editor.js?v=202607041"></script>
-    <script src="js/local.js?v=202607041"></script>
-    <script src="js/modal.js?v=202607041"></script>
-    <script src="js/calendar.js?v=202607041"></script>
-    <script src="js/app.js?v=202607041"></script>
+    <script src="js/config.js?v=202607044"></script>
+    <script src="js/state.js?v=202607044"></script>
+    <script src="js/i18n.js?v=202607044"></script>
+    <script src="js/settings.js?v=202607044"></script>
+    <script src="js/ui.js?v=202607044"></script>
+    <script src="js/cache.js?v=202607044"></script>
+    <script src="js/drive.js?v=202607044"></script>
+    <script src="js/auth.js?v=202607044"></script>
+    <script src="js/sidebar.js?v=202607044"></script>
+    <script src="js/markdown.js?v=202607044"></script>
+    <script src="js/editor/parser.js?v=202607044"></script>
+    <script src="js/editor/renderer.js?v=202607044"></script>
+    <script src="js/editor/cursor.js?v=202607044"></script>
+    <script src="js/editor/engine.js?v=202607044"></script>
+    <script src="js/editor.js?v=202607044"></script>
+    <script src="js/local.js?v=202607044"></script>
+    <script src="js/modal.js?v=202607044"></script>
+    <script src="js/calendar.js?v=202607044"></script>
+    <script src="js/app.js?v=202607044"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

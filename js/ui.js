@@ -1,6 +1,6 @@
 /* ─── STATUS HELPERS ─── */
 function formatTime(date) {
-  return date.toLocaleTimeString([], {
+  return date.toLocaleTimeString(localeTag(), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -29,7 +29,7 @@ function escHtml(s) {
 function updateTodayDate() {
   const d = new Date();
   document.getElementById("today-date").textContent = d.toLocaleDateString(
-    "en-US",
+    localeTag(),
     {
       weekday: "short",
       month: "short",

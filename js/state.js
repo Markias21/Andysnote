@@ -7,6 +7,7 @@ let currentFileId = null; // Drive file ID of the open document
 let calDate = new Date();
 let calViewMode = "month"; // "month" | "day" — "day" drills into a single date's full entry list
 let calSelectedDay = null; // { year, month, day } when calViewMode === "day"
+let calScopeFolderId = null; // Drive folder ID to limit the calendar to, or null for everything
 let driveSaveTimer = null;
 let driveDirty = false; // true when the open Drive doc has unsaved edits
 

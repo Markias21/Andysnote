@@ -3,11 +3,11 @@ function onModalTypeChange(type) {
   const heading = document.getElementById("modal-heading");
   const titleInput = document.getElementById("modal-title");
   if (type === "folder") {
-    heading.textContent = "New Folder";
-    titleInput.placeholder = "Folder name...";
+    heading.textContent = t("modal.newFolder");
+    titleInput.placeholder = t("modal.folderNamePlaceholder");
   } else {
-    heading.textContent = "New Document";
-    titleInput.placeholder = "Document title...";
+    heading.textContent = t("modal.newDocument");
+    titleInput.placeholder = t("modal.docTitlePlaceholder");
   }
 }
 
@@ -20,18 +20,7 @@ function docFileSpec(type) {
 
 function populateModalFolders() {
   const sel = document.getElementById("modal-folder");
-  sel.innerHTML = '<option value="">AndysNote/ (root)</option>';
-  function addOptions(nodes, prefix) {
-    for (const n of nodes) {
-      if (n.mimeType !== FOLDER_MIME) continue;
-      const opt = document.createElement("option");
-      opt.value = n.id;
-      opt.textContent = prefix + n.name;
-      sel.appendChild(opt);
-      addOptions(n.children, prefix + "\u00a0\u00a0");
-    }
-  }
-  addOptions(driveTree, "");
+  populateDriveFolderSelect(sel, '<option value="">' + escapeHtml(t("modal.rootFolderOption")) + "</option>");
 }
 
 function openModal(folderId = null, type = "doc") {
@@ -75,7 +64,7 @@ async function createItem() {
   }
 
   closeModal();
-  setSyncStatus("saving", "Creating...");
+  setSyncStatus("saving", t("sync.creating"));
 
   try {
     if (type === "folder") {
@@ -99,7 +88,7 @@ async function createItem() {
       populateModalFolders();
       setSyncStatus(
         "saved",
-        "Folder created \u00b7 " + formatTime(new Date()),
+        t("sync.folderCreated") + " \u00b7 " + formatTime(new Date()),
       );
     } else {
       const { ext, mimeType } = docFileSpec(type);
@@ -129,7 +118,7 @@ async function createItem() {
     console.error("createItem error", e);
     setSyncStatus(
       "error",
-      "Create failed \u00b7 " + formatTime(new Date()),
+      t("sync.createFailed") + " \u00b7 " + formatTime(new Date()),
       true,
     );
   }

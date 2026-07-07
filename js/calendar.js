@@ -3,9 +3,18 @@
    creation date only; a doc's modified date is shown when you open it, not
    here. Folders themselves never appear, only actual documents.
 
-   collectDayEntries() takes an optional scopeFolderId so a future "limit to
-   this folder" filter can reuse it without changing how entries are
-   gathered — not wired to any UI yet, just kept open for it. */
+   collectDayEntries() takes an optional scopeFolderId to limit the
+   calendar to one Drive folder (picked via #cal-folder-filter):
+     - Only that folder's DIRECT contents count — subfolders are not
+       recursed into, by design (a deliberate "just this folder" scope, not
+       "this folder and everything under it").
+     - Local notes drop out of view entirely whenever a folder scope is
+       active. They have no notion of Drive folders at all, and the app
+       has no existing concept of picking a "local folder" to scope by
+       (notes_local is managed via its own sidebar buttons, not a folder
+       tree picker) — so rather than inventing one, folder-scoping and
+       local notes are treated as independent: local notes only ever show
+       up in the unscoped "All folders" view. */
 function collectDayEntries(year, month, scopeFolderId) {
   const byDay = new Map();
   function push(day, entry) {
@@ -13,32 +22,38 @@ function collectDayEntries(year, month, scopeFolderId) {
     byDay.get(day).push(entry);
   }
 
-  function walkDrive(nodes) {
-    for (const n of nodes) {
-      if (n.mimeType === FOLDER_MIME) {
-        walkDrive(n.children);
-        continue;
-      }
-      if (!n.createdTime) continue;
-      const d = new Date(n.createdTime);
-      if (d.getFullYear() === year && d.getMonth() === month) {
-        push(d.getDate(), { kind: "drive", id: n.id, title: stripDocExt(n.name) });
-      }
+  function considerFile(n) {
+    if (!n.createdTime) return;
+    const d = new Date(n.createdTime);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      push(d.getDate(), { kind: "drive", id: n.id, title: stripDocExt(n.name) });
     }
   }
-  let driveStart = driveTree;
+
   if (scopeFolderId) {
     const folderNode = findNodeById(scopeFolderId, driveTree);
-    driveStart = folderNode ? folderNode.children : [];
-  }
-  walkDrive(driveStart);
+    for (const n of (folderNode ? folderNode.children : [])) {
+      if (n.mimeType === FOLDER_MIME) continue; // direct contents only, no recursion
+      considerFile(n);
+    }
+  } else {
+    function walkDrive(nodes) {
+      for (const n of nodes) {
+        if (n.mimeType === FOLDER_MIME) {
+          walkDrive(n.children);
+          continue;
+        }
+        considerFile(n);
+      }
+    }
+    walkDrive(driveTree);
 
-  for (const note of localNotes) {
-    if (note.type !== "note" || !note.createdTime) continue;
-    if (scopeFolderId && note.parentId !== scopeFolderId) continue;
-    const d = new Date(note.createdTime);
-    if (d.getFullYear() === year && d.getMonth() === month) {
-      push(d.getDate(), { kind: "local", id: note.id, title: note.title || "Untitled" });
+    for (const note of localNotes) {
+      if (note.type !== "note" || !note.createdTime) continue;
+      const d = new Date(note.createdTime);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        push(d.getDate(), { kind: "local", id: note.id, title: note.title || t("editor.titlePlaceholder") });
+      }
     }
   }
 
@@ -56,20 +71,6 @@ function calOpenEntry(kind, id) {
 }
 
 const CAL_MAX_ENTRIES_SHOWN = 3;
-const CAL_MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 const CAL_FILE_ICON_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 
@@ -85,12 +86,13 @@ function renderCalendar() {
   document.getElementById("cal-day-view").classList.add("hidden");
 
   document.getElementById("cal-month-label").textContent =
-    `${CAL_MONTH_NAMES[calDate.getMonth()]} ${calDate.getFullYear()}`;
+    `${t("cal.months")[calDate.getMonth()]} ${calDate.getFullYear()}`;
 
   const jumpInput = document.getElementById("cal-month-jump");
   if (jumpInput) {
     jumpInput.value = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, "0")}`;
   }
+  populateCalFolderFilter();
 
   const days = document.getElementById("cal-days");
   days.innerHTML = "";
@@ -102,7 +104,7 @@ function renderCalendar() {
   const daysInPrev = new Date(year, month, 0).getDate();
   const today = new Date();
 
-  const dayEntries = collectDayEntries(year, month, null);
+  const dayEntries = collectDayEntries(year, month, calScopeFolderId);
 
   function buildDayCell(dayNum, isOtherMonth, isToday) {
     const cell = document.createElement("div");
@@ -133,7 +135,7 @@ function renderCalendar() {
       if (entries.length > shown.length) {
         const more = document.createElement("div");
         more.className = "cal-entry-more";
-        more.textContent = `+${entries.length - shown.length} more`;
+        more.textContent = tMoreCount(entries.length - shown.length);
         cell.appendChild(more);
       }
     }
@@ -174,6 +176,26 @@ function calJumpToMonth(value) {
   renderCalendar();
 }
 
+/* Rebuilds the folder-filter <select> from the current Drive tree, keeping
+   whatever's currently picked selected if it still exists (the tree can
+   change under it — e.g. loadEntireTree() resolving after this first
+   renders). Local folders aren't included — see collectDayEntries's doc
+   comment for why folder-scoping and local notes stay independent. */
+function populateCalFolderFilter() {
+  const sel = document.getElementById("cal-folder-filter");
+  if (!sel) return;
+  const prevValue = sel.value;
+  populateDriveFolderSelect(sel, '<option value="">' + escapeHtml(t("cal.allFolders")) + "</option>");
+  if (prevValue && Array.from(sel.options).some((o) => o.value === prevValue)) {
+    sel.value = prevValue;
+  }
+}
+
+function calSetFolderFilter(value) {
+  calScopeFolderId = value || null;
+  renderCalendar();
+}
+
 /* Drop into a single day's full, uncapped entry list — the destination for
    clicking anywhere in a day cell (the day number, empty space, or "+N
    more"; only the entry chips themselves opt out via stopPropagation, since
@@ -195,21 +217,21 @@ function renderDayView() {
     year,
     month,
     day,
-  ).toLocaleDateString("en-US", {
+  ).toLocaleDateString(localeTag(), {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
   });
 
-  const entries = collectDayEntries(year, month, null).get(day) || [];
+  const entries = collectDayEntries(year, month, calScopeFolderId).get(day) || [];
   const list = document.getElementById("cal-day-view-list");
   list.innerHTML = "";
 
   if (!entries.length) {
     const empty = document.createElement("div");
     empty.className = "cal-day-view-empty";
-    empty.textContent = "No documents created on this day.";
+    empty.textContent = t("cal.noEntries");
     list.appendChild(empty);
     return;
   }
