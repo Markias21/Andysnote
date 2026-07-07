@@ -95,3 +95,58 @@ var LOCAL_HANDLES_STORE = "handles";
 var DRIVE_CACHE_DB_NAME = "andysnote-cache";
 var CACHE_TREE_STORE = "treeChildren"; // per-folder direct children lists
 var CACHE_DOC_STORE = "docContent"; // opened note bodies
+
+/* ─── THEMES ───────────────────────────────────────────────────────────────
+   Single source of truth for every theme id — js/settings.js's swatch grid
+   and applySettings()'s validity check both read this list instead of
+   hardcoding option counts, so adding a theme later means: one entry here,
+   one :root[data-theme="id"] CSS block in index.html, two i18n strings.
+
+   "mono" themes are pure CSS variables (index.html). "concept" themes are
+   photo-backed (assets/themes/*.jpg) — swatch/bg are the same small
+   thumbnail used both as the settings-panel preview and (at full size) as
+   the theme's --bg photo. */
+var THEME_LIST = [
+  { id: "dark-black", group: "mono", labelKey: "settings.themeDark" },
+  { id: "dark-gray", group: "mono", labelKey: "settings.themeGray" },
+  { id: "dark-green", group: "mono", labelKey: "settings.themeGreen" },
+  { id: "dark-indigo", group: "mono", labelKey: "settings.themeIndigo" },
+  { id: "light-black", group: "mono", labelKey: "settings.themeLight" },
+  { id: "light-gray", group: "mono", labelKey: "settings.themeLightGray" },
+  { id: "light-green", group: "mono", labelKey: "settings.themeLightGreen" },
+  { id: "light-indigo", group: "mono", labelKey: "settings.themeLightIndigo" },
+  {
+    id: "starrynight",
+    group: "concept",
+    labelKey: "settings.themeStarryNight",
+    thumb: "assets/themes/starrynight-thumb.jpg",
+  },
+  {
+    id: "lighthouse",
+    group: "concept",
+    labelKey: "settings.themeLighthouse",
+    thumb: "assets/themes/lighthouse-thumb.jpg",
+  },
+  {
+    id: "camping",
+    group: "concept",
+    labelKey: "settings.themeCamping",
+    thumb: "assets/themes/camping-thumb.jpg",
+  },
+];
+var DEFAULT_THEME_ID = "dark-black";
+
+/* Tiny cosmetic lookup for the settings swatch grid preview (js/settings.js:
+   renderThemeSwatchGrid) — bg/fg pairs must match each mono theme's
+   --bg/--text in index.html's :root[data-theme="..."] blocks. Concept
+   themes don't need an entry here; they preview via their `thumb` image. */
+var THEME_SWATCH_COLORS = {
+  "dark-black": { bg: "#141414", fg: "#e8e8e8" },
+  "dark-gray": { bg: "#0e0e10", fg: "#e6e6e8" },
+  "dark-green": { bg: "#070d08", fg: "#dbe8db" },
+  "dark-indigo": { bg: "#090a14", fg: "#e2e3f2" },
+  "light-black": { bg: "#ffffff", fg: "#202124" },
+  "light-gray": { bg: "#f2f2f4", fg: "#202124" },
+  "light-green": { bg: "#eef7ee", fg: "#17301a" },
+  "light-indigo": { bg: "#eef0fb", fg: "#1c1f3d" },
+};

@@ -123,7 +123,7 @@ function fontCategoryLabel(category) {
 function defaultSettings() {
   return {
     ui: {
-      theme: "dark", // "dark" | "light"
+      theme: DEFAULT_THEME_ID, // see THEME_LIST in config.js
       language: "en", // "en" | "ko" — app UI language, see js/i18n.js
       indentMode: true, // .txt only: new paragraphs (Enter) start with a one-space indent
       compactMode: false, // denser layout
@@ -243,7 +243,16 @@ function setSetting(path, value) {
 function applySettings() {
   if (!appSettings) return;
 
-  document.documentElement.dataset.theme = appSettings.ui.theme === "light" ? "light" : "dark";
+  // "dark"/"light" are the pre-swatch-grid ids (still readable from old
+  // localStorage saves) — map them to their "black" hue equivalent, then
+  // fall back to the default for anything else unrecognized (a theme that
+  // was since removed, or corrupted storage).
+  const legacyThemeMap = { dark: "dark-black", light: "light-black" };
+  const requestedTheme = legacyThemeMap[appSettings.ui.theme] || appSettings.ui.theme;
+  appSettings.ui.theme = THEME_LIST.some((t) => t.id === requestedTheme)
+    ? requestedTheme
+    : DEFAULT_THEME_ID;
+  document.documentElement.dataset.theme = appSettings.ui.theme;
 
   const krMeta = EDITOR_FONTS[appSettings.font.korean];
   const enMeta = EDITOR_FONTS[appSettings.font.english];
@@ -274,11 +283,7 @@ function settingsTabs() {
             {
               path: "ui.theme",
               label: t("settings.theme"),
-              type: "select",
-              options: [
-                { value: "dark", label: t("settings.themeDark") },
-                { value: "light", label: t("settings.themeLight") },
-              ],
+              type: "swatch-grid",
             },
             {
               path: "ui.language",
@@ -406,6 +411,18 @@ function renderSettingsGroups(groups) {
     html += '<div class="settings-group-title">' + g.title + "</div>";
     for (const field of g.fields) {
       const val = getSetting(field.path);
+      if (field.type === "swatch-grid") {
+        // Own row shape (label above, grid below) — a grid of preview
+        // swatches doesn't fit the label-left/control-right .settings-row
+        // layout every other field type uses.
+        html +=
+          '<div class="settings-row-stacked"><span class="settings-label">' +
+          field.label +
+          "</span>" +
+          renderThemeSwatchGrid(field.path, val) +
+          "</div>";
+        continue;
+      }
       let control = "";
       if (field.type === "bool") {
         control =
@@ -505,6 +522,49 @@ function renderFontSelect(path, currentValue, options) {
   }
   if (currentGroup !== null) html += "</optgroup>";
   html += "</select>";
+  return html;
+}
+
+/* Renders THEME_LIST as a grid of clickable preview swatches (mono themes
+   show their --bg color, concept themes show their small thumbnail) — the
+   visual counterpart to picking a theme id via setSetting(), same as every
+   other field renderer here. THEME_SWATCH_COLORS (config.js) must be kept
+   in sync with each mono theme's --bg/--text in index.html; it's a small,
+   purely cosmetic duplication scoped to this one preview. */
+function renderThemeSwatchGrid(path, currentValue) {
+  let html = '<div class="theme-swatch-grid">';
+  for (const theme of THEME_LIST) {
+    const selected = theme.id === currentValue;
+    const label = escapeHtml(t(theme.labelKey));
+    let previewStyle;
+    if (theme.group === "concept") {
+      previewStyle =
+        "background-image:url('" + escapeHtml(theme.thumb) + "');background-size:cover;background-position:center;";
+    } else {
+      const c = THEME_SWATCH_COLORS[theme.id] || THEME_SWATCH_COLORS[DEFAULT_THEME_ID];
+      previewStyle = "background:" + c.bg + ";color:" + c.fg + ";";
+    }
+    html +=
+      '<button type="button" class="theme-swatch' +
+      (selected ? " selected" : "") +
+      '" title="' +
+      label +
+      "\" onclick=\"setSetting('" +
+      path +
+      "', '" +
+      theme.id +
+      "')\">" +
+      '<span class="theme-swatch-preview" style="' +
+      previewStyle +
+      '">' +
+      (theme.group === "mono" ? "Aa" : "") +
+      "</span>" +
+      '<span class="theme-swatch-label">' +
+      label +
+      "</span>" +
+      "</button>";
+  }
+  html += "</div>";
   return html;
 }
 

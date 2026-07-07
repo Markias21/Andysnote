@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=202607045" />
+    <link rel="manifest" href="./manifest.json?v=202607046" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607045" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607046" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607045"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607046"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607045" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607046" />
     <style>
       *,
       *::before,
@@ -59,13 +59,22 @@
         --radius: 6px;
       }
 
-      /* ─── LIGHT THEME (Chrome-like neutrals) — toggled via Settings
-           > Library > Theme, which stamps data-theme on <html>. Both
-           themes are intentionally monochrome: "active/selected/on" is
-           communicated by brightness/weight contrast (Notion-style),
-           not by hue, so --accent is just the strongest neutral each
-           theme has rather than a brand color. ─── */
-      :root[data-theme="light"] {
+      /* ─── THEMES — toggled via Settings > Library > Theme, which stamps
+           data-theme on <html> (see js/settings.js: applySettings(),
+           js/config.js: THEME_LIST is the single source of truth for the
+           set of valid ids). The base :root above IS "dark-black" (the
+           original theme, kept as the zero-override default so nothing
+           breaks if data-theme is ever unset). Every other id below is an
+           override block on top of it.
+
+           Mono themes ("dark"/"light" x "black"/"gray"/"green"/"indigo")
+           are intentionally monochrome within each hue family — "active/
+           selected/on" is communicated by brightness/weight contrast
+           (Notion-style), not by hue, so --accent is just the strongest
+           neutral each theme has rather than a brand color. Dark variants
+           commit to a clearly dark bg, light variants to a clearly light
+           bg — no "ambiguous middle" tones. ─── */
+      :root[data-theme="light-black"] {
         --bg: #ffffff;
         --surface: #f8f9fa;
         --surface2: #f1f3f4;
@@ -79,6 +88,155 @@
         --accent-text: #ffffff;
         --accent-dim: rgba(0, 0, 0, 0.06);
         --accent-hover: rgba(0, 0, 0, 0.04);
+      }
+      :root[data-theme="dark-gray"] {
+        --bg: #0e0e10;
+        --surface: #17171a;
+        --surface2: #1e1e22;
+        --surface3: #28282c;
+        --border: #2c2c30;
+        --border2: #37373c;
+        --text: #e6e6e8;
+        --text-dim: #8b8b90;
+        --text-muted: #5a5a60;
+        --accent: #ffffff;
+        --accent-text: #0e0e10;
+        --accent-dim: rgba(255, 255, 255, 0.12);
+        --accent-hover: rgba(255, 255, 255, 0.06);
+      }
+      :root[data-theme="dark-green"] {
+        --bg: #070d08;
+        --surface: #0d150e;
+        --surface2: #131f14;
+        --surface3: #1b2b1c;
+        --border: #20351f;
+        --border2: #2a4529;
+        --text: #dbe8db;
+        --text-dim: #86a186;
+        --text-muted: #4f6350;
+        --accent: #ffffff;
+        --accent-text: #070d08;
+        --accent-dim: rgba(255, 255, 255, 0.12);
+        --accent-hover: rgba(255, 255, 255, 0.06);
+      }
+      :root[data-theme="dark-indigo"] {
+        --bg: #090a14;
+        --surface: #0f1120;
+        --surface2: #151829;
+        --surface3: #1d2136;
+        --border: #232842;
+        --border2: #2c3252;
+        --text: #e2e3f2;
+        --text-dim: #8b8fb8;
+        --text-muted: #565a80;
+        --accent: #ffffff;
+        --accent-text: #090a14;
+        --accent-dim: rgba(255, 255, 255, 0.12);
+        --accent-hover: rgba(255, 255, 255, 0.06);
+      }
+      :root[data-theme="light-gray"] {
+        --bg: #f2f2f4;
+        --surface: #e9e9ec;
+        --surface2: #e0e0e4;
+        --surface3: #d3d3d9;
+        --border: #cfcfd6;
+        --border2: #bcbcc4;
+        --text: #202124;
+        --text-dim: #5a5a63;
+        --text-muted: #83838c;
+        --accent: #181818;
+        --accent-text: #f2f2f4;
+        --accent-dim: rgba(0, 0, 0, 0.06);
+        --accent-hover: rgba(0, 0, 0, 0.04);
+      }
+      :root[data-theme="light-green"] {
+        --bg: #eef7ee;
+        --surface: #e3f1e3;
+        --surface2: #d7ebd7;
+        --surface3: #c4dfc4;
+        --border: #bcdabc;
+        --border2: #a3cca3;
+        --text: #17301a;
+        --text-dim: #45614a;
+        --text-muted: #6f8f73;
+        --accent: #17301a;
+        --accent-text: #eef7ee;
+        --accent-dim: rgba(0, 0, 0, 0.06);
+        --accent-hover: rgba(0, 0, 0, 0.04);
+      }
+      :root[data-theme="light-indigo"] {
+        --bg: #eef0fb;
+        --surface: #e3e6f7;
+        --surface2: #d8dcf2;
+        --surface3: #c6cbe9;
+        --border: #bcc2e3;
+        --border2: #a5abd6;
+        --text: #1c1f3d;
+        --text-dim: #4a4f74;
+        --text-muted: #72779e;
+        --accent: #1c1f3d;
+        --accent-text: #eef0fb;
+        --accent-dim: rgba(0, 0, 0, 0.06);
+        --accent-hover: rgba(0, 0, 0, 0.04);
+      }
+
+      /* ─── CONCEPT THEMES — photo-backed. --bg carries the photo (with a
+           dark scrim baked into the same value, so `background: var(--bg)`
+           on .content/html,body — unchanged — draws scrim-over-photo in one
+           shot); --surface/--surface2/--surface3 stay solid flat colors so
+           the sidebar/toolbar/buttons are always crisp, independent of the
+           photo. See assets/themes/CREDITS.md for photo sources; swap the
+           .jpg file to change the photo, no CSS/JS change needed. ─── */
+      :root[data-theme="starrynight"] {
+        --bg:
+          linear-gradient(180deg, rgba(6, 8, 14, 0.62), rgba(6, 8, 14, 0.5) 40%, rgba(6, 8, 14, 0.68)),
+          url("assets/themes/starrynight.jpg") center/cover no-repeat;
+        --surface: #0a0d18;
+        --surface2: #0f1322;
+        --surface3: #161b30;
+        --border: #1c2138;
+        --border2: #242b48;
+        --text: #e7eaf5;
+        --text-dim: #9099bb;
+        --text-muted: #5b6489;
+        --accent: #ffffff;
+        --accent-text: #05060b;
+        --accent-dim: rgba(255, 255, 255, 0.14);
+        --accent-hover: rgba(255, 255, 255, 0.07);
+      }
+      :root[data-theme="lighthouse"] {
+        --bg:
+          linear-gradient(180deg, rgba(6, 12, 16, 0.6), rgba(6, 12, 16, 0.48) 40%, rgba(6, 12, 16, 0.66)),
+          url("assets/themes/lighthouse.jpg") center/cover no-repeat;
+        --surface: #0c1a1f;
+        --surface2: #112229;
+        --surface3: #172d34;
+        --border: #1c353d;
+        --border2: #24424b;
+        --text: #e6f1f0;
+        --text-dim: #8fb0ac;
+        --text-muted: #567d78;
+        --accent: #ffffff;
+        --accent-text: #050b0d;
+        --accent-dim: rgba(255, 255, 255, 0.14);
+        --accent-hover: rgba(255, 255, 255, 0.07);
+      }
+      :root[data-theme="camping"] {
+        --bg:
+          linear-gradient(180deg, rgba(10, 7, 5, 0.6), rgba(10, 7, 5, 0.46) 40%, rgba(10, 7, 5, 0.66)),
+          url("assets/themes/camping.jpg") center/cover no-repeat;
+        --surface: #17110c;
+        --surface2: #1e160f;
+        --surface3: #281e14;
+        --border: #2e2216;
+        --border2: #3a2c1c;
+        --text: #f0e6d8;
+        --text-dim: #bfa98a;
+        --text-muted: #8a765a;
+        --accent: #ffffff;
+        --accent-text: #0d0a06;
+        --accent-dim: rgba(255, 255, 255, 0.14);
+        --accent-hover: rgba(255, 255, 255, 0.07);
       }
 
       html,
@@ -915,7 +1073,10 @@
       .cal-month-input::-webkit-calendar-picker-indicator:hover {
         opacity: 1;
       }
-      :root[data-theme="light"] .cal-month-input {
+      :root[data-theme="light-black"] .cal-month-input,
+      :root[data-theme="light-gray"] .cal-month-input,
+      :root[data-theme="light-green"] .cal-month-input,
+      :root[data-theme="light-indigo"] .cal-month-input {
         color-scheme: light;
       }
 
@@ -1305,9 +1466,57 @@
         gap: 16px;
         padding: 10px 0;
       }
+      .settings-row-stacked {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 0;
+      }
       .settings-label {
         font-size: 16px;
         color: var(--text);
+      }
+      .theme-swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+        gap: 10px;
+      }
+      .theme-swatch {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font-family: var(--font-ui);
+      }
+      .theme-swatch-preview {
+        width: 100%;
+        aspect-ratio: 3 / 2;
+        border-radius: var(--radius);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .theme-swatch.selected .theme-swatch-preview {
+        border-color: var(--accent);
+      }
+      .theme-swatch:hover .theme-swatch-preview {
+        border-color: var(--border2);
+      }
+      .theme-swatch-label {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .theme-swatch.selected .theme-swatch-label {
+        color: var(--text);
+        font-weight: 600;
       }
       .settings-select {
         background: var(--surface2);
@@ -2252,25 +2461,25 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=202607045"></script>
-    <script src="js/state.js?v=202607045"></script>
-    <script src="js/i18n.js?v=202607045"></script>
-    <script src="js/settings.js?v=202607045"></script>
-    <script src="js/ui.js?v=202607045"></script>
-    <script src="js/cache.js?v=202607045"></script>
-    <script src="js/drive.js?v=202607045"></script>
-    <script src="js/auth.js?v=202607045"></script>
-    <script src="js/sidebar.js?v=202607045"></script>
-    <script src="js/markdown.js?v=202607045"></script>
-    <script src="js/editor/parser.js?v=202607045"></script>
-    <script src="js/editor/renderer.js?v=202607045"></script>
-    <script src="js/editor/cursor.js?v=202607045"></script>
-    <script src="js/editor/engine.js?v=202607045"></script>
-    <script src="js/editor.js?v=202607045"></script>
-    <script src="js/local.js?v=202607045"></script>
-    <script src="js/modal.js?v=202607045"></script>
-    <script src="js/calendar.js?v=202607045"></script>
-    <script src="js/app.js?v=202607045"></script>
+    <script src="js/config.js?v=202607046"></script>
+    <script src="js/state.js?v=202607046"></script>
+    <script src="js/i18n.js?v=202607046"></script>
+    <script src="js/settings.js?v=202607046"></script>
+    <script src="js/ui.js?v=202607046"></script>
+    <script src="js/cache.js?v=202607046"></script>
+    <script src="js/drive.js?v=202607046"></script>
+    <script src="js/auth.js?v=202607046"></script>
+    <script src="js/sidebar.js?v=202607046"></script>
+    <script src="js/markdown.js?v=202607046"></script>
+    <script src="js/editor/parser.js?v=202607046"></script>
+    <script src="js/editor/renderer.js?v=202607046"></script>
+    <script src="js/editor/cursor.js?v=202607046"></script>
+    <script src="js/editor/engine.js?v=202607046"></script>
+    <script src="js/editor.js?v=202607046"></script>
+    <script src="js/local.js?v=202607046"></script>
+    <script src="js/modal.js?v=202607046"></script>
+    <script src="js/calendar.js?v=202607046"></script>
+    <script src="js/app.js?v=202607046"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script
