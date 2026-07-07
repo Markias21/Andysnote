@@ -92,7 +92,7 @@ async function createItem() {
       );
     } else {
       const { ext, mimeType } = docFileSpec(type);
-      const fileName = title.endsWith(ext) ? title : title + ext;
+      const fileName = buildStoredName(title, ext, new Date());
       const created = await drivePost(
         "https://www.googleapis.com/upload/drive/v3/files",
         { name: fileName, mimeType, parents: [folderId] },

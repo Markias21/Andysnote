@@ -22,9 +22,16 @@ let storageMode = "drive"; // backend of the currently-open doc: "drive" | "loca
 let localSaveTimer = null; // debounce timer for local autosave
 let localDirty = false; // true when the open Local doc has unsaved edits
 let searchDebounceTimer = null; // debounce timer for the sidebar search box
-let localNotes = []; // browser-stored notes+folders: [{id,type,parentId,title,body,createdTime,modifiedTime}]
+let localNotes = []; // flat, parentId-linked: [{id,type,parentId,title,body,createdTime,modifiedTime}]
+                      // (real-FS backend adds a live `handle` + `ext` per node; local.js's
+                      // IndexedDB fallback leaves those undefined)
 let localDbPromise = null; // cached IndexedDB connection promise
 let localExpandedFolders = new Set(); // which notes_local folder IDs are open
+
+/* ─── LOCAL REAL-FILESYSTEM BACKEND (js/local.js) ─── */
+let localFsSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
+let localRootHandle = null; // live FileSystemDirectoryHandle for the connected AndysNote/ folder
+let localFsConnected = false; // true once localRootHandle is loaded/granted and the folder has been scanned
 
 /* ─── SETTINGS (single app-wide global state; logic lives in settings.js) ─── */
 let appSettings = null; // one settings object: { ui, font, behavior } — mutate only via setSetting()

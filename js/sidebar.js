@@ -38,7 +38,7 @@ function renderFolderNode(node, container, q, depth) {
 
   if (q) {
     const matchingDocs = flatDocs(node).filter((d) =>
-      stripDocExt(d.name).toLowerCase().includes(q),
+      parseCreatedFromName(d.name).cleanTitle.toLowerCase().includes(q),
     );
     if (matchingDocs.length === 0) return;
   }
@@ -108,7 +108,7 @@ function renderFolderNode(node, container, q, depth) {
 }
 
 function renderFileNode(node, container, q, depth) {
-  const title = stripDocExt(node.name);
+  const title = parseCreatedFromName(node.name).cleanTitle;
   if (q && !title.toLowerCase().includes(q)) return;
 
   const item = document.createElement("div");

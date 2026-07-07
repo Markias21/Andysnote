@@ -23,10 +23,14 @@ function collectDayEntries(year, month, scopeFolderId) {
   }
 
   function considerFile(n) {
-    if (!n.createdTime) return;
-    const d = new Date(n.createdTime);
+    // The filename's encoded date (if present) is authoritative — it's the
+    // one the user can actually edit; Drive's own createdTime is just the
+    // fallback for docs created before this existed. See config.js.
+    const parsed = parseCreatedFromName(n.name);
+    const d = parsed.createdDate || (n.createdTime ? new Date(n.createdTime) : null);
+    if (!d) return;
     if (d.getFullYear() === year && d.getMonth() === month) {
-      push(d.getDate(), { kind: "drive", id: n.id, title: stripDocExt(n.name) });
+      push(d.getDate(), { kind: "drive", id: n.id, title: parsed.cleanTitle });
     }
   }
 

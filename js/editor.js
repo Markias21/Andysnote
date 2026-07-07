@@ -30,7 +30,8 @@ async function openDoc(node) {
 
   renderSidebar(currentSearchValue());
 
-  const title = stripDocExt(node.name);
+  const parsedName = parseCreatedFromName(node.name);
+  const title = parsedName.cleanTitle;
   document.getElementById("doc-title").value = title;
 
   const parentNode = findParentOf(node.id, driveTree);
@@ -38,14 +39,11 @@ async function openDoc(node) {
     ? parentNode.name
     : ANDYSNOTE_ROOT_NAME;
 
-  const created = node.createdTime ? new Date(node.createdTime) : null;
-  document.getElementById("meta-date-val").textContent = created
-    ? created.toLocaleDateString(localeTag(), {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "—";
+  const created = parsedName.createdDate || (node.createdTime ? new Date(node.createdTime) : null);
+  renderCreatedDateChip(created, async (newDate) => {
+    await renameDriveEntryName(node, { createdDate: newDate });
+    renderSidebar(currentSearchValue());
+  });
 
   const modified = node.modifiedTime ? new Date(node.modifiedTime) : null;
   document.getElementById("meta-modified-val").textContent = modified
@@ -165,4 +163,76 @@ function showEmptyState() {
   document.getElementById("empty-state").classList.remove("hidden");
   document.getElementById("writing-panel").classList.add("hidden");
   currentFileId = null;
+}
+
+/* ─── CREATED-DATE CHIP (editable, shared by openDoc/openLocalNote) ───────
+   Neither backend's real created-date is something we can just overwrite
+   as metadata (Drive's createdTime is server-managed; local files have no
+   creation-time field at all) — both encode it in the saved filename
+   instead (js/config.js: buildStoredName et al). Clicking the chip swaps
+   its text for a native <input type="date">; committing it calls back into
+   whichever backend is open so it can rename the underlying file/Drive doc
+   to match, then re-renders the chip from the confirmed result. */
+function renderCreatedDateChip(date, onDateChange) {
+  const chip = document.getElementById("meta-date");
+  const val = document.getElementById("meta-date-val");
+  val.textContent = date
+    ? date.toLocaleDateString(localeTag(), { month: "short", day: "numeric", year: "numeric" })
+    : "—";
+  chip.onclick = () => beginEditCreatedDate(date, onDateChange);
+}
+
+function isoDateOnly(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function beginEditCreatedDate(currentDate, onDateChange) {
+  const val = document.getElementById("meta-date-val");
+  if (!val || val.tagName === "INPUT") return; // already editing
+
+  const input = document.createElement("input");
+  input.type = "date";
+  input.className = "meta-date-edit";
+  if (currentDate) input.value = isoDateOnly(currentDate);
+
+  val.replaceWith(input);
+  input.focus();
+
+  let settled = false;
+  const restore = (displayDate) => {
+    if (settled) return;
+    settled = true;
+    // Swap a fresh <span id="meta-date-val"> back in (rather than reusing
+    // the <input>, whose .textContent wouldn't render) so
+    // renderCreatedDateChip's getElementById lookup finds a real span again.
+    const span = document.createElement("span");
+    span.id = "meta-date-val";
+    input.replaceWith(span);
+    renderCreatedDateChip(displayDate, onDateChange);
+  };
+
+  input.addEventListener("blur", async () => {
+    const picked = input.value ? new Date(input.value + "T00:00:00") : null;
+    if (!picked || (currentDate && isoDateOnly(picked) === isoDateOnly(currentDate))) {
+      restore(currentDate);
+      return;
+    }
+    try {
+      await onDateChange(picked);
+      restore(picked);
+    } catch (e) {
+      console.error("created-date edit failed", e);
+      restore(currentDate);
+    }
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") input.blur();
+    if (e.key === "Escape") {
+      input.value = currentDate ? isoDateOnly(currentDate) : "";
+      input.blur();
+    }
+  });
 }

@@ -25,9 +25,71 @@ function stripDocExt(name) {
   return name.replace(DOC_EXT_REGEX, "");
 }
 
+/* ─── CREATED-DATE FILENAME SUFFIX (shared by Drive + local) ───────────────
+   Neither the File System Access API (real local files) nor the Drive API
+   (createdTime is server-managed, not user-editable) lets us store an
+   arbitrary user-editable "created on" date as real metadata. So both
+   backends encode it directly in the saved filename instead:
+     "제목_20260707.txt"  →  title "제목", created 2026-07-07
+   This is the ONE source of truth for created date whenever present; it's
+   what makes the created-date editor (js/editor.js) actually persist an
+   edit — editing the date just re-derives the filename via
+   buildStoredName() and renames the underlying file/Drive doc. Docs saved
+   before this existed (or dropped in externally) have no suffix; callers
+   fall back to the backend's own real metadata (Drive's createdTime /
+   a local file's lastModified) in that case. */
+var CREATED_SUFFIX_REGEX = /_(\d{8})$/;
+
+function formatCreatedSuffix(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `_${y}${m}${d}`;
+}
+
+/* name (with extension) -> { cleanTitle, createdDate }. createdDate is a
+   Date at local midnight, or null if this name has no suffix (or an
+   invalid one, e.g. hand-typed garbage that happens to match the shape). */
+function parseCreatedFromName(name) {
+  const base = stripDocExt(name);
+  const m = base.match(CREATED_SUFFIX_REGEX);
+  if (!m) return { cleanTitle: base, createdDate: null };
+  const digits = m[1];
+  const year = Number(digits.slice(0, 4));
+  const month = Number(digits.slice(4, 6));
+  const day = Number(digits.slice(6, 8));
+  const date = new Date(year, month - 1, day);
+  const valid =
+    !isNaN(date.getTime()) && date.getMonth() === month - 1 && date.getDate() === day;
+  if (!valid) return { cleanTitle: base, createdDate: null };
+  return { cleanTitle: base.slice(0, m.index), createdDate: date };
+}
+
+/* Strips characters real filesystems reject outright, plus trailing
+   dots/spaces (illegal specifically on Windows) — applied to BOTH backends
+   so a title behaves the same way whether it ends up as a real file or a
+   Drive doc name. */
+function sanitizeFileTitle(title) {
+  const cleaned = String(title || "")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/[. ]+$/, "")
+    .trim();
+  return cleaned || t("editor.titlePlaceholder");
+}
+
+/* The one place a saved filename gets assembled, whether the title changed,
+   the created date changed, or a brand-new doc is being created — always
+   rebuilds the full name from scratch rather than patching pieces of the
+   old one. */
+function buildStoredName(title, ext, date) {
+  return sanitizeFileTitle(title) + formatCreatedSuffix(date) + ext;
+}
+
 /* ─── LOCAL (browser) STORE CONFIG ─── */
 var LOCAL_DB_NAME = "andysnote-local";
 var LOCAL_STORE = "notes";
+var LOCAL_DB_VERSION = 2; // v2 adds LOCAL_HANDLES_STORE (persisted root directory handle)
+var LOCAL_HANDLES_STORE = "handles";
 
 /* ─── DRIVE CACHE CONFIG (IndexedDB performance layer) ─── */
 var DRIVE_CACHE_DB_NAME = "andysnote-cache";

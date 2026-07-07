@@ -68,6 +68,43 @@ async function drivePatch(fileId, textContent) {
   return r.json();
 }
 
+/* Metadata-only PATCH (the regular files.update endpoint, not the media
+   upload one drivePatch() uses for content) — currently only used to rename
+   a file, e.g. to update the created-date suffix encoded in its name. */
+async function drivePatchMetadata(fileId, metadata) {
+  if (!driveAccessToken) throw new Error("Not authenticated");
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer " + driveAccessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(metadata),
+  });
+  if (!r.ok) throw new Error(`PATCH metadata ${fileId} -> ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+/* Renames a Drive node's underlying file name — the only way to make its
+   created date user-editable, since Drive's real createdTime field isn't
+   something a normal app can modify via the API. Rebuilds the FULL name via
+   buildStoredName() every time (whether title, created date, or both
+   changed) rather than patching pieces of the old one, same as the local
+   backend's rename does. `title`/`createdDate` are optional — omit either
+   to keep that part as-is. */
+async function renameDriveEntryName(node, { title, createdDate } = {}) {
+  const parsed = parseCreatedFromName(node.name);
+  const finalTitle = title !== undefined ? title : parsed.cleanTitle;
+  const finalDate = createdDate || parsed.createdDate || new Date(node.createdTime);
+  const extMatch = node.name.match(DOC_EXT_REGEX);
+  const ext = extMatch ? extMatch[0].toLowerCase() : ".txt";
+  const newName = buildStoredName(finalTitle, ext, finalDate);
+  if (newName === node.name) return;
+  await drivePatchMetadata(node.id, { name: newName });
+  node.name = newName;
+  node.modifiedTime = new Date().toISOString();
+}
+
 /* ─── DRIVE FILESYSTEM ─── */
 async function driveListChildren(parentId) {
   let files = [],

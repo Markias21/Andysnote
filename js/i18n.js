@@ -42,6 +42,7 @@ const I18N = {
     "sidebar.importTxt": "Import a .txt file",
     "sidebar.newFolder": "New folder",
     "sidebar.newLocalNote": "New local note",
+    "sidebar.newLocalMdNote": "New local Markdown note",
     "sidebar.noLocalNotesYet": "No local notes yet.",
     "sidebar.noMatchingLocalNotes": "No matching local notes.",
     "sidebar.noFoldersYet": "No folders yet. Use the + button to create one.",
@@ -117,6 +118,15 @@ const I18N = {
     "local.textFileDescription": "Text file",
     "local.importedTitle": "Imported",
     "local.newFolderDefaultName": "New Folder",
+    "local.connectPrompt": "Connect a real folder on your computer to store notes_local as actual .txt/.md files.",
+    "local.connectButton": "Connect folder",
+    "local.reconnectPrompt": "Permission to your connected folder needs to be re-granted.",
+    "local.reconnectButton": "Reconnect folder",
+    "local.connectFailed": "Couldn't connect the folder",
+    "local.migrating": "Moving existing local notes into the folder...",
+    "local.migrateDone": "Local notes moved into the folder",
+    "local.fallbackNotice":
+      "Your browser doesn't support real folder access, so local notes are stored like internal cache files on this computer, not visible files.",
   },
   ko: {
     "nav.library": "라이브러리",
@@ -151,6 +161,7 @@ const I18N = {
     "sidebar.importTxt": "txt 파일 가져오기",
     "sidebar.newFolder": "새 폴더",
     "sidebar.newLocalNote": "새 로컬 노트",
+    "sidebar.newLocalMdNote": "새 로컬 마크다운 노트",
     "sidebar.noLocalNotesYet": "아직 로컬 노트가 없습니다.",
     "sidebar.noMatchingLocalNotes": "일치하는 로컬 노트가 없습니다.",
     "sidebar.noFoldersYet": "아직 폴더가 없습니다. + 버튼으로 새로 만드세요.",
@@ -226,6 +237,15 @@ const I18N = {
     "local.textFileDescription": "텍스트 파일",
     "local.importedTitle": "가져온 문서",
     "local.newFolderDefaultName": "새 폴더",
+    "local.connectPrompt": "실제 컴퓨터 폴더를 연결하면 notes_local이 진짜 .txt/.md 파일로 저장됩니다.",
+    "local.connectButton": "폴더 연결",
+    "local.reconnectPrompt": "연결된 폴더에 대한 권한을 다시 허용해야 합니다.",
+    "local.reconnectButton": "폴더 다시 연결",
+    "local.connectFailed": "폴더를 연결하지 못했습니다",
+    "local.migrating": "기존 로컬 노트를 폴더로 옮기는 중...",
+    "local.migrateDone": "로컬 노트를 폴더로 옮겼습니다",
+    "local.fallbackNotice":
+      "이 브라우저는 실제 폴더 접근을 지원하지 않아서, 로컬 노트가 눈에 보이는 파일이 아니라 이 컴퓨터의 내부 캐시처럼 저장됩니다.",
   },
 };
 

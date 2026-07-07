@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=202607044" />
+    <link rel="manifest" href="./manifest.json?v=202607045" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607044" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607045" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607044"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607045"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607044" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607045" />
     <style>
       *,
       *::before,
@@ -670,6 +670,30 @@
       .meta-chip svg {
         width: 11px;
         height: 11px;
+      }
+
+      /* The created-date chip doubles as a button — clicking it swaps in a
+         native date input (see renderCreatedDateChip/beginEditCreatedDate
+         in js/editor.js). */
+      #meta-date {
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 2px 4px;
+        margin: -2px -4px;
+        transition: background 0.12s;
+      }
+      #meta-date:hover {
+        background: var(--surface2);
+      }
+      .meta-date-edit {
+        font-size: 11px;
+        font-family: var(--font-ui);
+        color: var(--text);
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 1px 3px;
+        outline: none;
       }
 
       #doc-body {
@@ -1823,6 +1847,15 @@
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </button>
+              <button
+                class="sidebar-add"
+                title="New local Markdown note"
+                data-i18n-title="sidebar.newLocalMdNote"
+                onclick="createLocalNote(null, '.md')"
+                style="font-size: 10px; font-weight: 700"
+              >
+                MD
+              </button>
             </div>
           </div>
           <div id="local-list"></div>
@@ -2219,25 +2252,25 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=202607044"></script>
-    <script src="js/state.js?v=202607044"></script>
-    <script src="js/i18n.js?v=202607044"></script>
-    <script src="js/settings.js?v=202607044"></script>
-    <script src="js/ui.js?v=202607044"></script>
-    <script src="js/cache.js?v=202607044"></script>
-    <script src="js/drive.js?v=202607044"></script>
-    <script src="js/auth.js?v=202607044"></script>
-    <script src="js/sidebar.js?v=202607044"></script>
-    <script src="js/markdown.js?v=202607044"></script>
-    <script src="js/editor/parser.js?v=202607044"></script>
-    <script src="js/editor/renderer.js?v=202607044"></script>
-    <script src="js/editor/cursor.js?v=202607044"></script>
-    <script src="js/editor/engine.js?v=202607044"></script>
-    <script src="js/editor.js?v=202607044"></script>
-    <script src="js/local.js?v=202607044"></script>
-    <script src="js/modal.js?v=202607044"></script>
-    <script src="js/calendar.js?v=202607044"></script>
-    <script src="js/app.js?v=202607044"></script>
+    <script src="js/config.js?v=202607045"></script>
+    <script src="js/state.js?v=202607045"></script>
+    <script src="js/i18n.js?v=202607045"></script>
+    <script src="js/settings.js?v=202607045"></script>
+    <script src="js/ui.js?v=202607045"></script>
+    <script src="js/cache.js?v=202607045"></script>
+    <script src="js/drive.js?v=202607045"></script>
+    <script src="js/auth.js?v=202607045"></script>
+    <script src="js/sidebar.js?v=202607045"></script>
+    <script src="js/markdown.js?v=202607045"></script>
+    <script src="js/editor/parser.js?v=202607045"></script>
+    <script src="js/editor/renderer.js?v=202607045"></script>
+    <script src="js/editor/cursor.js?v=202607045"></script>
+    <script src="js/editor/engine.js?v=202607045"></script>
+    <script src="js/editor.js?v=202607045"></script>
+    <script src="js/local.js?v=202607045"></script>
+    <script src="js/modal.js?v=202607045"></script>
+    <script src="js/calendar.js?v=202607045"></script>
+    <script src="js/app.js?v=202607045"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script
