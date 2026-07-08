@@ -223,6 +223,22 @@ async function renameLocalNoteIdb(id, newTitle) {
   renderLocalNotes(currentSearchValue());
 }
 
+/* Drag-and-drop move within the local tree (reparent only, no sibling
+   reordering — see js/sidebar.js's isLocalDescendant for cycle checks). */
+async function moveLocalNode(id, newParentId) {
+  if (localFsSupported && localFsConnected) return moveLocalNodeFs(id, newParentId);
+  return moveLocalNodeIdb(id, newParentId);
+}
+
+async function moveLocalNodeIdb(id, newParentId) {
+  const node = localNotes.find((n) => n.id === id);
+  if (!node || node.parentId === newParentId) return;
+  node.parentId = newParentId;
+  node.modifiedTime = new Date().toISOString();
+  await localDbPut(node);
+  renderLocalNotes(currentSearchValue());
+}
+
 /* ─── OPEN LOCAL NOTE ─── */
 async function openLocalNote(id) {
   await flushDriveSave();
@@ -461,6 +477,10 @@ function renderLocalFolderNode(node, container, q) {
     <div class="folder-items"></div>
   `;
 
+  const header = folderEl.querySelector(".folder-header");
+  wireDragSource(header, "local", node.id);
+  wireDragTarget(header, "local", node.id);
+
   const items = folderEl.querySelector(".folder-items");
   if (isOpen) renderLocalNodes(getLocalChildren(node.id), items, q);
   container.appendChild(folderEl);
@@ -474,7 +494,11 @@ function renderLocalNoteRow(node, container, q) {
   item.className =
     "doc-item" + (storageMode === "local" && node.id === currentFileId ? " active" : "");
   item.dataset.id = node.id;
-  item.onclick = () => openLocalNote(node.id);
+  item.onclick = () => {
+    openLocalNote(node.id);
+    if (isMobileViewport()) closeSidebarMobile();
+  };
+  wireDragSource(item, "local", node.id);
   item.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -491,6 +515,16 @@ function toggleLocalFolder(folderId) {
   renderLocalNotes(currentSearchValue());
 }
 
+/* Lets dropping on empty sidebar space (not on any folder row) move/copy an
+   item to the local tree's top level (parentId null). Wired once at
+   startup — #local-list itself persists across renderLocalNotes() calls,
+   only its innerHTML changes. Uses wireDragTarget from js/sidebar.js, shared
+   by both sidebar panels. */
+function initLocalDragDrop() {
+  const list = document.getElementById("local-list");
+  wireDragTarget(list, "local", null);
+}
+
 /* ─── SIDEBAR HELPERS (local tree rendering) ─── */
 function getLocalRootNodes() {
   return localNotes.filter((n) => n.parentId === null);
@@ -498,6 +532,19 @@ function getLocalRootNodes() {
 
 function getLocalChildren(parentId) {
   return localNotes.filter((n) => n.parentId === parentId);
+}
+
+/* Returns true if `candidateId` is `ancestorId` itself or sits somewhere in
+   its subtree (walking up candidateId's parentId chain) — blocks dropping a
+   folder into its own descendant. */
+function isLocalDescendant(candidateId, ancestorId) {
+  if (candidateId === ancestorId) return true;
+  let cur = localNotes.find((n) => n.id === candidateId);
+  while (cur && cur.parentId !== null) {
+    if (cur.parentId === ancestorId) return true;
+    cur = localNotes.find((n) => n.id === cur.parentId);
+  }
+  return false;
 }
 
 function countLocalDocs(parentId) {
@@ -794,6 +841,47 @@ async function renameLocalNoteFs(id, newTitle, newCreatedDate) {
   if (isOpenDoc) {
     document.getElementById("doc-title").value = dedupedTitle;
   }
+  renderLocalNotes(currentSearchValue());
+}
+
+/* Drag-and-drop move within the real filesystem — same "copy into new
+   location, then remove the original" approach as renameLocalNoteFs's
+   folder branch, since File System Access has no native move either. */
+async function moveLocalNodeFs(id, newParentId) {
+  const node = localNotes.find((n) => n.id === id);
+  if (!node || node.parentId === newParentId) return;
+  const oldParentDir = resolveParentDirHandle(node.parentId);
+  const newParentDir = resolveParentDirHandle(newParentId);
+  if (!oldParentDir || !newParentDir) return;
+
+  if (node.type === "folder") {
+    const { name: newName } = await uniqueLocalName(newParentDir, node.title, (t) => t);
+    const newDirHandle = await newParentDir.getDirectoryHandle(newName, { create: true });
+    await copyLocalFolderContents(node.handle, newDirHandle);
+    await oldParentDir.removeEntry(node.name, { recursive: true });
+    // Same as renameLocalNoteFs's folder branch: cheapest to refresh every
+    // descendant handle via a full rescan rather than patching them by hand.
+    await rescanLocalFolder();
+    return;
+  }
+
+  const { name: newName } = await uniqueLocalName(
+    newParentDir,
+    node.title,
+    (t) => buildStoredName(t, node.ext, new Date(node.createdTime)),
+  );
+  const isOpenDoc = id === currentFileId;
+  const content = isOpenDoc ? editorGetText() : await node.handle.getFile().then((f) => f.text());
+  const newHandle = await newParentDir.getFileHandle(newName, { create: true });
+  const writable = await newHandle.createWritable();
+  await writable.write(content);
+  await writable.close();
+  await oldParentDir.removeEntry(node.name);
+
+  node.handle = newHandle;
+  node.name = newName;
+  node.parentId = newParentId;
+  node.body = content;
   renderLocalNotes(currentSearchValue());
 }
 

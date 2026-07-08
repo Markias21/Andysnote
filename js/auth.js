@@ -119,14 +119,16 @@ async function handleTokenResponse(resp) {
 
 function updateDriveUI(signedIn, user) {
   const loginBtn = document.getElementById("btn-google-login");
+  const foldersHeader = document.getElementById("sidebar-folders-header");
   const userInfo = document.getElementById("user-info");
   const nameLabel = document.getElementById("user-name-label");
   const initials = document.getElementById("user-initials");
   const avatar = document.getElementById("user-avatar");
-  if (!loginBtn || !userInfo || !nameLabel || !initials || !avatar)
+  if (!loginBtn || !foldersHeader || !userInfo || !nameLabel || !initials || !avatar)
     return;
   if (signedIn && user) {
     loginBtn.style.display = "none";
+    foldersHeader.style.display = "flex";
     userInfo.style.display = "flex";
     const name = user.name || user.email || "User";
     nameLabel.textContent = name;
@@ -142,6 +144,7 @@ function updateDriveUI(signedIn, user) {
     setSyncStatus("saving", t("sync.connecting"));
   } else {
     loginBtn.style.display = "flex";
+    foldersHeader.style.display = "none";
     userInfo.style.display = "none";
     setSyncStatus("local", t("sync.local"));
   }

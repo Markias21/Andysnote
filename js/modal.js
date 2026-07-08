@@ -144,3 +144,27 @@ function insertIntoTree(node, parentId) {
   }
   insert(driveTree);
 }
+
+/* Counterpart to insertIntoTree — removes a node (by id) from wherever it
+   currently sits in driveTree, used before re-inserting it under a new
+   parent (drag-and-drop move). */
+function removeFromTree(id) {
+  const idx = driveTree.findIndex((n) => n.id === id);
+  if (idx !== -1) {
+    driveTree.splice(idx, 1);
+    return;
+  }
+  function removeFrom(nodes) {
+    for (const n of nodes) {
+      if (n.mimeType !== FOLDER_MIME) continue;
+      const i = n.children.findIndex((c) => c.id === id);
+      if (i !== -1) {
+        n.children.splice(i, 1);
+        return true;
+      }
+      if (removeFrom(n.children)) return true;
+    }
+    return false;
+  }
+  removeFrom(driveTree);
+}

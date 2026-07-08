@@ -78,6 +78,10 @@ function renderFolderNode(node, container, q, depth) {
     node.id +
     '"></div>';
 
+  const header = folderEl.querySelector(".folder-header");
+  wireDragSource(header, "drive", node.id);
+  wireDragTarget(header, "drive", node.id);
+
   const items = folderEl.querySelector(".folder-items");
 
   if (isOpen) {
@@ -115,7 +119,11 @@ function renderFileNode(node, container, q, depth) {
   item.className =
     "doc-item" + (node.id === currentFileId ? " active" : "");
   item.dataset.id = node.id;
-  item.onclick = () => openDoc(node);
+  item.onclick = () => {
+    openDoc(node);
+    if (isMobileViewport()) closeSidebarMobile();
+  };
+  wireDragSource(item, "drive", node.id);
   item.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"' +
     ' stroke-linecap="round" stroke-linejoin="round">' +
@@ -196,4 +204,221 @@ function findParentOf(id, nodes) {
     }
   }
   return null;
+}
+
+/* ─── DRAG AND DROP (folder/file move + local<->drive copy) ─────────────────
+   Shared by both sidebar panels (the Drive tree here and the local tree in
+   js/local.js): dragging within one panel reparents the item, dragging
+   across panels copies it instead — see handleTreeDrop. Reparenting only;
+   there is no sibling reorder (neither backend has an "order" field). */
+function wireDragSource(el, origin, id) {
+  el.draggable = true;
+  el.addEventListener("dragstart", (e) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("application/json", JSON.stringify({ origin, id }));
+  });
+}
+
+/* Makes `el` a valid drop target representing the folder `targetParentId`
+   (or the root, when called from initSidebarDragDrop/initLocalDragDrop). */
+function wireDragTarget(el, targetOrigin, targetParentId) {
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    el.classList.add("drag-over");
+  });
+  el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove("drag-over");
+    let data;
+    try {
+      data = JSON.parse(e.dataTransfer.getData("application/json"));
+    } catch (err) {
+      return;
+    }
+    if (!data) return;
+    // targetParentId may be a thunk (e.g. the Drive root, whose id isn't
+    // known until the tree loads) so it's resolved lazily at drop time.
+    const parentId = typeof targetParentId === "function" ? targetParentId() : targetParentId;
+    handleTreeDrop(data, targetOrigin, parentId);
+  });
+}
+
+async function handleTreeDrop(dropData, targetOrigin, targetParentId) {
+  if (dropData.origin === targetOrigin) {
+    if (targetOrigin === "drive") {
+      const node = findNodeById(dropData.id, driveTree);
+      if (!node || isDriveDescendant(targetParentId, node.id)) return;
+      await moveDriveNode(node, targetParentId);
+      renderSidebar(currentSearchValue());
+    } else {
+      const node = localNotes.find((n) => n.id === dropData.id);
+      if (!node || isLocalDescendant(targetParentId, node.id)) return;
+      await moveLocalNode(node.id, targetParentId);
+    }
+    return;
+  }
+  if (dropData.origin === "local") {
+    const node = localNotes.find((n) => n.id === dropData.id);
+    if (node) await copyLocalNodeToDrive(node, targetParentId);
+  } else {
+    const node = findNodeById(dropData.id, driveTree);
+    if (node) await copyDriveNodeToLocal(node, targetParentId);
+  }
+}
+
+/* Lets dropping on empty sidebar space (not on any folder row) move/copy an
+   item to the Drive tree's top level. Wired once at startup — #folder-list
+   itself persists across renderSidebar() calls, only its innerHTML changes. */
+function initSidebarDragDrop() {
+  const list = document.getElementById("folder-list");
+  wireDragTarget(list, "drive", () => andysNoteRootId);
+}
+
+/* ─── SIDEBAR LAYOUT (resize / collapse / mobile drawer) ───────────────────
+   Independent from the Settings module (js/settings.js): sidebar width and
+   collapsed state are UI layout, not a user "setting", so they get their own
+   localStorage key instead of living in appSettings. The mobile drawer's
+   open/closed state is intentionally NOT persisted — it always starts closed,
+   same as Notion's mobile app. */
+const SIDEBAR_LAYOUT_KEY = "andysnote-sidebar-layout";
+const SIDEBAR_MIN_W = 180;
+const SIDEBAR_MAX_W = 480;
+// Must match the `@media (max-width: 768px)` breakpoint in index.html.
+const SIDEBAR_MOBILE_BREAKPOINT = 768;
+
+function isMobileViewport() {
+  return window.matchMedia(`(max-width: ${SIDEBAR_MOBILE_BREAKPOINT}px)`).matches;
+}
+
+/* On mobile the sidebar is an off-canvas drawer (see .sidebar.mobile-open in
+   index.html), so this button is the only way to open it and must always be
+   visible there — not just when the (desktop-only) .collapsed state is on. */
+function updateSidebarExpandBtnVisibility(collapsed) {
+  document.getElementById("sidebar-expand-btn").style.display =
+    isMobileViewport() || collapsed ? "flex" : "none";
+}
+
+function loadSidebarLayout() {
+  let layout = null;
+  try {
+    layout = JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_KEY) || "null");
+  } catch (e) {
+    layout = null;
+  }
+  const width = Math.min(
+    SIDEBAR_MAX_W,
+    Math.max(SIDEBAR_MIN_W, (layout && layout.width) || 240),
+  );
+  const collapsed = !!(layout && layout.collapsed);
+
+  document.documentElement.style.setProperty("--sidebar-w", width + "px");
+  document.getElementById("sidebar").classList.toggle("collapsed", collapsed);
+  updateSidebarExpandBtnVisibility(collapsed);
+}
+
+function saveSidebarLayout(width, collapsed) {
+  try {
+    localStorage.setItem(
+      SIDEBAR_LAYOUT_KEY,
+      JSON.stringify({ width, collapsed }),
+    );
+  } catch (e) {
+    /* ignore quota / privacy-mode errors */
+  }
+}
+
+function currentSidebarWidth() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(
+    "--sidebar-w",
+  );
+  return parseInt(raw, 10) || 240;
+}
+
+/* Shared by the hover arrow (inside the sidebar) and the expand button
+   (outside it, shown only while collapsed) — see index.html. Branches on
+   viewport because desktop "collapse" (shrink to width:0, push layout) and
+   mobile "drawer" (slide off-canvas via transform, overlay layout) are
+   different mechanisms driven by different classes. */
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById("sidebar");
+  if (isMobileViewport()) {
+    const opening = !sidebar.classList.contains("mobile-open");
+    sidebar.classList.toggle("mobile-open", opening);
+    document.getElementById("sidebar-backdrop").style.display = opening
+      ? "block"
+      : "none";
+    return;
+  }
+  const collapsed = !sidebar.classList.contains("collapsed");
+  sidebar.classList.toggle("collapsed", collapsed);
+  updateSidebarExpandBtnVisibility(collapsed);
+  saveSidebarLayout(currentSidebarWidth(), collapsed);
+}
+
+function closeSidebarMobile() {
+  document.getElementById("sidebar").classList.remove("mobile-open");
+  document.getElementById("sidebar-backdrop").style.display = "none";
+}
+
+function initSidebarResizer() {
+  const resizer = document.getElementById("sidebar-resizer");
+  let dragging = false;
+
+  const onMove = (e) => {
+    if (!dragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const width = Math.min(SIDEBAR_MAX_W, Math.max(SIDEBAR_MIN_W, clientX));
+    document.documentElement.style.setProperty("--sidebar-w", width + "px");
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.classList.remove("sidebar-resizing");
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onEnd);
+    document.removeEventListener("touchmove", onMove);
+    document.removeEventListener("touchend", onEnd);
+    saveSidebarLayout(
+      currentSidebarWidth(),
+      document.getElementById("sidebar").classList.contains("collapsed"),
+    );
+  };
+
+  const onStart = (e) => {
+    if (isMobileViewport()) return;
+    dragging = true;
+    document.body.classList.add("sidebar-resizing");
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+    document.addEventListener("touchmove", onMove);
+    document.addEventListener("touchend", onEnd);
+    e.preventDefault();
+  };
+
+  resizer.addEventListener("mousedown", onStart);
+  resizer.addEventListener("touchstart", onStart);
+}
+
+/* Resets the mobile drawer when the viewport crosses the breakpoint (window
+   resize, phone rotation) so it can't get stuck open/mid-transition. */
+function initSidebarResponsive() {
+  let wasMobile = isMobileViewport();
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const nowMobile = isMobileViewport();
+      if (nowMobile !== wasMobile) {
+        closeSidebarMobile();
+        updateSidebarExpandBtnVisibility(
+          document.getElementById("sidebar").classList.contains("collapsed"),
+        );
+        wasMobile = nowMobile;
+      }
+    }, 150);
+  });
 }

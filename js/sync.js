@@ -84,6 +84,25 @@ async function pullNodesToLocal(driveChildren, localParentId) {
   }
 }
 
+/* ─── DRAG-AND-DROP CROSS-STORAGE COPY ──────────────────────────────────────
+   Moving an item between the local tree and the Drive tree isn't a real
+   "move" (they're different storage backends), so a drag across the sidebar's
+   two panels always copies instead — see js/sidebar.js's handleTreeDrop. Both
+   wrappers just reuse the bulk-sync primitives above on a single-item array,
+   so folders still copy recursively for free. */
+async function copyLocalNodeToDrive(node, targetDriveParentId) {
+  await pushNodesToDrive([node], targetDriveParentId);
+  renderSidebar(currentSearchValue());
+}
+
+async function copyDriveNodeToLocal(node, targetLocalParentId) {
+  // Folders can still have unloaded (lazy) subfolders — load the whole
+  // subtree first so the recursive copy below doesn't miss anything.
+  await deepLoadNodes([node]);
+  await pullNodesToLocal([node], targetLocalParentId);
+  renderLocalNotes(currentSearchValue());
+}
+
 /* ─── Drive-side helpers (tree lookup + create, mirroring modal.js:createItem) ─── */
 function getDriveChildrenArray(parentId) {
   if (parentId === andysNoteRootId) return driveTree;

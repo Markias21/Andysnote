@@ -5,6 +5,11 @@ document.addEventListener("DOMContentLoaded", () => {
   renderSidebar();
   renderCalendar();
   initLocalNotes();
+  loadSidebarLayout();
+  initSidebarResizer();
+  initSidebarResponsive();
+  initSidebarDragDrop();
+  initLocalDragDrop();
 
   // Init the live Markdown engine with an empty document.
   editorOpen("");
@@ -27,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Escape") {
       closeModal();
       closeSettings();
+      closeSidebarMobile();
     }
   });
 

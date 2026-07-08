@@ -131,6 +131,7 @@ function defaultSettings() {
     font: {
       korean: "pretendard", // key into EDITOR_FONTS — must support langs:["kr"]
       english: "inter", // key into EDITOR_FONTS — must support langs:["en"]
+      size: 17, // #doc-body / #doc-body-rich font-size in px, see --editor-font-size
     },
     behavior: {
       autoSave: true, // debounced autosave on edits
@@ -258,6 +259,7 @@ function applySettings() {
   const enMeta = EDITOR_FONTS[appSettings.font.english];
   document.documentElement.style.setProperty("--editor-font-kr", krMeta ? krMeta.stack : "sans-serif");
   document.documentElement.style.setProperty("--editor-font-en", enMeta ? (enMeta.enStack || enMeta.stack) : "sans-serif");
+  document.documentElement.style.setProperty("--editor-font-size", (appSettings.font.size || 17) + "px");
 
   document.body.classList.toggle("compact", !!appSettings.ui.compactMode);
 
@@ -343,6 +345,15 @@ function settingsTabs() {
               label: t("settings.englishFont"),
               type: "font-select",
               options: buildFontOptions("en"),
+            },
+            {
+              path: "font.size",
+              label: t("settings.fontSize"),
+              type: "range",
+              min: 13,
+              max: 22,
+              step: 1,
+              unit: "px",
             },
           ],
         },
@@ -468,6 +479,8 @@ function renderSettingsGroups(groups) {
         control += "</select>";
       } else if (field.type === "font-select") {
         control = renderFontSelect(field.path, val, field.options);
+      } else if (field.type === "range") {
+        control = renderRangeInput(field.path, val, field);
       }
       html +=
         '<div class="settings-row"><span class="settings-label">' +
@@ -540,6 +553,39 @@ function renderFontSelect(path, currentValue, options) {
   if (currentGroup !== null) html += "</optgroup>";
   html += "</select>";
   return html;
+}
+
+/* Render a <input type="range"> plus a live value label. The label updates
+   via direct DOM access on "input" instead of calling renderSettings() again
+   — re-rendering the whole panel on every drag tick would rebuild the
+   <input> mid-drag and interrupt the gesture. */
+function renderRangeInput(path, currentValue, field) {
+  const valueId = "rangeval-" + path;
+  return (
+    '<div class="settings-range">' +
+    '<input type="range" min="' +
+    field.min +
+    '" max="' +
+    field.max +
+    '" step="' +
+    (field.step || 1) +
+    '" value="' +
+    currentValue +
+    '" oninput="setSetting(\'' +
+    path +
+    "', Number(this.value)); document.getElementById('" +
+    valueId +
+    "').textContent = this.value + '" +
+    (field.unit || "") +
+    "';\">" +
+    '<span class="settings-range-value" id="' +
+    valueId +
+    '">' +
+    currentValue +
+    (field.unit || "") +
+    "</span>" +
+    "</div>"
+  );
 }
 
 /* Renders THEME_LIST as a grid of clickable preview swatches (mono themes

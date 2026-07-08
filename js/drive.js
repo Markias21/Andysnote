@@ -97,6 +97,48 @@ async function drivePatchMetadata(fileId, metadata) {
   return r.json();
 }
 
+/* Drag-and-drop move: reparents a file/folder to a different Drive folder
+   via the addParents/removeParents query params (files.update). */
+async function driveMoveFile(fileId, newParentId, oldParentId) {
+  if (!driveAccessToken) throw new Error("Not authenticated");
+  const url =
+    `https://www.googleapis.com/drive/v3/files/${fileId}` +
+    `?addParents=${newParentId}&removeParents=${oldParentId}`;
+  const r = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer " + driveAccessToken,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+  if (!r.ok) throw new Error(`PATCH move ${fileId} -> ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+/* Returns true if `candidateId` is `ancestorId` itself or sits somewhere in
+   its subtree — used to block dropping a folder into its own descendant. */
+function isDriveDescendant(candidateId, ancestorId) {
+  if (candidateId === ancestorId) return true;
+  const ancestor = findNodeById(ancestorId, driveTree);
+  if (!ancestor || ancestor.mimeType !== FOLDER_MIME) return false;
+  return !!findNodeById(candidateId, ancestor.children);
+}
+
+/* Moves a Drive node to a new parent folder (or andysNoteRootId for the
+   top level): calls the API, then patches the in-memory tree the same way
+   insertIntoTree/removeFromTree keep create/delete in sync. */
+async function moveDriveNode(node, newParentId) {
+  const oldParent = findParentOf(node.id, driveTree);
+  const oldParentId = oldParent ? oldParent.id : andysNoteRootId;
+  if (oldParentId === newParentId) return;
+  await driveMoveFile(node.id, newParentId, oldParentId);
+  removeFromTree(node.id);
+  insertIntoTree(node, newParentId);
+  syncFolderCache(oldParentId);
+  syncFolderCache(newParentId);
+}
+
 /* Renames a Drive node's underlying file name — the only way to make its
    created date user-editable, since Drive's real createdTime field isn't
    something a normal app can modify via the API. Rebuilds the FULL name via
