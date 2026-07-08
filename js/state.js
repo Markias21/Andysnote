@@ -37,6 +37,9 @@ let localFsConnected = false; // true once localRootHandle is loaded/granted and
 let appSettings = null; // one settings object: { ui, font, behavior } — mutate only via setSetting()
 let settingsActiveTab = "library"; // which settings-panel tab is open: "library" | "fonts" | "calendar" | ...
 
+/* ─── BULK SYNC (js/sync.js — Drive <-> local one-shot copy) ─── */
+let bulkSyncInProgress = false; // guards against double-clicking push/pull
+
 /* ─── DRIVE CACHE (IndexedDB performance layer) ─── */
 let driveCacheDbPromise = null; // cached IndexedDB connection for the Drive cache
 let driveTreeFullyLoaded = false; // true once every Drive subtree has been loaded

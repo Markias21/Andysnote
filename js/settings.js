@@ -305,6 +305,23 @@ function settingsTabs() {
             { path: "behavior.driveSync", label: t("settings.driveSync"), type: "bool" },
           ],
         },
+        {
+          title: t("settings.groupSync"),
+          fields: [
+            {
+              type: "button",
+              label: t("settings.syncPush"),
+              buttonText: t("settings.syncPushButton"),
+              onClick: "syncPushToDrive",
+            },
+            {
+              type: "button",
+              label: t("settings.syncPull"),
+              buttonText: t("settings.syncPullButton"),
+              onClick: "syncPullFromDrive",
+            },
+          ],
+        },
       ],
     },
     {

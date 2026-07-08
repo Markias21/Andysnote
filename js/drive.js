@@ -51,6 +51,18 @@ async function drivePost(url, metadata, textContent = null) {
   }
 }
 
+/* Fetches a Drive file's raw text content. Factored out of openDoc() (which
+   also handles caching/painting) so bulk operations like js/sync.js can read
+   file bodies without pulling in editor-specific logic. */
+async function driveGetFileText(fileId) {
+  if (!driveAccessToken) throw new Error("Not authenticated");
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: "Bearer " + driveAccessToken },
+  });
+  if (!r.ok) throw new Error("fetch content failed: " + r.status);
+  return r.text();
+}
+
 async function drivePatch(fileId, textContent) {
   if (!driveAccessToken) throw new Error("Not authenticated");
   const r = await fetch(

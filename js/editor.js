@@ -89,12 +89,7 @@ async function openDoc(node) {
   }
 
   try {
-    const r = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${node.id}?alt=media`,
-      { headers: { Authorization: "Bearer " + driveAccessToken } },
-    );
-    if (!r.ok) throw new Error("fetch content failed: " + r.status);
-    const text = await r.text();
+    const text = await driveGetFileText(node.id);
     if (currentFileId !== node.id) return;
     cachePutDoc(node.id, text, node.modifiedTime);
     const unedited = !painted || editorGetText() === paintedText;
