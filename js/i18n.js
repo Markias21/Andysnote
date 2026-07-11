@@ -94,8 +94,9 @@ const I18N = {
     "cal.statsMonth": "Month summary",
     "cal.statsYear": "Year summary",
     "cal.statsEmpty": "Nothing recorded yet.",
+    "cal.statsWeekAll": "All",
     "planner.loading": "Loading...",
-    "planner.colorDefaultName": "Color",
+    "planner.colorUnnamed": "Unnamed",
     "planner.eraser": "Eraser",
     "planner.importFromLocal": "Import from local",
     "planner.hoursShort": "h",
@@ -247,8 +248,9 @@ const I18N = {
     "cal.statsMonth": "월 종합",
     "cal.statsYear": "연 종합",
     "cal.statsEmpty": "아직 기록이 없습니다.",
+    "cal.statsWeekAll": "전체",
     "planner.loading": "불러오는 중...",
-    "planner.colorDefaultName": "색상",
+    "planner.colorUnnamed": "미지정",
     "planner.eraser": "지우개",
     "planner.importFromLocal": "로컬에서 가져오기",
     "planner.hoursShort": "시간",
@@ -347,6 +349,13 @@ function tWordCount(count) {
 function tMoreCount(count) {
   if (currentLang() === "ko") return `+${count}개 더보기`;
   return `+${count} more`;
+}
+
+/* "1주"/"2주" in Korean, "Week 1"/"Week 2" in English — the month summary's
+   per-week buttons (js/planner.js: buildPlannerWeekButtons/renderPlannerStats). */
+function tWeekLabel(n) {
+  if (currentLang() === "ko") return `${n}주`;
+  return `Week ${n}`;
 }
 
 /* Applies the current language to every static element in index.html that

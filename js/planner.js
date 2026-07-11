@@ -1,10 +1,21 @@
 /* ─── PLANNER (day-view 10-minute highlighter grid) ───────────────────────
    Owns everything about the calendar's per-day planner: grid rendering,
-   drag-to-paint interaction, the color legend (names + per-day totals), the
-   month/year summary view, and its own storage layer.
+   drag-to-paint interaction, the day's activity-name legend, the
+   month/year/week summary views, and its own storage layer.
+
+   Activity names are PER DAY, not global: the 5 color slots (c1..c5) are a
+   fixed palette (paint tool identity + theme-derived color only), but what
+   each slot means ("운동", "코딩", ...) is decided fresh for every day and
+   stored alongside that day's painted slots. A brand-new day is only ever
+   *seeded* with the most-recently-typed set of names (plannerLastLabels) so
+   there's something sensible to look at when you open the grid — editing
+   that seed never rewrites any past day, and editing a past day never
+   rewrites the seed for days after it beyond updating what "recent" means.
+   See plannerEnsureDayEntry()/plannerRenameDayColor() for exactly where
+   that seed gets cloned vs. written through.
 
    Storage is dual-backend so the planner works fully without signing in:
-     - Signed in  -> Google Drive, "AndysNote/Calendar/" (colors.json +
+     - Signed in  -> Google Drive, "AndysNote/Calendar/" (lastLabels.json +
        one YYYY-MM.json per month). Only the low-level primitives from
        js/drive.js (driveGet/drivePost/drivePatch/driveGetFileText) are used
        here — never sync.js's tree-mutating helpers or drive.js's
@@ -13,8 +24,8 @@
      - Signed out -> browser IndexedDB ("andysnote-planner"), same shape.
    Every other function in this file (rendering, painting, stats) is
    backend-agnostic; only the plannerDrive-/plannerIdb-prefixed functions
-   below (plus loadPlannerColors/loadPlannerMonth, which pick between them)
-   know which backend is active. */
+   below (plus loadPlannerLastLabels/loadPlannerMonth, which pick between
+   them) know which backend is active. */
 
 /* ─── STORAGE: IndexedDB (offline / signed-out backend) ─── */
 function plannerOpenDb() {
@@ -59,12 +70,12 @@ function plannerIdbPut(store, value) {
   );
 }
 
-async function plannerIdbLoadColors() {
-  const rec = await plannerIdbGet(PLANNER_META_STORE, "colors").catch(() => null);
-  return { colors: rec && Array.isArray(rec.colors) ? rec.colors : null, fileId: null };
+async function plannerIdbLoadLastLabels() {
+  const rec = await plannerIdbGet(PLANNER_META_STORE, "lastLabels").catch(() => null);
+  return { labels: rec && rec.labels ? rec.labels : null, fileId: null };
 }
-async function plannerIdbSaveColors(colors) {
-  await plannerIdbPut(PLANNER_META_STORE, { key: "colors", colors }).catch(() => {});
+async function plannerIdbSaveLastLabels(labels) {
+  await plannerIdbPut(PLANNER_META_STORE, { key: "lastLabels", labels }).catch(() => {});
 }
 async function plannerIdbLoadMonth(monthKey) {
   const rec = await plannerIdbGet(PLANNER_MONTHS_STORE, monthKey).catch(() => null);
@@ -139,17 +150,17 @@ async function plannerDriveCreateFile(name, text) {
   return created.id;
 }
 
-async function plannerDriveLoadColors() {
-  const file = await plannerDriveFindFile("colors.json");
-  if (!file) return { colors: null, fileId: null };
+async function plannerDriveLoadLastLabels() {
+  const file = await plannerDriveFindFile("lastLabels.json");
+  if (!file) return { labels: null, fileId: null };
   const parsed = JSON.parse((await driveGetFileText(file.id)) || "{}");
-  return { colors: Array.isArray(parsed.colors) ? parsed.colors : null, fileId: file.id };
+  return { labels: parsed.labels && typeof parsed.labels === "object" ? parsed.labels : null, fileId: file.id };
 }
 
-async function plannerDriveSaveColors(colors) {
-  const text = JSON.stringify({ colors }, null, 2);
-  if (plannerColorsFileId) await drivePatch(plannerColorsFileId, text);
-  else plannerColorsFileId = await plannerDriveCreateFile("colors.json", text);
+async function plannerDriveSaveLastLabels(labels) {
+  const text = JSON.stringify({ labels }, null, 2);
+  if (plannerLastLabelsFileId) await drivePatch(plannerLastLabelsFileId, text);
+  else plannerLastLabelsFileId = await plannerDriveCreateFile("lastLabels.json", text);
 }
 
 async function plannerDriveLoadMonth(monthKey) {
@@ -169,33 +180,41 @@ function plannerBackendIsDrive() {
   return !!driveAccessToken;
 }
 
-function defaultPlannerColors() {
-  return PLANNER_COLOR_IDS.map((id) => ({ id, name: "" }));
+function defaultPlannerLabels() {
+  const obj = {};
+  for (const id of PLANNER_COLOR_IDS) obj[id] = "";
+  return obj;
 }
 
 /* ─── STORAGE: backend-agnostic layer (everything below calls only these) ─── */
-async function loadPlannerColors() {
-  if (plannerColors) return plannerColors;
+
+/* The "recent names" seed — not a real day's data, just what gets cloned
+   into a brand-new day so the legend isn't blank on first open. */
+async function loadPlannerLastLabels() {
+  if (plannerLastLabels) return plannerLastLabels;
   try {
     const loaded = plannerBackendIsDrive()
-      ? await plannerDriveLoadColors()
-      : await plannerIdbLoadColors();
-    plannerColors = loaded.colors || defaultPlannerColors();
-    plannerColorsFileId = loaded.fileId;
+      ? await plannerDriveLoadLastLabels()
+      : await plannerIdbLoadLastLabels();
+    plannerLastLabels = loaded.labels || defaultPlannerLabels();
+    plannerLastLabelsFileId = loaded.fileId;
   } catch (e) {
-    console.error("loadPlannerColors failed", e);
-    plannerColors = defaultPlannerColors();
+    console.error("loadPlannerLastLabels failed", e);
+    plannerLastLabels = defaultPlannerLabels();
   }
-  return plannerColors;
+  return plannerLastLabels;
 }
 
-async function savePlannerColors() {
-  try {
-    if (plannerBackendIsDrive()) await plannerDriveSaveColors(plannerColors);
-    else await plannerIdbSaveColors(plannerColors);
-  } catch (e) {
-    console.error("savePlannerColors failed", e);
-  }
+function schedulePlannerLastLabelsSave() {
+  clearTimeout(plannerLastLabelsSaveTimer);
+  plannerLastLabelsSaveTimer = setTimeout(async () => {
+    try {
+      if (plannerBackendIsDrive()) await plannerDriveSaveLastLabels(plannerLastLabels);
+      else await plannerIdbSaveLastLabels(plannerLastLabels);
+    } catch (e) {
+      console.error("savePlannerLastLabels failed", e);
+    }
+  }, 1200);
 }
 
 function plannerMonthKeyOf(year, month) {
@@ -221,6 +240,19 @@ async function loadPlannerMonth(year, month) {
   }
   plannerMonthCache[monthKey] = entry;
   return entry;
+}
+
+/* Creates monthEntry.data[dayKey] the first time a day is actually touched
+   (painted or renamed) — seeded from whatever labels are currently showing
+   (plannerCurrentDayLabels: either a real day's own labels, or a fresh
+   clone of the "recent" seed for a day that had none yet). Days that are
+   only ever *opened*, never edited, stay absent — same sparse-storage
+   principle as the old flat slot map. */
+function plannerEnsureDayEntry(monthEntry, dayKey) {
+  if (!monthEntry.data[dayKey]) {
+    monthEntry.data[dayKey] = { labels: Object.assign({}, plannerCurrentDayLabels), slots: {} };
+  }
+  return monthEntry.data[dayKey];
 }
 
 function schedulePlannerSave(monthKey) {
@@ -253,18 +285,31 @@ async function flushPlannerSave() {
 }
 
 /* Backend switches (sign in / sign out) invalidate every in-memory cache —
-   the data underneath plannerMonthCache/plannerColors now points at a
+   the data underneath plannerMonthCache/plannerLastLabels now points at a
    different store entirely. Called from auth.js. */
 function plannerResetCaches() {
   plannerFolderId = null;
   plannerFolderResolvePromise = null;
-  plannerColors = null;
-  plannerColorsFileId = null;
-  clearTimeout(plannerColorsSaveTimer);
+  plannerLastLabels = null;
+  plannerLastLabelsFileId = null;
+  clearTimeout(plannerLastLabelsSaveTimer);
+  plannerCurrentDayLabels = null;
   plannerMonthCache = {};
   plannerDirtyMonths.clear();
   clearTimeout(plannerSaveTimer);
   plannerSaveTimer = null;
+}
+
+/* A day "has content" once it carries a painted slot or a non-blank name —
+   an entry that only exists because plannerEnsureDayEntry() cloned the seed
+   but nothing was actually typed/painted yet does not count. */
+function plannerDayEntryHasContent(dayEntry) {
+  if (!dayEntry) return false;
+  if (dayEntry.slots && Object.keys(dayEntry.slots).length) return true;
+  if (dayEntry.labels) {
+    for (const id of PLANNER_COLOR_IDS) if ((dayEntry.labels[id] || "").trim()) return true;
+  }
+  return false;
 }
 
 /* ─── LOCAL IMPORT (signed-in day with no Drive record yet, but a local
@@ -273,7 +318,7 @@ async function plannerLocalDayHasData(dayKey) {
   if (!plannerBackendIsDrive()) return false; // already on the local backend
   const monthKey = dayKey.slice(0, 7);
   const rec = await plannerIdbGet(PLANNER_MONTHS_STORE, monthKey).catch(() => null);
-  return !!(rec && rec.data && rec.data[dayKey] && Object.keys(rec.data[dayKey]).length);
+  return plannerDayEntryHasContent(rec && rec.data && rec.data[dayKey]);
 }
 
 async function plannerImportFromLocal(year, month, day) {
@@ -282,9 +327,12 @@ async function plannerImportFromLocal(year, month, day) {
   try {
     const rec = await plannerIdbGet(PLANNER_MONTHS_STORE, monthKey).catch(() => null);
     const localDay = rec && rec.data && rec.data[dayKey];
-    if (!localDay || !Object.keys(localDay).length) return;
+    if (!plannerDayEntryHasContent(localDay)) return;
     const entry = await loadPlannerMonth(year, month);
-    entry.data[dayKey] = Object.assign({}, localDay); // copy — the local original stays untouched
+    entry.data[dayKey] = {
+      labels: Object.assign({}, localDay.labels),
+      slots: Object.assign({}, localDay.slots),
+    };
     entry.dirty = true;
     schedulePlannerSave(monthKey);
     renderPlanner(year, month, day);
@@ -304,8 +352,16 @@ function formatPlannerDuration(minutes) {
   return h + hUnit + " " + m + mUnit;
 }
 
-function plannerColorLabel(color) {
-  return color.name || t("planner.colorDefaultName") + " " + color.id.slice(1);
+function plannerUnnamedLabel(colorId) {
+  return t("planner.colorUnnamed") + " " + colorId.slice(1);
+}
+
+/* The label to show for a color slot in the CURRENTLY OPEN day (legend,
+   grid tooltips) — falls back to "Unnamed N" rather than ever showing a
+   blank string. */
+function plannerLabelFor(colorId) {
+  const name = plannerCurrentDayLabels && plannerCurrentDayLabels[colorId];
+  return name || plannerUnnamedLabel(colorId);
 }
 
 function plannerDayTotalMinutes(dayData, colorId) {
@@ -328,18 +384,24 @@ async function renderPlanner(year, month, day) {
   container.innerHTML =
     '<div class="planner-loading">' + escapeHtml(t("planner.loading")) + "</div>";
 
-  const [colors, monthEntry] = await Promise.all([loadPlannerColors(), loadPlannerMonth(year, month)]);
+  const [lastLabels, monthEntry] = await Promise.all([loadPlannerLastLabels(), loadPlannerMonth(year, month)]);
   if (plannerCurrentDayKey !== dayKey) return; // navigated to another day while loading
+
+  const existingDayEntry = monthEntry.data[dayKey];
+  // A day that already has an entry edits that entry's labels object
+  // directly (so renames persist); a fresh day gets a throwaway clone of
+  // the "recent" seed until it's actually touched (see plannerEnsureDayEntry).
+  plannerCurrentDayLabels = existingDayEntry ? existingDayEntry.labels : Object.assign({}, lastLabels);
 
   const showImport = await plannerLocalDayHasData(dayKey);
   if (plannerCurrentDayKey !== dayKey) return; // guard again after the second await
 
-  buildPlannerDom(container, colors, monthEntry, dayKey, year, month, day, showImport);
+  buildPlannerDom(container, monthEntry, dayKey, year, month, day, showImport);
   scrollPlannerToDefault();
 }
 
-function buildPlannerDom(container, colors, monthEntry, dayKey, year, month, day, showImport) {
-  const dayData = monthEntry.data[dayKey] || {};
+function buildPlannerDom(container, monthEntry, dayKey, year, month, day, showImport) {
+  const dayData = (monthEntry.data[dayKey] && monthEntry.data[dayKey].slots) || {};
 
   let header = '<div class="planner-header">';
   header +=
@@ -372,8 +434,7 @@ function buildPlannerDom(container, colors, monthEntry, dayKey, year, month, day
     for (let m = 0; m < 60; m += PLANNER_SLOT_MINUTES) {
       const slot = hh + ":" + String(m).padStart(2, "0");
       const colorId = dayData[slot];
-      const color = colorId && colors.find((c) => c.id === colorId);
-      const tooltip = color ? slot + " · " + plannerColorLabel(color) : slot;
+      const tooltip = colorId ? slot + " · " + plannerLabelFor(colorId) : slot;
       grid +=
         '<div class="planner-cell' +
         (colorId ? " " + colorId : "") +
@@ -388,29 +449,29 @@ function buildPlannerDom(container, colors, monthEntry, dayKey, year, month, day
   grid += "</div>";
 
   let legend = '<div class="planner-legend">';
-  for (const c of colors) {
-    const label = plannerColorLabel(c);
+  for (const id of PLANNER_COLOR_IDS) {
+    const name = plannerCurrentDayLabels[id] || "";
     legend +=
       '<div class="planner-legend-row">' +
       '<span class="planner-legend-swatch ' +
-      c.id +
-      (plannerActiveColorId === c.id && !plannerEraseMode ? " active" : "") +
+      id +
+      (plannerActiveColorId === id && !plannerEraseMode ? " active" : "") +
       '" title="' +
-      escapeHtml(label) +
+      escapeHtml(plannerLabelFor(id)) +
       "\" onclick=\"plannerSelectColor('" +
-      c.id +
+      id +
       '\')"></span>' +
       '<input type="text" class="planner-legend-name" value="' +
-      escapeHtml(c.name) +
+      escapeHtml(name) +
       '" placeholder="' +
-      escapeHtml(t("planner.colorDefaultName") + " " + c.id.slice(1)) +
-      "\" oninput=\"plannerRenameColor('" +
-      c.id +
+      escapeHtml(plannerUnnamedLabel(id)) +
+      "\" oninput=\"plannerRenameDayColor('" +
+      id +
       "', this.value)\">" +
       '<span class="planner-legend-total" id="planner-total-' +
-      c.id +
+      id +
       '">' +
-      escapeHtml(formatPlannerDuration(plannerDayTotalMinutes(dayData, c.id))) +
+      escapeHtml(formatPlannerDuration(plannerDayTotalMinutes(dayData, id))) +
       "</span>" +
       "</div>";
   }
@@ -447,23 +508,36 @@ function refreshPlannerToolbarActive() {
   if (eraserBtn) eraserBtn.classList.toggle("active", plannerEraseMode);
 }
 
-/* Updates swatch tooltips live as the user types a color's name, without a
-   full renderPlanner() re-render — a full innerHTML rebuild would drop the
-   name <input>'s focus/caret mid-keystroke. */
+/* Updates swatch tooltips live as the user types a name, without a full
+   renderPlanner() re-render — a full innerHTML rebuild would drop the name
+   <input>'s focus/caret mid-keystroke. */
 function refreshPlannerLegendLabels() {
-  if (!plannerColors) return;
-  for (const c of plannerColors) {
-    const swatch = document.querySelector(".planner-legend-swatch." + c.id);
-    if (swatch) swatch.title = plannerColorLabel(c);
+  for (const id of PLANNER_COLOR_IDS) {
+    const swatch = document.querySelector(".planner-legend-swatch." + id);
+    if (swatch) swatch.title = plannerLabelFor(id);
   }
 }
 
-function plannerRenameColor(id, name) {
-  const c = plannerColors && plannerColors.find((c) => c.id === id);
-  if (!c) return;
-  c.name = name;
-  clearTimeout(plannerColorsSaveTimer);
-  plannerColorsSaveTimer = setTimeout(savePlannerColors, 1200);
+function plannerRenameDayColor(colorId, name) {
+  const dayKey = plannerCurrentDayKey;
+  if (!dayKey) return;
+  const monthKey = dayKey.slice(0, 7);
+  const monthEntry = plannerMonthCache[monthKey];
+  if (!monthEntry) return;
+
+  const dayEntry = plannerEnsureDayEntry(monthEntry, dayKey);
+  dayEntry.labels[colorId] = name;
+  plannerCurrentDayLabels = dayEntry.labels; // now the real, persisted object
+  monthEntry.dirty = true;
+  schedulePlannerSave(monthKey);
+
+  // Seed the NEXT untouched day with whatever was just typed — past days
+  // are never rewritten by this, only what a brand-new day starts with.
+  if (plannerLastLabels) {
+    plannerLastLabels[colorId] = name;
+    schedulePlannerLastLabelsSave();
+  }
+
   refreshPlannerLegendLabels();
 }
 
@@ -521,71 +595,142 @@ function plannerPaintCell(cell) {
   const dayKey = plannerCurrentDayKey;
   if (!dayKey) return;
   const monthKey = dayKey.slice(0, 7);
-  const entry = plannerMonthCache[monthKey];
-  if (!entry) return;
+  const monthEntry = plannerMonthCache[monthKey];
+  if (!monthEntry) return;
 
+  let dayData;
   if (plannerPaintValue) {
-    if (!entry.data[dayKey]) entry.data[dayKey] = {};
-    entry.data[dayKey][slot] = plannerPaintValue;
-  } else if (entry.data[dayKey]) {
-    delete entry.data[dayKey][slot];
-    if (!Object.keys(entry.data[dayKey]).length) delete entry.data[dayKey];
+    const dayEntry = plannerEnsureDayEntry(monthEntry, dayKey);
+    dayEntry.slots[slot] = plannerPaintValue;
+    dayData = dayEntry.slots;
+  } else if (monthEntry.data[dayKey]) {
+    dayData = monthEntry.data[dayKey].slots;
+    delete dayData[slot];
+    // Deliberately NOT deleting the day entry when its slots empty out —
+    // the user may have typed names for this day without painting
+    // anything (yet), and erasing the last cell must not silently drop them.
+  } else {
+    dayData = {};
   }
-  entry.dirty = true;
+  monthEntry.dirty = true;
 
   cell.className = "planner-cell" + (plannerPaintValue ? " " + plannerPaintValue : "");
-  const color = plannerPaintValue && plannerColors && plannerColors.find((c) => c.id === plannerPaintValue);
-  cell.title = color ? slot + " · " + plannerColorLabel(color) : slot;
+  cell.title = plannerPaintValue ? slot + " · " + plannerLabelFor(plannerPaintValue) : slot;
 
-  plannerRefreshTotals(entry.data[dayKey] || {});
+  plannerRefreshTotals(dayData);
   schedulePlannerSave(monthKey);
 }
 
 function plannerRefreshTotals(dayData) {
-  if (!plannerColors) return;
-  for (const c of plannerColors) {
-    const el = document.getElementById("planner-total-" + c.id);
-    if (el) el.textContent = formatPlannerDuration(plannerDayTotalMinutes(dayData, c.id));
+  for (const id of PLANNER_COLOR_IDS) {
+    const el = document.getElementById("planner-total-" + id);
+    if (el) el.textContent = formatPlannerDuration(plannerDayTotalMinutes(dayData, id));
   }
 }
 
-/* ─── MONTH / YEAR SUMMARY ─── */
-async function computePlannerStats(year, monthOrNull) {
-  const colors = await loadPlannerColors();
-  const totals = {};
-  for (const id of PLANNER_COLOR_IDS) totals[id] = 0;
+/* ─── MONTH / YEAR / WEEK SUMMARY ───────────────────────────────────────
+   Aggregation groups by ACTIVITY NAME, not by color slot — the whole point
+   of per-day-independent naming is that "운동" on one day and "운동" on
+   another (even painted with different color slots) count as the same
+   activity, while a slot left unnamed on a given day buckets separately as
+   "Unnamed N" (N = that slot's position, 1..5) rather than being merged
+   with every other unnamed slot across every day. */
+function plannerDayKeysInMonth(year, month) {
+  const days = new Date(year, month + 1, 0).getDate();
+  const keys = [];
+  for (let d = 1; d <= days; d++) keys.push(plannerDayKey(year, month, d));
+  return keys;
+}
 
-  const months = monthOrNull !== null ? [monthOrNull] : Array.from({ length: 12 }, (_, i) => i);
-  for (const month of months) {
-    const entry = await loadPlannerMonth(year, month);
-    for (const dk in entry.data) {
-      const dayData = entry.data[dk];
-      for (const slot in dayData) {
-        const id = dayData[slot];
-        if (id in totals) totals[id] += PLANNER_SLOT_MINUTES;
+function plannerDayKeysInYear(year) {
+  const keys = [];
+  for (let m = 0; m < 12; m++) keys.push(...plannerDayKeysInMonth(year, m));
+  return keys;
+}
+
+/* One row per Sun-Sat week the month's grid spans (5 or 6, matching
+   renderCalendar()'s own trailing/leading-day math) — each week's day list
+   always has exactly 7 entries and freely spills into the previous/next
+   month, per the "그 주 전체를 가져와" requirement. */
+function plannerMonthWeekRanges(year, month) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const totalWeeks = Math.ceil((firstDay + daysInMonth) / 7);
+  const ranges = [];
+  for (let w = 0; w < totalWeeks; w++) {
+    const start = new Date(year, month, 1 - firstDay + w * 7);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      days.push(plannerDayKey(d.getFullYear(), d.getMonth(), d.getDate()));
+    }
+    ranges.push({ start, days });
+  }
+  return ranges;
+}
+
+function plannerWeekRangeLabel(range, weekIndex) {
+  const end = new Date(range.start.getFullYear(), range.start.getMonth(), range.start.getDate() + 6);
+  const fmt = (d) => d.toLocaleDateString(localeTag(), { month: "short", day: "numeric" });
+  return tWeekLabel(weekIndex + 1) + " · " + fmt(range.start) + " – " + fmt(end);
+}
+
+/* Loads only the distinct months the given day keys touch, then sums
+   painted-slot minutes per activity name (falling back to "Unnamed N" for
+   slots with no name), sorted most-time-first. */
+async function computePlannerStatsForDays(dayKeys) {
+  const byMonth = {};
+  for (const dk of dayKeys) {
+    const mk = dk.slice(0, 7);
+    (byMonth[mk] || (byMonth[mk] = [])).push(dk);
+  }
+
+  const totals = new Map(); // key -> { name, minutes }
+  for (const mk of Object.keys(byMonth)) {
+    const [y, m] = mk.split("-").map(Number);
+    const monthEntry = await loadPlannerMonth(y, m - 1);
+    for (const dk of byMonth[mk]) {
+      const dayEntry = monthEntry.data[dk];
+      if (!dayEntry) continue;
+      const labels = dayEntry.labels || {};
+      const slots = dayEntry.slots || {};
+      for (const slot in slots) {
+        const colorId = slots[slot];
+        const name = (labels[colorId] || "").trim();
+        const key = name || "unnamed:" + colorId;
+        const displayName = name || plannerUnnamedLabel(colorId);
+        if (!totals.has(key)) totals.set(key, { name: displayName, minutes: 0 });
+        totals.get(key).minutes += PLANNER_SLOT_MINUTES;
       }
     }
   }
 
-  return colors.map((c) => ({ id: c.id, name: plannerColorLabel(c), minutes: totals[c.id] || 0 }));
+  return Array.from(totals.values()).sort((a, b) => b.minutes - a.minutes);
 }
 
-/* Renders into #cal-stats-title/#cal-stats-list — the view-toggling itself
-   (hiding cal-grid, showing cal-stats-view) is calendar.js's job
-   (calShowStatsView), same split as renderDayView() -> renderPlanner(). */
-async function renderPlannerStats(scope) {
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-  const titleEl = document.getElementById("cal-stats-title");
+function buildPlannerWeekButtons(ranges, activeWeekIndex) {
+  let html =
+    '<button type="button" class="cal-stats-week-btn' +
+    (activeWeekIndex == null ? " active" : "") +
+    '" onclick="renderPlannerStats(\'month\')">' +
+    escapeHtml(t("cal.statsWeekAll")) +
+    "</button>";
+  ranges.forEach((r, i) => {
+    html +=
+      '<button type="button" class="cal-stats-week-btn' +
+      (activeWeekIndex === i ? " active" : "") +
+      "\" onclick=\"renderPlannerStats('month', " +
+      i +
+      ')">' +
+      escapeHtml(tWeekLabel(i + 1)) +
+      "</button>";
+  });
+  return html;
+}
+
+function renderPlannerStatsRows(stats) {
   const listEl = document.getElementById("cal-stats-list");
-  if (!titleEl || !listEl) return;
-
-  titleEl.textContent = scope === "month" ? `${t("cal.months")[month]} ${year}` : String(year);
-  listEl.innerHTML = '<div class="planner-loading">' + escapeHtml(t("planner.loading")) + "</div>";
-
-  const token = ++plannerStatsToken;
-  const stats = await computePlannerStats(year, scope === "month" ? month : null);
-  if (token !== plannerStatsToken) return; // a newer stats request superseded this one
+  if (!listEl) return;
 
   const hasAny = stats.some((s) => s.minutes > 0);
   if (!hasAny) {
@@ -599,15 +744,10 @@ async function renderPlannerStats(scope) {
     const pct = Math.round((s.minutes / maxMinutes) * 100);
     html +=
       '<div class="cal-stats-row">' +
-      '<span class="cal-stats-swatch ' +
-      s.id +
-      '"></span>' +
       '<span class="cal-stats-name">' +
       escapeHtml(s.name) +
       "</span>" +
-      '<span class="cal-stats-bar-track"><span class="cal-stats-bar ' +
-      s.id +
-      '" style="width:' +
+      '<span class="cal-stats-bar-track"><span class="cal-stats-bar" style="width:' +
       pct +
       '%"></span></span>' +
       '<span class="cal-stats-time">' +
@@ -616,4 +756,44 @@ async function renderPlannerStats(scope) {
       "</div>";
   }
   listEl.innerHTML = html;
+}
+
+/* Renders into #cal-stats-title/#cal-stats-weeks/#cal-stats-list — the
+   view-toggling itself (hiding cal-grid, showing cal-stats-view) is
+   calendar.js's job (calShowStatsView), same split as
+   renderDayView() -> renderPlanner(). scope is "month" or "year"; weekIndex
+   (0-based) narrows a "month" scope down to one Sun-Sat week and is what
+   the week-button row (rendered here, month scope only) drives. */
+async function renderPlannerStats(scope, weekIndex) {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const titleEl = document.getElementById("cal-stats-title");
+  const weeksEl = document.getElementById("cal-stats-weeks");
+  const listEl = document.getElementById("cal-stats-list");
+  if (!titleEl || !listEl || !weeksEl) return;
+
+  let dayKeys;
+  if (scope === "year") {
+    titleEl.textContent = String(year);
+    weeksEl.innerHTML = "";
+    dayKeys = plannerDayKeysInYear(year);
+  } else {
+    const ranges = plannerMonthWeekRanges(year, month);
+    const idx = typeof weekIndex === "number" ? weekIndex : null;
+    if (idx === null) {
+      titleEl.textContent = `${t("cal.months")[month]} ${year}`;
+      dayKeys = plannerDayKeysInMonth(year, month);
+    } else {
+      titleEl.textContent = plannerWeekRangeLabel(ranges[idx], idx);
+      dayKeys = ranges[idx].days;
+    }
+    weeksEl.innerHTML = buildPlannerWeekButtons(ranges, idx);
+  }
+
+  listEl.innerHTML = '<div class="planner-loading">' + escapeHtml(t("planner.loading")) + "</div>";
+  const token = ++plannerStatsToken;
+  const stats = await computePlannerStatsForDays(dayKeys);
+  if (token !== plannerStatsToken) return; // a newer stats request superseded this one
+
+  renderPlannerStatsRows(stats);
 }

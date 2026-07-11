@@ -1695,23 +1695,54 @@
       .cal-stats-view.hidden {
         display: none;
       }
+      /* Title + per-week jump buttons share one row — the week buttons sit
+         in the empty space to the title's right, month scope only (see
+         renderPlannerStats() in js/planner.js). */
+      .cal-stats-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .cal-stats-header .cal-day-view-title {
+        margin-bottom: 0;
+      }
+      .cal-stats-weeks {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .cal-stats-week-btn {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border2);
+        background: var(--surface2);
+        color: var(--text-dim);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .cal-stats-week-btn:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .cal-stats-week-btn.active {
+        background: var(--accent);
+        color: var(--accent-text);
+        border-color: var(--accent);
+      }
       .cal-stats-row {
         display: flex;
         align-items: center;
         gap: 10px;
         padding: 8px 0;
       }
-      .cal-stats-swatch {
-        width: 16px;
-        height: 16px;
-        border-radius: var(--radius);
-        flex-shrink: 0;
-      }
-      .cal-stats-swatch.c1 { background: var(--planner-c1); }
-      .cal-stats-swatch.c2 { background: var(--planner-c2); }
-      .cal-stats-swatch.c3 { background: var(--planner-c3); }
-      .cal-stats-swatch.c4 { background: var(--planner-c4); }
-      .cal-stats-swatch.c5 { background: var(--planner-c5); }
+      /* Rows are keyed by activity NAME, not by color slot — the same name
+         can come from a different color on every day it was typed, so
+         there's no single stable color left to swatch here (see
+         computePlannerStatsForDays() in js/planner.js). Bars use a plain
+         accent fill instead. */
       .cal-stats-name {
         width: 140px;
         flex-shrink: 0;
@@ -1731,12 +1762,8 @@
       .cal-stats-bar {
         height: 100%;
         border-radius: 5px;
+        background: var(--accent);
       }
-      .cal-stats-bar.c1 { background: var(--planner-c1); }
-      .cal-stats-bar.c2 { background: var(--planner-c2); }
-      .cal-stats-bar.c3 { background: var(--planner-c3); }
-      .cal-stats-bar.c4 { background: var(--planner-c4); }
-      .cal-stats-bar.c5 { background: var(--planner-c5); }
       .cal-stats-time {
         width: 90px;
         flex-shrink: 0;
@@ -2935,7 +2962,10 @@
                 </svg>
                 <span data-i18n="cal.backToMonth">Back to month</span>
               </button>
-              <h3 class="cal-day-view-title" id="cal-stats-title"></h3>
+              <div class="cal-stats-header">
+                <h3 class="cal-day-view-title" id="cal-stats-title"></h3>
+                <div class="cal-stats-weeks" id="cal-stats-weeks"></div>
+              </div>
               <div id="cal-stats-list"></div>
             </div>
           </div>

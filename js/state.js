@@ -46,15 +46,20 @@ let driveTreeFullyLoaded = false; // true once every Drive subtree has been load
 let driveFullLoadPromise = null; // in-flight loadEntireTree() promise (dedupe)
 let folderLoadPromises = {}; // in-flight ensureFolderLoaded() promises by folderId
 
-/* ─── PLANNER (js/planner.js — day-view 10-minute planner) ─── */
+/* ─── PLANNER (js/planner.js — day-view 10-minute planner) ───────────────────
+   Activity names are per-day (each day gets its own {labels, slots} entry in
+   plannerMonthCache); plannerLastLabels is only the "recent names" seed
+   cloned into a brand-new day, never a live shared mapping. */
 let plannerFolderId = null; // Drive ID of "AndysNote/Calendar/" (also the sidebar-hide filter key)
 let plannerFolderResolvePromise = null; // in-flight resolvePlannerFolderId() promise (dedupe)
 let plannerDbPromise = null; // cached IndexedDB connection for the offline planner store
-let plannerColors = null; // [{id:"c1",name:""}, ...] once loaded; null = not loaded yet
-let plannerColorsFileId = null; // Drive file ID of colors.json, or null if not created yet
-let plannerColorsSaveTimer = null;
-let plannerMonthCache = {}; // "YYYY-MM" -> { fileId, data, dirty } (data: {"YYYY-MM-DD": {"HH:MM":"c1"}})
-let plannerDirtyMonths = new Set(); // monthKeys with unsaved paint changes
+let plannerLastLabels = null; // {c1:"",...,c5:""} seed for new days once loaded; null = not loaded yet
+let plannerLastLabelsFileId = null; // Drive file ID of lastLabels.json, or null if not created yet
+let plannerLastLabelsSaveTimer = null;
+let plannerCurrentDayLabels = null; // {c1..c5} labels object for the day view currently rendered
+let plannerMonthCache = {}; // "YYYY-MM" -> { fileId, data, dirty }
+                             // data: {"YYYY-MM-DD": {labels:{c1..c5}, slots:{"HH:MM":"c1"}}}
+let plannerDirtyMonths = new Set(); // monthKeys with unsaved paint/name changes
 let plannerSaveTimer = null;
 let plannerActiveColorId = "c1";
 let plannerEraseMode = false;
