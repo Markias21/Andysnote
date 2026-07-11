@@ -16,6 +16,10 @@ async function handleAuthClick() {
     }
 
 async function handleSignoutClick() {
+    // Flush any pending planner paint save while the token is still valid —
+    // otherwise the debounce timer would fire after revoke() and silently
+    // fail (or worse, write against a stale plannerFolderId next sign-in).
+    await flushPlannerSave();
     // Defensive: if the GIS script hasn't loaded (or revoke itself errors),
     // this must not throw and abort before the state below gets cleared —
     // that would leave the app showing "signed in" with a token we already
@@ -39,6 +43,7 @@ async function handleSignoutClick() {
     expandedFolders = new Set();
     driveTreeFullyLoaded = false;
     driveFullLoadPromise = null;
+    plannerResetCaches(); // the planner now switches to the IndexedDB backend
     // Keep any open local note; only clear the editor if a Drive doc was open.
     if (storageMode !== "local") {
         currentFileId = null;
@@ -62,6 +67,7 @@ async function onSignedIn() {
     storageMode = "drive";
     currentFileId = null;
     expandedFolders = new Set();
+    plannerResetCaches(); // switch the planner from the IndexedDB backend to Drive
     await initDriveFilesystem();
     }
 

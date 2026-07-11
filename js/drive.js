@@ -193,6 +193,7 @@ async function initDriveFilesystem() {
     setSyncStatus("saving", t("sync.loading"));
     driveTreeFullyLoaded = false;
     andysNoteRootId = await findOrCreateAndysNoteRoot();
+    resolvePlannerFolderId(); // fire-and-forget — must not block the cache-first paint below
 
     // 1) Instant paint from cache, if we have one.
     const cached = await cacheGetChildren(andysNoteRootId);
@@ -348,6 +349,7 @@ function populateDriveFolderSelect(sel, rootOptionHtml) {
   sel.innerHTML = rootOptionHtml;
   function addOptions(nodes, prefix) {
     for (const n of nodes) {
+      if (n.id === plannerFolderId) continue; // reserved planner folder, not a document folder
       if (n.mimeType !== FOLDER_MIME) continue;
       const opt = document.createElement("option");
       opt.value = n.id;

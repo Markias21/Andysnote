@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AndysNote</title>
-    <link rel="manifest" href="./manifest.json?v=202607046" />
+    <link rel="manifest" href="./manifest.json?v=202607047" />
     <meta name="theme-color" content="#1c1c1c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -12,7 +12,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="AndysNote" />
-    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607046" />
+    <link rel="apple-touch-icon" href="./icon-192.svg?v=202607047" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,9 +25,9 @@
     />
     <link
       rel="stylesheet"
-      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607046"
+      href="fonts/nanum-handwriting/nanum-handwriting.css?v=202607047"
     />
-    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607046" />
+    <link rel="stylesheet" href="fonts/lang-slot-fallback.css?v=202607047" />
     <style>
       *,
       *::before,
@@ -58,6 +58,20 @@
         --editor-font-en: system-ui, sans-serif;
         --editor-font-size: 17px;
         --radius: 6px;
+        /* ─── PLANNER HIGHLIGHTER COLORS ───
+             Derived from each theme's own extremes instead of hardcoded hex,
+             so switching themes automatically re-colors every painted slot.
+             Mono themes: --bg/--text are already the two brightness extremes,
+             so the base anchors below need no per-theme override. Concept
+             themes override --planner-anchor-a to --surface instead (their
+             --bg is a photo, not mixable) — see those blocks below. */
+        --planner-anchor-a: var(--bg);
+        --planner-anchor-b: var(--text);
+        --planner-c1: color-mix(in srgb, var(--planner-anchor-b) 22%, var(--planner-anchor-a));
+        --planner-c2: color-mix(in srgb, var(--planner-anchor-b) 38%, var(--planner-anchor-a));
+        --planner-c3: color-mix(in srgb, var(--planner-anchor-b) 54%, var(--planner-anchor-a));
+        --planner-c4: color-mix(in srgb, var(--planner-anchor-b) 70%, var(--planner-anchor-a));
+        --planner-c5: color-mix(in srgb, var(--planner-anchor-b) 86%, var(--planner-anchor-a));
       }
 
       /* ─── THEMES — toggled via Settings > Library > Theme, which stamps
@@ -204,6 +218,7 @@
         --accent-text: #05060b;
         --accent-dim: rgba(255, 255, 255, 0.14);
         --accent-hover: rgba(255, 255, 255, 0.07);
+        --planner-anchor-a: var(--surface); /* --bg is a photo, not mixable */
       }
       :root[data-theme="lighthouse"] {
         --bg:
@@ -221,6 +236,7 @@
         --accent-text: #050b0d;
         --accent-dim: rgba(255, 255, 255, 0.14);
         --accent-hover: rgba(255, 255, 255, 0.07);
+        --planner-anchor-a: var(--surface); /* --bg is a photo, not mixable */
       }
       :root[data-theme="camping"] {
         --bg:
@@ -238,6 +254,7 @@
         --accent-text: #0d0a06;
         --accent-dim: rgba(255, 255, 255, 0.14);
         --accent-hover: rgba(255, 255, 255, 0.07);
+        --planner-anchor-a: var(--surface); /* --bg is a photo, not mixable */
       }
 
       html,
@@ -1383,8 +1400,16 @@
         flex-shrink: 0;
       }
       .cal-day.today .cal-day-num {
-        color: var(--accent);
+        color: var(--accent-text);
+        background: var(--accent);
         font-weight: 700;
+        border-radius: var(--radius);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        align-self: flex-start;
       }
       .cal-day.other-month {
         opacity: 0.4;
@@ -1484,6 +1509,240 @@
         color: var(--text-muted);
         font-size: 13px;
         padding: 20px 0;
+      }
+
+      .cal-day-view-body {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+      }
+      .cal-day-view-body .cal-day-view-list {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      /* ─── PLANNER (js/planner.js fills #planner-panel) ─── */
+      .planner-panel {
+        flex: 0 0 auto;
+      }
+      .planner-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .planner-import-btn {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border2);
+        background: var(--surface2);
+        color: var(--text-dim);
+        cursor: pointer;
+      }
+      .planner-import-btn:hover {
+        color: var(--text);
+        background: var(--surface3);
+      }
+      .planner-loading {
+        color: var(--text-muted);
+        font-size: 13px;
+        padding: 12px 0;
+        max-width: 300px;
+      }
+      .planner-body {
+        display: flex;
+        gap: 16px;
+      }
+      .planner-grid-scroll {
+        /* Deliberately well under the full 24-row grid (672px) so the
+           05:00 default scroll position (see scrollPlannerToDefault() in
+           planner.js) actually has room to sit at the top with both
+           earlier and later hours scrollable, instead of the whole day
+           already fitting on screen. */
+        max-height: 420px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        position: relative;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      .planner-row {
+        display: flex;
+      }
+      .planner-row-label {
+        width: 44px;
+        flex-shrink: 0;
+        touch-action: pan-y;
+        font-size: 11px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+      .planner-cell {
+        width: 34px;
+        height: 28px;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        touch-action: none;
+      }
+      .planner-cell.c1 { background: var(--planner-c1); }
+      .planner-cell.c2 { background: var(--planner-c2); }
+      .planner-cell.c3 { background: var(--planner-c3); }
+      .planner-cell.c4 { background: var(--planner-c4); }
+      .planner-cell.c5 { background: var(--planner-c5); }
+
+      .planner-legend {
+        width: 190px;
+        flex-shrink: 0;
+      }
+      .planner-eraser-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border2);
+        background: var(--surface2);
+        color: var(--text-dim);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+      .planner-eraser-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .planner-eraser-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .planner-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .planner-legend-swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius);
+        border: 2px solid transparent;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .planner-legend-swatch.active {
+        border-color: var(--text);
+      }
+      .planner-legend-swatch.c1 { background: var(--planner-c1); }
+      .planner-legend-swatch.c2 { background: var(--planner-c2); }
+      .planner-legend-swatch.c3 { background: var(--planner-c3); }
+      .planner-legend-swatch.c4 { background: var(--planner-c4); }
+      .planner-legend-swatch.c5 { background: var(--planner-c5); }
+      .planner-legend-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 12px;
+        font-family: var(--font-ui);
+        color: var(--text);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 4px 6px;
+      }
+      .planner-legend-name:focus {
+        outline: none;
+        border-color: var(--border2);
+      }
+      .planner-legend-total {
+        font-size: 11px;
+        color: var(--text-dim);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      @media (max-width: 768px) {
+        .cal-day-view-body {
+          flex-direction: column;
+        }
+        .planner-panel {
+          width: 100%;
+        }
+        .planner-body {
+          flex-direction: column;
+        }
+        .planner-legend {
+          width: 100%;
+        }
+      }
+
+      /* ─── CALENDAR STATS (month/year summary) ─── */
+      .cal-stats-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .cal-stats-view {
+        width: 100%;
+        max-width: 980px;
+      }
+      .cal-stats-view.hidden {
+        display: none;
+      }
+      .cal-stats-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+      }
+      .cal-stats-swatch {
+        width: 16px;
+        height: 16px;
+        border-radius: var(--radius);
+        flex-shrink: 0;
+      }
+      .cal-stats-swatch.c1 { background: var(--planner-c1); }
+      .cal-stats-swatch.c2 { background: var(--planner-c2); }
+      .cal-stats-swatch.c3 { background: var(--planner-c3); }
+      .cal-stats-swatch.c4 { background: var(--planner-c4); }
+      .cal-stats-swatch.c5 { background: var(--planner-c5); }
+      .cal-stats-name {
+        width: 140px;
+        flex-shrink: 0;
+        font-size: 13px;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cal-stats-bar-track {
+        flex: 1 1 auto;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--surface2);
+        overflow: hidden;
+      }
+      .cal-stats-bar {
+        height: 100%;
+        border-radius: 5px;
+      }
+      .cal-stats-bar.c1 { background: var(--planner-c1); }
+      .cal-stats-bar.c2 { background: var(--planner-c2); }
+      .cal-stats-bar.c3 { background: var(--planner-c3); }
+      .cal-stats-bar.c4 { background: var(--planner-c4); }
+      .cal-stats-bar.c5 { background: var(--planner-c5); }
+      .cal-stats-time {
+        width: 90px;
+        flex-shrink: 0;
+        text-align: right;
+        font-size: 12px;
+        color: var(--text-dim);
       }
 
       /* ─── NEW DOC MODAL ─── */
@@ -2637,6 +2896,10 @@
                 <div class="cal-weekday" data-i18n="cal.weekday.sat">Sat</div>
               </div>
               <div class="cal-days" id="cal-days"></div>
+              <div class="cal-stats-buttons">
+                <button class="btn" onclick="calShowStatsView('month')" data-i18n="cal.statsMonth">Month summary</button>
+                <button class="btn" onclick="calShowStatsView('year')" data-i18n="cal.statsYear">Year summary</button>
+              </div>
             </div>
             <div class="cal-day-view hidden" id="cal-day-view">
               <button class="cal-back-btn" onclick="calBackToMonth()">
@@ -2653,7 +2916,27 @@
                 <span data-i18n="cal.backToMonth">Back to month</span>
               </button>
               <h3 class="cal-day-view-title" id="cal-day-view-title"></h3>
-              <div class="cal-day-view-list" id="cal-day-view-list"></div>
+              <div class="cal-day-view-body">
+                <div class="planner-panel" id="planner-panel"></div>
+                <div class="cal-day-view-list" id="cal-day-view-list"></div>
+              </div>
+            </div>
+            <div class="cal-stats-view hidden" id="cal-stats-view">
+              <button class="cal-back-btn" onclick="calBackToMonth()">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                <span data-i18n="cal.backToMonth">Back to month</span>
+              </button>
+              <h3 class="cal-day-view-title" id="cal-stats-title"></h3>
+              <div id="cal-stats-list"></div>
             </div>
           </div>
         </main>
@@ -2706,25 +2989,27 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=202607046"></script>
-    <script src="js/state.js?v=202607046"></script>
-    <script src="js/i18n.js?v=202607046"></script>
-    <script src="js/settings.js?v=202607046"></script>
-    <script src="js/ui.js?v=202607046"></script>
-    <script src="js/cache.js?v=202607046"></script>
-    <script src="js/drive.js?v=202607046"></script>
-    <script src="js/auth.js?v=202607046"></script>
-    <script src="js/sidebar.js?v=202607046"></script>
-    <script src="js/markdown.js?v=202607046"></script>
-    <script src="js/editor/parser.js?v=202607046"></script>
-    <script src="js/editor/renderer.js?v=202607046"></script>
-    <script src="js/editor/cursor.js?v=202607046"></script>
-    <script src="js/editor/engine.js?v=202607046"></script>
-    <script src="js/editor.js?v=202607046"></script>
-    <script src="js/local.js?v=202607046"></script>
-    <script src="js/modal.js?v=202607046"></script>
-    <script src="js/calendar.js?v=202607046"></script>
-    <script src="js/app.js?v=202607046"></script>
+    <script src="js/config.js?v=202607047"></script>
+    <script src="js/state.js?v=202607047"></script>
+    <script src="js/i18n.js?v=202607047"></script>
+    <script src="js/settings.js?v=202607047"></script>
+    <script src="js/ui.js?v=202607047"></script>
+    <script src="js/cache.js?v=202607047"></script>
+    <script src="js/drive.js?v=202607047"></script>
+    <script src="js/auth.js?v=202607047"></script>
+    <script src="js/sidebar.js?v=202607047"></script>
+    <script src="js/markdown.js?v=202607047"></script>
+    <script src="js/editor/parser.js?v=202607047"></script>
+    <script src="js/editor/renderer.js?v=202607047"></script>
+    <script src="js/editor/cursor.js?v=202607047"></script>
+    <script src="js/editor/engine.js?v=202607047"></script>
+    <script src="js/editor.js?v=202607047"></script>
+    <script src="js/local.js?v=202607047"></script>
+    <script src="js/sync.js?v=202607047"></script>
+    <script src="js/modal.js?v=202607047"></script>
+    <script src="js/calendar.js?v=202607047"></script>
+    <script src="js/planner.js?v=202607047"></script>
+    <script src="js/app.js?v=202607047"></script>
 
     <!-- Google scripts loaded AFTER app modules so gisLoaded/gapiLoaded are defined when onload fires -->
     <script

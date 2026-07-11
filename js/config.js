@@ -150,3 +150,16 @@ var THEME_SWATCH_COLORS = {
   "light-green": { bg: "#eef7ee", fg: "#17301a" },
   "light-indigo": { bg: "#eef0fb", fg: "#1c1f3d" },
 };
+
+/* ─── CALENDAR PLANNER (js/planner.js) ───────────────────────────────────
+   "Calendar" is a reserved Drive folder name at the AndysNote root, holding
+   only planner JSON (colors.json + one YYYY-MM.json per month) — never a
+   real document folder. Kept out of the sidebar/folder pickers by every
+   renderer filtering out plannerFolderId once resolved (see js/planner.js). */
+var PLANNER_FOLDER_NAME = "Calendar";
+var PLANNER_SLOT_MINUTES = 10; // single source for slot size -> minute math
+var PLANNER_COLOR_IDS = ["c1", "c2", "c3", "c4", "c5"];
+var PLANNER_DB_NAME = "andysnote-planner";
+var PLANNER_DB_VERSION = 1;
+var PLANNER_MONTHS_STORE = "months";
+var PLANNER_META_STORE = "meta";

@@ -25,6 +25,7 @@ function renderSidebar(filter = "") {
 
 function renderNodes(nodes, container, q, depth) {
   for (const node of nodes) {
+    if (node.id === plannerFolderId) continue; // reserved planner folder, not a document folder
     if (node.mimeType === FOLDER_MIME) {
       renderFolderNode(node, container, q, depth);
     } else if (isDriveDocName(node.name)) {
@@ -218,6 +219,13 @@ function wireDragSource(el, origin, id) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("application/json", JSON.stringify({ origin, id }));
   });
+  // Safety net: dragend always fires exactly once when a drag operation
+  // concludes — dropped on a valid target, dropped somewhere invalid,
+  // cancelled via Escape, or released outside the window. Whatever else
+  // happens, nothing should be left highlighted afterward.
+  el.addEventListener("dragend", () => {
+    document.querySelectorAll(".drag-over").forEach((n) => n.classList.remove("drag-over"));
+  });
 }
 
 /* Makes `el` a valid drop target representing the folder `targetParentId`
@@ -225,9 +233,13 @@ function wireDragSource(el, origin, id) {
 function wireDragTarget(el, targetOrigin, targetParentId) {
   el.addEventListener("dragover", (e) => {
     e.preventDefault();
+    e.stopPropagation(); // don't also light up an ancestor drop target (e.g. the root list)
     el.classList.add("drag-over");
   });
-  el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+  el.addEventListener("dragleave", (e) => {
+    e.stopPropagation();
+    el.classList.remove("drag-over");
+  });
   el.addEventListener("drop", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -252,10 +264,14 @@ async function handleTreeDrop(dropData, targetOrigin, targetParentId) {
       const node = findNodeById(dropData.id, driveTree);
       if (!node || isDriveDescendant(targetParentId, node.id)) return;
       await moveDriveNode(node, targetParentId);
+      // Expand the destination so the moved item is actually visible —
+      // otherwise a move into a collapsed folder looks like nothing happened.
+      if (targetParentId !== andysNoteRootId) expandedFolders.add(targetParentId);
       renderSidebar(currentSearchValue());
     } else {
       const node = localNotes.find((n) => n.id === dropData.id);
       if (!node || isLocalDescendant(targetParentId, node.id)) return;
+      if (targetParentId !== null) localExpandedFolders.add(targetParentId);
       await moveLocalNode(node.id, targetParentId);
     }
     return;

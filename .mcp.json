@@ -14,6 +14,34 @@
       "env": {
         "YOUR_API_KEY": ""
       }
+    },
+    "terminal-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "terminal-mcp"
+      ],
+      "env": {
+        "TERMINAL_MCP_MAX_SESSIONS": "",
+        "TERMINAL_MCP_IDLE_TIMEOUT": ""
+      }
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
     }
   }
 }

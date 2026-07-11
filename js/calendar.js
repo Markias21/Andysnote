@@ -43,6 +43,7 @@ function collectDayEntries(year, month, scopeFolderId) {
   } else {
     function walkDrive(nodes) {
       for (const n of nodes) {
+        if (n.id === plannerFolderId) continue; // reserved planner folder, not a document folder
         if (n.mimeType === FOLDER_MIME) {
           walkDrive(n.children);
           continue;
@@ -88,6 +89,7 @@ function renderCalendar() {
   document.getElementById("calendar-header").style.display = "";
   document.getElementById("cal-grid").classList.remove("hidden");
   document.getElementById("cal-day-view").classList.add("hidden");
+  document.getElementById("cal-stats-view").classList.add("hidden");
 
   document.getElementById("cal-month-label").textContent =
     `${t("cal.months")[calDate.getMonth()]} ${calDate.getFullYear()}`;
@@ -216,6 +218,7 @@ function calShowDayView(year, month, day) {
 function renderDayView() {
   if (!calSelectedDay) return;
   const { year, month, day } = calSelectedDay;
+  renderPlanner(year, month, day);
 
   document.getElementById("cal-day-view-title").textContent = new Date(
     year,
@@ -253,5 +256,17 @@ function renderDayView() {
 }
 
 function calBackToMonth() {
+  flushPlannerSave();
   renderCalendar();
+}
+
+/* Month/year summary — same view-toggle shape as calShowDayView(), just
+   against #cal-stats-view; the actual stats rendering is planner.js's job
+   (renderPlannerStats), same split as calShowDayView() -> renderPlanner(). */
+function calShowStatsView(scope) {
+  calViewMode = "stats";
+  document.getElementById("calendar-header").style.display = "none";
+  document.getElementById("cal-grid").classList.add("hidden");
+  document.getElementById("cal-stats-view").classList.remove("hidden");
+  renderPlannerStats(scope);
 }

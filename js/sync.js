@@ -91,16 +91,33 @@ async function pullNodesToLocal(driveChildren, localParentId) {
    wrappers just reuse the bulk-sync primitives above on a single-item array,
    so folders still copy recursively for free. */
 async function copyLocalNodeToDrive(node, targetDriveParentId) {
-  await pushNodesToDrive([node], targetDriveParentId);
-  renderSidebar(currentSearchValue());
+  try {
+    await pushNodesToDrive([node], targetDriveParentId);
+    // Expand the destination so the copy is actually visible — otherwise a
+    // copy into a collapsed folder looks like nothing happened, and unlike a
+    // same-tree move there's no item disappearing elsewhere to hint it worked.
+    if (targetDriveParentId !== andysNoteRootId) expandedFolders.add(targetDriveParentId);
+    renderSidebar(currentSearchValue());
+    setSyncStatus("saved", t("sync.saved") + " · " + formatTime(new Date()));
+  } catch (e) {
+    console.error("copyLocalNodeToDrive failed", e);
+    setSyncStatus("error", t("sync.saveFailed"), true);
+  }
 }
 
 async function copyDriveNodeToLocal(node, targetLocalParentId) {
-  // Folders can still have unloaded (lazy) subfolders — load the whole
-  // subtree first so the recursive copy below doesn't miss anything.
-  await deepLoadNodes([node]);
-  await pullNodesToLocal([node], targetLocalParentId);
-  renderLocalNotes(currentSearchValue());
+  try {
+    // Folders can still have unloaded (lazy) subfolders — load the whole
+    // subtree first so the recursive copy below doesn't miss anything.
+    await deepLoadNodes([node]);
+    await pullNodesToLocal([node], targetLocalParentId);
+    if (targetLocalParentId !== null) localExpandedFolders.add(targetLocalParentId);
+    renderLocalNotes(currentSearchValue());
+    setSyncStatus("saved", t("sync.saved") + " · " + formatTime(new Date()));
+  } catch (e) {
+    console.error("copyDriveNodeToLocal failed", e);
+    setSyncStatus("error", t("sync.saveFailed"), true);
+  }
 }
 
 /* ─── Drive-side helpers (tree lookup + create, mirroring modal.js:createItem) ─── */

@@ -438,7 +438,9 @@ function renderSettingsGroups(groups) {
     html += '<div class="settings-group">';
     html += '<div class="settings-group-title">' + g.title + "</div>";
     for (const field of g.fields) {
-      const val = getSetting(field.path);
+      // "button" fields (e.g. the sync push/pull actions) have no path —
+      // they don't read or write a setting, just trigger an action.
+      const val = field.path ? getSetting(field.path) : undefined;
       if (field.type === "swatch-grid") {
         // Own row shape (label above, grid below) — a grid of preview
         // swatches doesn't fit the label-left/control-right .settings-row
@@ -481,6 +483,13 @@ function renderSettingsGroups(groups) {
         control = renderFontSelect(field.path, val, field.options);
       } else if (field.type === "range") {
         control = renderRangeInput(field.path, val, field);
+      } else if (field.type === "button") {
+        control =
+          '<button type="button" class="btn btn-accent" onclick="' +
+          field.onClick +
+          '()">' +
+          escapeHtml(field.buttonText) +
+          "</button>";
       }
       html +=
         '<div class="settings-row"><span class="settings-label">' +

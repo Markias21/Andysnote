@@ -45,3 +45,21 @@ let driveCacheDbPromise = null; // cached IndexedDB connection for the Drive cac
 let driveTreeFullyLoaded = false; // true once every Drive subtree has been loaded
 let driveFullLoadPromise = null; // in-flight loadEntireTree() promise (dedupe)
 let folderLoadPromises = {}; // in-flight ensureFolderLoaded() promises by folderId
+
+/* ─── PLANNER (js/planner.js — day-view 10-minute planner) ─── */
+let plannerFolderId = null; // Drive ID of "AndysNote/Calendar/" (also the sidebar-hide filter key)
+let plannerFolderResolvePromise = null; // in-flight resolvePlannerFolderId() promise (dedupe)
+let plannerDbPromise = null; // cached IndexedDB connection for the offline planner store
+let plannerColors = null; // [{id:"c1",name:""}, ...] once loaded; null = not loaded yet
+let plannerColorsFileId = null; // Drive file ID of colors.json, or null if not created yet
+let plannerColorsSaveTimer = null;
+let plannerMonthCache = {}; // "YYYY-MM" -> { fileId, data, dirty } (data: {"YYYY-MM-DD": {"HH:MM":"c1"}})
+let plannerDirtyMonths = new Set(); // monthKeys with unsaved paint changes
+let plannerSaveTimer = null;
+let plannerActiveColorId = "c1";
+let plannerEraseMode = false;
+let plannerIsPainting = false;
+let plannerPaintValue = null; // "c1".."c5" or null (eraser) — fixed once per drag gesture
+let plannerLastPaintedSlot = null; // dedupe re-entering the same cell during a drag
+let plannerCurrentDayKey = null; // "YYYY-MM-DD" of the day view currently being rendered (stale-response guard)
+let plannerStatsToken = 0; // bumped on every renderPlannerStats() call (stale-response guard for the summary view)
