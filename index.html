@@ -529,9 +529,16 @@
           position: fixed;
           top: 8px;
           left: 12px;
+          transform: none;
           z-index: 51;
           width: 36px;
           height: 36px;
+        }
+
+        /* Make room for the fixed hamburger trigger above so it doesn't
+           cover the logo. */
+        .topbar {
+          padding-left: 56px;
         }
 
         /* Narrow viewports can't spare 48px of dead space on each side. */
@@ -1679,6 +1686,29 @@
         }
         .planner-legend {
           width: 100%;
+        }
+
+        /* Shrink the outer gutter and square off day cells so the month
+           grid reads as symmetric on narrow viewports instead of tall,
+           uneven rectangles. */
+        .calendar-view {
+          padding: 16px 12px 60px;
+        }
+        .cal-days {
+          gap: 3px;
+        }
+        .cal-day {
+          min-height: 0;
+          aspect-ratio: 1 / 1;
+          padding: 4px;
+        }
+        .cal-day-num {
+          font-size: 11px;
+        }
+        .cal-entry,
+        .cal-entry-more {
+          font-size: 9px;
+          padding: 1px 3px;
         }
       }
 
