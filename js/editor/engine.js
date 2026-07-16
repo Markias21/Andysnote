@@ -60,10 +60,21 @@ function editorOpen(text, opts) {
     if (_plainEl) {
       _plainEl.style.display = "";
       _plainEl.value = indentModeActive() ? applyIndentText(markdownText) : markdownText;
+      autoResizePlainBody();
     }
   }
 
   updateWordCount();
+}
+
+/* #doc-body has no fixed height — like #doc-title (js/editor.js's
+   autoResize), it grows to fit its full value so the ONLY scrollbar is
+   .editor-wrap's, at the window edge, instead of a second one trapped
+   inside the textarea right next to the text. */
+function autoResizePlainBody() {
+  if (!_plainEl) return;
+  _plainEl.style.height = "auto";
+  _plainEl.style.height = _plainEl.scrollHeight + "px";
 }
 
 function editorGetText() {
@@ -76,6 +87,7 @@ function editorSetText(text) {
     richRenderAll(-1);
   } else if (_plainEl) {
     _plainEl.value = indentModeActive() ? applyIndentText(markdownText) : markdownText;
+    autoResizePlainBody();
   }
   updateWordCount();
 }
@@ -84,6 +96,7 @@ function editorSyncFromView() {
   if (richMode || !_plainEl) return;
   const raw = _plainEl.value || "";
   markdownText = indentModeActive() ? stripIndentText(raw) : raw;
+  autoResizePlainBody();
   updateWordCount();
   if (storageMode === "local" && currentFileId) scheduleLocalSave();
   else if (driveAccessToken && currentFileId) scheduleDriveSave();
@@ -199,6 +212,7 @@ function editorRefreshIndentDisplay() {
   const newValue = indentModeActive() ? applyIndentText(markdownText) : markdownText;
   const shift = indentModeActive() ? lineIndex + 1 : -(lineIndex + 1);
   _plainEl.value = newValue;
+  autoResizePlainBody();
   const newPos = Math.max(0, Math.min(newValue.length, pos + shift));
   _plainEl.setSelectionRange(newPos, newPos);
 }

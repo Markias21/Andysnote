@@ -559,6 +559,25 @@
           width: 32px;
           height: 32px;
         }
+
+        /* Narrow portrait phones don't have room for the full topbar —
+           logo + two labeled nav buttons + date + settings + sync/user
+           info easily exceeds 375-400px and pushes the settings button
+           off screen with no way to scroll to it. Drop the redundant date
+           and the nav button labels (icons + active state still say
+           which view you're on) so everything stays reachable. */
+        .topbar {
+          gap: 2px;
+        }
+        .topbar-date {
+          display: none;
+        }
+        .nav-btn span {
+          display: none;
+        }
+        .user-name {
+          display: none;
+        }
       }
 
       .sidebar-header {
@@ -1006,10 +1025,12 @@
       .editor-wrap {
         flex: 1;
         overflow-y: auto;
-        padding: 48px 48px 80px;
+        padding: 48px 48px 160px;
         display: flex;
         flex-direction: column;
         align-items: center;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border2) transparent;
       }
 
       .editor-wrap::-webkit-scrollbar {
@@ -1025,7 +1046,7 @@
 
       .editor-inner {
         width: 100%;
-        max-width: 720px;
+        max-width: 760px;
       }
 
       #doc-title {
@@ -1106,7 +1127,7 @@
         resize: none;
         padding: 0;
         white-space: pre-wrap;
-        overflow: auto;
+        overflow: hidden;
         caret-color: var(--accent);
       }
 
@@ -1710,6 +1731,24 @@
           font-size: 9px;
           padding: 1px 3px;
         }
+
+        /* The three-column header (folder filter / month nav / month jump)
+           needs more width than a phone in portrait has, which is why it
+           was only reachable by scrolling sideways. Stack the groups
+           instead so each one has the full width and nothing overflows. */
+        .calendar-header {
+          grid-template-columns: 1fr;
+          justify-items: center;
+          gap: 10px;
+        }
+        .cal-filter-group,
+        .cal-jump-group {
+          justify-self: stretch;
+        }
+        .cal-filter-group .cal-month-input,
+        .cal-jump-group .cal-month-input {
+          width: 100%;
+        }
       }
 
       /* ─── CALENDAR STATS (month/year summary) ─── */
@@ -1861,6 +1900,96 @@
         justify-content: flex-end;
         gap: 8px;
         margin-top: 4px;
+      }
+
+      /* ─── CONTEXT MENU (js/contextmenu.js) ─── */
+      .context-menu {
+        position: fixed;
+        z-index: 200;
+        min-width: 168px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        padding: 4px;
+      }
+      .context-menu-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        padding: 7px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .context-menu-item:hover {
+        background: var(--surface3);
+      }
+      .context-menu-item.danger {
+        color: #e5484d;
+      }
+      .context-menu-item.danger:hover {
+        background: rgba(229, 72, 77, 0.12);
+      }
+      .context-menu-sep {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 2px;
+      }
+
+      /* ─── INLINE RENAME (js/contextmenu.js: beginInlineRename) ─── */
+      .inline-rename-input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        padding: 1px 4px;
+        outline: none;
+      }
+
+      /* ─── DRAG-TO-TRASH (js/sidebar.js: initTrashDropTarget) ───
+         Hidden until a sidebar item drag starts; floats above the sidebar
+         so it's reachable from anywhere in either tree without scrolling. */
+      .sidebar-trash {
+        position: fixed;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        color: var(--text-dim);
+        font-size: 12px;
+        font-family: var(--font-ui);
+        z-index: 150;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
+      .sidebar-trash.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .sidebar-trash svg {
+        width: 15px;
+        height: 15px;
+      }
+      .sidebar-trash.drag-over {
+        border-color: #e5484d;
+        color: #e5484d;
+        background: rgba(229, 72, 77, 0.12);
       }
 
       /* ─── SETTINGS ─── */
@@ -2618,6 +2747,19 @@
           id="sidebar-backdrop"
           onclick="closeSidebarMobile()"
         ></div>
+
+        <!-- Drag-to-trash drop target — hidden until a sidebar item drag
+             starts (see wireDragSource/initTrashDropTarget in js/sidebar.js) -->
+        <div class="sidebar-trash" id="sidebar-trash">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+          <span data-i18n="sidebar.trashDrop">Drop to delete</span>
+        </div>
         <button
           class="sidebar-expand-btn"
           id="sidebar-expand-btn"
@@ -3067,6 +3209,7 @@
     <script src="js/local.js?v=202607047"></script>
     <script src="js/sync.js?v=202607047"></script>
     <script src="js/modal.js?v=202607047"></script>
+    <script src="js/contextmenu.js?v=202607047"></script>
     <script src="js/calendar.js?v=202607047"></script>
     <script src="js/planner.js?v=202607047"></script>
     <script src="js/app.js?v=202607047"></script>

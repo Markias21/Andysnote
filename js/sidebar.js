@@ -82,6 +82,9 @@ function renderFolderNode(node, container, q, depth) {
   const header = folderEl.querySelector(".folder-header");
   wireDragSource(header, "drive", node.id);
   wireDragTarget(header, "drive", node.id);
+  header.addEventListener("contextmenu", (e) =>
+    driveFolderContextMenu(e, node, header.querySelector(".folder-name")),
+  );
 
   const items = folderEl.querySelector(".folder-items");
 
@@ -126,14 +129,46 @@ function renderFileNode(node, container, q, depth) {
   };
   wireDragSource(item, "drive", node.id);
   item.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"' +
-    ' stroke-linecap="round" stroke-linejoin="round">' +
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-    '<polyline points="14 2 14 8 20 8"/></svg>' +
+    fileIcon(hasFileContent(node)) +
     '<span class="doc-name">' +
     escHtml(title) +
     "</span>";
+  item.addEventListener("contextmenu", (e) =>
+    driveFileContextMenu(e, node, item.querySelector(".doc-name")),
+  );
   container.appendChild(item);
+}
+
+/* True once we have any evidence the file actually has text in it: either
+   its body was loaded at some point (local notes load it lazily, see
+   local.js's openLocalNote) or the backend reported a nonzero byte size
+   (Drive's files.list `size` field / File System Access's file.size, both
+   read at tree-scan time — see drive.js's driveListChildren and
+   local.js's walkLocalFolder). Unknown counts as empty: a brand-new note
+   has neither and should show the blank-page icon. */
+function hasFileContent(node) {
+  if (typeof node.body === "string") return node.body.trim().length > 0;
+  if (typeof node.size === "number") return node.size > 0;
+  if (typeof node.size === "string") return parseInt(node.size, 10) > 0;
+  return false;
+}
+
+/* Shared "file row" icon for both sidebar panels (Drive tree here,
+   local tree in js/local.js) — a plain page outline, with a couple of
+   text-line strokes added once the file actually has content, so a
+   written note reads differently from an empty one at a glance. */
+function fileIcon(hasContent) {
+  const lines = hasContent
+    ? '<line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>'
+    : "";
+  return (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"' +
+    ' stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+    '<polyline points="14 2 14 8 20 8"/>' +
+    lines +
+    "</svg>"
+  );
 }
 
 function countDocs(node) {
@@ -215,9 +250,16 @@ function findParentOf(id, nodes) {
 function wireDragSource(el, origin, id) {
   el.draggable = true;
   el.addEventListener("dragstart", (e) => {
+    // An inline-rename input (js/contextmenu.js) can live inside this same
+    // row — text selection there must not start a native drag.
+    if (e.target.closest("input, textarea")) {
+      e.preventDefault();
+      return;
+    }
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("application/json", JSON.stringify({ origin, id }));
+    document.getElementById("sidebar-trash").classList.add("visible");
   });
   // Safety net: dragend always fires exactly once when a drag operation
   // concludes — dropped on a valid target, dropped somewhere invalid,
@@ -225,6 +267,7 @@ function wireDragSource(el, origin, id) {
   // happens, nothing should be left highlighted afterward.
   el.addEventListener("dragend", () => {
     document.querySelectorAll(".drag-over").forEach((n) => n.classList.remove("drag-over"));
+    document.getElementById("sidebar-trash").classList.remove("visible", "drag-over");
   });
 }
 
@@ -291,6 +334,70 @@ async function handleTreeDrop(dropData, targetOrigin, targetParentId) {
 function initSidebarDragDrop() {
   const list = document.getElementById("folder-list");
   wireDragTarget(list, "drive", () => andysNoteRootId);
+}
+
+/* Right-clicking empty sidebar space (not on any row — those stop
+   propagation in their own contextmenu handler above) offers root-level
+   create actions. */
+function initSidebarContextMenu() {
+  document.getElementById("folder-list").addEventListener("contextmenu", driveRootContextMenu);
+}
+
+/* ─── DELETE (right-click menu + drag-to-trash) ────────────────────────────
+   Shared entry point for both interaction paths (js/contextmenu.js's
+   "Delete" item and the drag-to-trash drop target below): resolves the node
+   from whichever tree it belongs to, confirms once, then delegates to the
+   owning backend's own delete (drive.js's deleteDriveNode / local.js's
+   deleteLocalNote already handle removing descendants and closing the open
+   editor if needed). */
+async function confirmAndDeleteNode(origin, id) {
+  if (origin === "drive") {
+    const node = findNodeById(id, driveTree);
+    if (!node) return;
+    const name = parseCreatedFromName(node.name).cleanTitle;
+    if (!confirm(buildDeleteConfirmMessage(name, node.mimeType === FOLDER_MIME, "drive"))) return;
+    await deleteDriveNode(node);
+  } else {
+    const node = localNotes.find((n) => n.id === id);
+    if (!node) return;
+    const name = node.title || t("editor.titlePlaceholder");
+    if (!confirm(buildDeleteConfirmMessage(name, node.type === "folder", "local"))) return;
+    await deleteLocalNote(node.id);
+  }
+}
+
+/* Drive deletes land in Google Drive's own trash (recoverable there); the
+   real-filesystem local backend has no such safety net (File System Access
+   removeEntry is permanent) — the confirm wording reflects that difference. */
+function buildDeleteConfirmMessage(name, isFolder, origin) {
+  const scope = isFolder ? t("sidebar.confirmDeleteFolder") : t("sidebar.confirmDeleteDoc");
+  const note = origin === "drive" ? t("sidebar.confirmDeleteDriveNote") : t("sidebar.confirmDeleteLocalNote");
+  return `"${name}"\n\n${scope}\n${note}`;
+}
+
+/* Floating drop target shown only while a sidebar item is being dragged (see
+   wireDragSource's dragstart/dragend below) — dropping here deletes the
+   dragged item instead of moving/copying it, mirroring a desktop OS's
+   drag-to-trash gesture. Shared by both sidebar panels, same as the generic
+   drag/drop wiring above. */
+function initTrashDropTarget() {
+  const el = document.getElementById("sidebar-trash");
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    el.classList.add("drag-over");
+  });
+  el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.classList.remove("drag-over", "visible");
+    let data;
+    try {
+      data = JSON.parse(e.dataTransfer.getData("application/json"));
+    } catch (err) {
+      return;
+    }
+    if (data) confirmAndDeleteNode(data.origin, data.id);
+  });
 }
 
 /* ─── SIDEBAR LAYOUT (resize / collapse / mobile drawer) ───────────────────

@@ -480,6 +480,9 @@ function renderLocalFolderNode(node, container, q) {
   const header = folderEl.querySelector(".folder-header");
   wireDragSource(header, "local", node.id);
   wireDragTarget(header, "local", node.id);
+  header.addEventListener("contextmenu", (e) =>
+    localFolderContextMenu(e, node, header.querySelector(".folder-name")),
+  );
 
   const items = folderEl.querySelector(".folder-items");
   if (isOpen) renderLocalNodes(getLocalChildren(node.id), items, q);
@@ -500,12 +503,12 @@ function renderLocalNoteRow(node, container, q) {
   };
   wireDragSource(item, "local", node.id);
   item.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-    </svg>
+    ${fileIcon(hasFileContent(node))}
     <span class="doc-name">${escHtml(title)}</span>
   `;
+  item.addEventListener("contextmenu", (e) =>
+    localFileContextMenu(e, node, item.querySelector(".doc-name")),
+  );
   container.appendChild(item);
 }
 
@@ -523,6 +526,13 @@ function toggleLocalFolder(folderId) {
 function initLocalDragDrop() {
   const list = document.getElementById("local-list");
   wireDragTarget(list, "local", null);
+}
+
+/* Right-clicking empty space in the local tree (not on any row) offers
+   root-level create actions — mirrors initSidebarContextMenu in
+   js/sidebar.js for the Drive tree. */
+function initLocalContextMenu() {
+  document.getElementById("local-list").addEventListener("contextmenu", localRootContextMenu);
 }
 
 /* ─── SIDEBAR HELPERS (local tree rendering) ─── */
@@ -655,6 +665,7 @@ async function walkLocalFolder(dirHandle, parentId) {
         title: cleanTitle,
         name,
         body: undefined, // lazily loaded on open
+        size: file.size,
         createdTime: (createdDate || new Date(file.lastModified)).toISOString(),
         modifiedTime: new Date(file.lastModified).toISOString(),
         handle,

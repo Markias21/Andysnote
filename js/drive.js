@@ -139,6 +139,58 @@ async function moveDriveNode(node, newParentId) {
   syncFolderCache(newParentId);
 }
 
+/* Renames a Drive FOLDER's display name directly. Unlike documents (see
+   renameDriveEntryName below), folders never encode a created-date suffix
+   or file extension in their name, so this is just a plain metadata PATCH. */
+async function renameDriveFolder(node, newTitle) {
+  const cleaned = sanitizeFileTitle(newTitle);
+  if (cleaned === node.name) return;
+  await drivePatchMetadata(node.id, { name: cleaned });
+  node.name = cleaned;
+  node.modifiedTime = new Date().toISOString();
+}
+
+/* Moves a Drive file to Google Drive's trash (PATCH trashed=true) — recoverable
+   there, unlike the local backend's permanent delete. */
+async function driveTrashFile(fileId) {
+  if (!driveAccessToken) throw new Error("Not authenticated");
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer " + driveAccessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!r.ok) throw new Error(`PATCH trash ${fileId} -> ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+/* Whether `id` is `node` itself or (for a folder) somewhere in its loaded
+   subtree — used to decide whether deleting `node` must also close the
+   currently open editor. */
+function driveNodeContains(node, id) {
+  if (node.id === id) return true;
+  if (node.mimeType !== FOLDER_MIME) return false;
+  return node.children.some((c) => driveNodeContains(c, id));
+}
+
+/* Deletes a Drive node (file or folder, recursively for a folder — Drive
+   trashes an entire subtree when its root is trashed) and keeps the
+   in-memory tree/cache in sync, same bookkeeping moveDriveNode does. */
+async function deleteDriveNode(node) {
+  const parent = findParentOf(node.id, driveTree);
+  const parentId = parent ? parent.id : andysNoteRootId;
+  await driveTrashFile(node.id);
+  removeFromTree(node.id);
+  syncFolderCache(parentId);
+  if (currentFileId && driveNodeContains(node, currentFileId)) {
+    currentFileId = null;
+    showEmptyState();
+  }
+  renderSidebar(currentSearchValue());
+}
+
 /* Renames a Drive node's underlying file name — the only way to make its
    created date user-editable, since Drive's real createdTime field isn't
    something a normal app can modify via the API. Rebuilds the FULL name via
@@ -167,7 +219,7 @@ async function driveListChildren(parentId) {
     const params = {
       q: `'${parentId}' in parents and trashed=false`,
       fields:
-        "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime)",
+        "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size)",
       pageSize: 200,
       orderBy: "name",
     };
@@ -422,7 +474,10 @@ async function saveToDriveNow() {
     // Update cached modifiedTime + persist the new body so re-opening is instant.
     const stamp = new Date().toISOString();
     const node = findNodeById(savedId, driveTree);
-    if (node) node.modifiedTime = stamp;
+    if (node) {
+      node.modifiedTime = stamp;
+      node.size = text.length;
+    }
     cachePutDoc(savedId, text, stamp);
     driveDirty = false;
     setSyncStatus("saved", t("sync.saved") + " \u00b7 " + formatTime(new Date()));

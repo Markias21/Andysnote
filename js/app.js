@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initSidebarResponsive();
   initSidebarDragDrop();
   initLocalDragDrop();
+  initSidebarContextMenu();
+  initLocalContextMenu();
+  initTrashDropTarget();
 
   // Init the live Markdown engine with an empty document.
   editorOpen("");
