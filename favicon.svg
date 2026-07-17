@@ -1,3 +1,21 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <rect width="180" height="180" rx="39.38" fill="#1a1815"/>
+  <rect x="0.7" y="0.7" width="178.59" height="178.59" rx="38.67" fill="none" stroke="#c8a96e" stroke-opacity="0.3" stroke-width="1.05"/>
+  <g stroke="#c8a96e" stroke-width="1.76" fill="none" opacity="0.85">
+    <circle cx="35.86" cy="18.98" r="4.57"/>
+    <circle cx="56.6" cy="18.98" r="4.57"/>
+    <circle cx="77.34" cy="18.98" r="4.57"/>
+    <circle cx="98.09" cy="18.98" r="4.57"/>
+    <circle cx="118.83" cy="18.98" r="4.57"/>
+    <circle cx="139.57" cy="18.98" r="4.57"/>
+  </g>
+  <line x1="24.61" y1="31.64" x2="155.39" y2="31.64" stroke="#c8a96e" stroke-width="1.05" opacity="0.3" stroke-linecap="round"/>
+  <g transform="translate(90,94.92) rotate(-42)" stroke="#f4ead6" stroke-width="1.41" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="-71.72,0 -59.06,-5.62 -59.06,5.62" fill="#2a2118"/>
+    <polygon points="-59.06,-5.62 -59.06,5.62 -37.97,11.95 -37.97,-11.95" fill="#e3b878"/>
+    <rect x="-37.97" y="-11.95" width="39.38" height="23.91" fill="#a9863f"/>
+    <rect x="1.41" y="-11.95" width="40.08" height="23.91" fill="#d9bd85"/>
+    <rect x="41.48" y="-12.66" width="7.73" height="25.31" fill="#efe6d2"/>
+    <rect x="49.22" y="-11.95" width="18.98" height="23.91" rx="6.33" fill="#f4ead6"/>
+  </g>
 </svg>

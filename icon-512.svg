@@ -1,10 +1,21 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="108" fill="#1c1c1c"/>
-  <rect x="2" y="2" width="508" height="508" rx="106" stroke="#c8a96e" stroke-opacity="0.25" stroke-width="3"/>
-  <line x1="128" y1="182" x2="384" y2="182" stroke="#c8a96e" stroke-width="22" stroke-linecap="round"/>
-  <line x1="128" y1="236" x2="384" y2="236" stroke="#c8a96e" stroke-width="22" stroke-linecap="round"/>
-  <line x1="128" y1="290" x2="298" y2="290" stroke="#c8a96e" stroke-width="22" stroke-linecap="round"/>
-  <circle cx="368" cy="356" r="48" fill="#141414" stroke="#c8a96e" stroke-width="10"/>
-  <line x1="354" y1="356" x2="382" y2="356" stroke="#c8a96e" stroke-width="9" stroke-linecap="round"/>
-  <line x1="368" y1="342" x2="368" y2="370" stroke="#c8a96e" stroke-width="9" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="112" fill="#1a1815"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#c8a96e" stroke-opacity="0.3" stroke-width="3"/>
+  <g stroke="#c8a96e" stroke-width="5" fill="none" opacity="0.85">
+    <circle cx="102" cy="54" r="13"/>
+    <circle cx="161" cy="54" r="13"/>
+    <circle cx="220" cy="54" r="13"/>
+    <circle cx="279" cy="54" r="13"/>
+    <circle cx="338" cy="54" r="13"/>
+    <circle cx="397" cy="54" r="13"/>
+  </g>
+  <line x1="70" y1="90" x2="442" y2="90" stroke="#c8a96e" stroke-width="3" opacity="0.3" stroke-linecap="round"/>
+  <g transform="translate(256,270) rotate(-42)" stroke="#f4ead6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="-204,0 -168,-16 -168,16" fill="#2a2118"/>
+    <polygon points="-168,-16 -168,16 -108,34 -108,-34" fill="#e3b878"/>
+    <rect x="-108" y="-34" width="112" height="68" fill="#a9863f"/>
+    <rect x="4" y="-34" width="114" height="68" fill="#d9bd85"/>
+    <rect x="118" y="-36" width="22" height="72" fill="#efe6d2"/>
+    <rect x="140" y="-34" width="54" height="68" rx="18" fill="#f4ead6"/>
+  </g>
 </svg>

@@ -1,10 +1,21 @@
 <svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" rx="40" fill="#1c1c1c"/>
-  <rect x="1" y="1" width="190" height="190" rx="39" stroke="#c8a96e" stroke-opacity="0.25" stroke-width="1.5"/>
-  <line x1="48" y1="68" x2="144" y2="68" stroke="#c8a96e" stroke-width="8" stroke-linecap="round"/>
-  <line x1="48" y1="88" x2="144" y2="88" stroke="#c8a96e" stroke-width="8" stroke-linecap="round"/>
-  <line x1="48" y1="108" x2="112" y2="108" stroke="#c8a96e" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="138" cy="134" r="18" fill="#141414" stroke="#c8a96e" stroke-width="4"/>
-  <line x1="133" y1="134" x2="143" y2="134" stroke="#c8a96e" stroke-width="3.5" stroke-linecap="round"/>
-  <line x1="138" y1="129" x2="138" y2="139" stroke="#c8a96e" stroke-width="3.5" stroke-linecap="round"/>
+  <rect width="192" height="192" rx="42" fill="#1a1815"/>
+  <rect x="0.75" y="0.75" width="190.5" height="190.5" rx="41.25" fill="none" stroke="#c8a96e" stroke-opacity="0.3" stroke-width="1.12"/>
+  <g stroke="#c8a96e" stroke-width="1.88" fill="none" opacity="0.85">
+    <circle cx="38.25" cy="20.25" r="4.88"/>
+    <circle cx="60.38" cy="20.25" r="4.88"/>
+    <circle cx="82.5" cy="20.25" r="4.88"/>
+    <circle cx="104.62" cy="20.25" r="4.88"/>
+    <circle cx="126.75" cy="20.25" r="4.88"/>
+    <circle cx="148.88" cy="20.25" r="4.88"/>
+  </g>
+  <line x1="26.25" y1="33.75" x2="165.75" y2="33.75" stroke="#c8a96e" stroke-width="1.12" opacity="0.3" stroke-linecap="round"/>
+  <g transform="translate(96,101.25) rotate(-42)" stroke="#f4ead6" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="-76.5,0 -63,-6 -63,6" fill="#2a2118"/>
+    <polygon points="-63,-6 -63,6 -40.5,12.75 -40.5,-12.75" fill="#e3b878"/>
+    <rect x="-40.5" y="-12.75" width="42" height="25.5" fill="#a9863f"/>
+    <rect x="1.5" y="-12.75" width="42.75" height="25.5" fill="#d9bd85"/>
+    <rect x="44.25" y="-13.5" width="8.25" height="27" fill="#efe6d2"/>
+    <rect x="52.5" y="-12.75" width="20.25" height="25.5" rx="6.75" fill="#f4ead6"/>
+  </g>
 </svg>
