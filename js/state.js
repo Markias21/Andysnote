@@ -16,6 +16,7 @@ let tokenClient_tc = null;
 let gapiInited = false;
 let gisInited = false;
 let driveAccessToken = null;
+let isSilentAuthAttempt = false; // true while requestAccessToken({prompt:""}) is in flight (auto restore) — suppresses the error toast on failure
 
 /* ─── STORAGE MODE / LOCAL (BROWSER) NOTES ─── */
 let storageMode = "drive"; // backend of the currently-open doc: "drive" | "local"
@@ -34,8 +35,14 @@ let localRootHandle = null; // live FileSystemDirectoryHandle for the connected 
 let localFsConnected = false; // true once localRootHandle is loaded/granted and the folder has been scanned
 
 /* ─── SETTINGS (single app-wide global state; logic lives in settings.js) ─── */
-let appSettings = null; // one settings object: { ui, font, behavior } — mutate only via setSetting()
+let appSettings = null; // one settings object: { ui, font, behavior, security } — mutate only via setSetting()
 let settingsActiveTab = "library"; // which settings-panel tab is open: "library" | "fonts" | "calendar" | ...
+
+/* ─── APP LOCK (4-digit PIN gate; logic lives in js/lock.js) ─────────────
+   Gates entry into a Google-signed-in session only (see requireAppLock() in
+   js/lock.js) — local-only mode is never gated. */
+let appLockPendingResolve = null; // resolver for the in-flight requireAppLock() promise, or null when no gate is active
+let appLockRecoveryArmed = false; // true only right after "forgot PIN" sign-out; the next successful sign-in clears the PIN instead of asking for it
 
 /* ─── BULK SYNC (js/sync.js — Drive <-> local one-shot copy) ─── */
 let bulkSyncInProgress = false; // guards against double-clicking push/pull

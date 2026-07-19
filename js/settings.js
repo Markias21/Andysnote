@@ -137,6 +137,10 @@ function defaultSettings() {
       autoSave: true, // debounced autosave on edits
       driveSync: true, // push Drive docs to Google Drive automatically
     },
+    security: {
+      pinEnabled: false, // require a 4-digit PIN to enter a Google-signed-in session — see js/lock.js
+      pinHash: "", // SHA-256 hex digest of the PIN; never the plaintext PIN itself
+    },
   };
 }
 
@@ -305,6 +309,16 @@ function settingsTabs() {
           fields: [
             { path: "behavior.autoSave", label: t("settings.autoSave"), type: "bool" },
             { path: "behavior.driveSync", label: t("settings.driveSync"), type: "bool" },
+          ],
+        },
+        {
+          title: t("settings.groupSecurity"),
+          fields: [
+            {
+              path: "security.pinEnabled",
+              label: t("settings.pinLock"),
+              type: "pin-lock",
+            },
           ],
         },
         {
@@ -483,6 +497,10 @@ function renderSettingsGroups(groups) {
         control = renderFontSelect(field.path, val, field.options);
       } else if (field.type === "range") {
         control = renderRangeInput(field.path, val, field);
+      } else if (field.type === "pin-lock") {
+        // Logic + presentation both live in js/lock.js — this is a security
+        // feature, not a plain settings field (see onTogglePinLock).
+        control = renderPinLockControl(val);
       } else if (field.type === "button") {
         control =
           '<button type="button" class="btn btn-accent" onclick="' +

@@ -15,6 +15,78 @@ async function handleAuthClick() {
     });
     }
 
+/* ─── TOKEN PERSISTENCE (same-device auto sign-in) ───────────────────────
+   The GIS token client is implicit-flow only (no refresh_token), so this
+   cannot survive past the access token's own ~1h lifetime. What it buys us:
+   reloading/reopening the app within that hour skips the login screen
+   entirely, and once it expires, trySilentReauth() below re-issues a fresh
+   token without prompting as long as the user hasn't revoked consent. */
+function saveTokenToStorage(resp) {
+    try {
+        const expiresInSec = Number(resp.expires_in) || 3600;
+        localStorage.setItem(
+            DRIVE_TOKEN_STORAGE_KEY,
+            JSON.stringify({
+                access_token: resp.access_token,
+                expires_at: Date.now() + expiresInSec * 1000,
+            }),
+        );
+    } catch (e) {
+        console.error("Failed to persist Drive token", e);
+    }
+}
+
+function loadTokenFromStorage() {
+    try {
+        const raw = localStorage.getItem(DRIVE_TOKEN_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearTokenFromStorage() {
+    try {
+        localStorage.removeItem(DRIVE_TOKEN_STORAGE_KEY);
+    } catch (e) {}
+}
+
+/* Called once on boot (from gisLoaded). Restores a still-valid cached token
+   instantly, or falls back to a silent (no-popup) reauth for an expired/
+   missing one. Both paths leave the app in the normal logged-out state on
+   any failure — same as if this function didn't run at all. */
+async function attemptAutoSignIn() {
+    const SKEW_MS = 60 * 1000; // treat a token expiring within the next minute as already-expired
+    const cached = loadTokenFromStorage();
+    if (cached && cached.access_token && cached.expires_at > Date.now() + SKEW_MS) {
+        driveAccessToken = cached.access_token;
+        // onSignedIn()/initDriveFilesystem() swallow their own request errors
+        // (they render a "load failed / retry" state instead of throwing), so a
+        // revoked/invalid cached token would otherwise never be detected here.
+        // Verify it against a cheap endpoint first.
+        try {
+            await driveGet("https://www.googleapis.com/oauth2/v3/userinfo");
+            const proceed = await requireAppLock();
+            if (!proceed) return;
+            await onSignedIn();
+            return;
+        } catch (e) {
+            // Cached token rejected by Google (revoked elsewhere, etc.) — drop it and
+            // fall through to a silent reauth attempt below.
+            console.error("Cached Drive token rejected, retrying sign-in", e);
+            driveAccessToken = null;
+            clearTokenFromStorage();
+        }
+    }
+    trySilentReauth();
+}
+
+function trySilentReauth() {
+    if (!tokenClient_tc) return;
+    isSilentAuthAttempt = true;
+    tokenClient_tc.requestAccessToken({ prompt: "" });
+}
+
 async function handleSignoutClick() {
     // Flush any pending planner paint save while the token is still valid —
     // otherwise the debounce timer would fire after revoke() and silently
@@ -37,6 +109,7 @@ async function handleSignoutClick() {
         console.error("Token revoke failed (continuing sign-out anyway)", e);
     }
     driveAccessToken = null;
+    clearTokenFromStorage();
     updateDriveUI(false, null);
     andysNoteRootId = null;
     driveTree = [];
@@ -89,6 +162,7 @@ function gisLoaded() {
   });
   gisInited = true;
   maybeEnableButton();
+  attemptAutoSignIn();
 }
 
 function maybeEnableButton() {
@@ -99,12 +173,19 @@ function maybeEnableButton() {
 }
 
 async function handleTokenResponse(resp) {
+  const wasSilentAttempt = isSilentAuthAttempt;
+  isSilentAuthAttempt = false;
   if (resp.error) {
+    // A silent auto-restore attempt failing just means "not previously signed
+    // in" or "consent was revoked" — that's the normal logged-out state, not
+    // an error the user needs to see.
+    if (wasSilentAttempt) return;
     console.error("OAuth error", resp);
     setSyncStatus("error", t("sync.signInFailed"), true);
     return;
   }
   driveAccessToken = resp.access_token;
+  saveTokenToStorage(resp);
   console.log("Granted OAuth scopes:", resp.scope);
   const hasDrive =
     typeof google !== "undefined" &&
@@ -120,6 +201,8 @@ async function handleTokenResponse(resp) {
       resp.scope,
     );
   }
+  const proceed = await requireAppLock();
+  if (!proceed) return;
   await onSignedIn();
 }
 

@@ -136,6 +136,32 @@ function onTitleInput() {
   if (storageMode === "local" && currentFileId) scheduleLocalSave();
 }
 
+/* ─── PRINT ───
+   Rebuilds the current doc into #print-area (index.html's @media print
+   rules) via renderLine — the same renderer the live view uses — instead of
+   cloning the live #doc-body-rich DOM, since the currently focused line
+   there can still be showing raw, unrendered Markdown syntax (see
+   js/editor/engine.js's "the focused line is never rebuilt" rule). */
+function printCurrentDoc() {
+  if (!currentFileId) return;
+
+  const title = document.getElementById("doc-title").value.trim() || t("editor.titlePlaceholder");
+  document.getElementById("print-title").textContent = title;
+
+  const printBody = document.getElementById("print-body");
+  printBody.innerHTML = "";
+
+  if (isRichMarkdownActive()) {
+    for (const line of editorGetText().split("\n")) {
+      printBody.appendChild(renderLine(line, false).frag);
+    }
+  } else {
+    printBody.textContent = editorGetText();
+  }
+
+  window.print();
+}
+
 /* ─── UTILITIES ─── */
 function updateWordCount() {
   const text = (editorGetText() || "").trim();

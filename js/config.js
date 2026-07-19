@@ -16,6 +16,8 @@ var MARKDOWN_MIME = "text/markdown";
 var DOC_EXT_REGEX = /\.(txt|md)$/i;
 var DRIVE_SCOPE =
   "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
+// 같은 기기 재접속 시 재로그인 없이 이어서 쓰기 위해 access token을 캐싱하는 localStorage 키.
+var DRIVE_TOKEN_STORAGE_KEY = "andysnote-drive-token";
 
 function isDriveDocName(name) {
   return DOC_EXT_REGEX.test(name);
