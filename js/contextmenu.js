@@ -139,6 +139,7 @@ function driveFolderContextMenu(e, node, nameEl) {
           renameDriveFolder(node, val).then(() => renderSidebar(currentSearchValue())),
         ),
     },
+    { label: t("sidebar.menuPrintFolder"), onClick: () => printDriveFolder(node) },
     {
       label: t("sidebar.menuDelete"),
       danger: true,
@@ -190,6 +191,7 @@ function localFolderContextMenu(e, node, nameEl) {
       label: t("sidebar.menuRename"),
       onClick: () => beginInlineRename(nameEl, node.title, (val) => renameLocalNote(node.id, val)),
     },
+    { label: t("sidebar.menuPrintFolder"), onClick: () => printLocalFolder(node) },
     {
       label: t("sidebar.menuDelete"),
       danger: true,

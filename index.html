@@ -1254,16 +1254,21 @@
         font-size: 13px;
       }
 
-      /* ─── PRINT (js/editor.js: printCurrentDoc) ───
-           A dedicated off-screen block holding just the title + freshly
-           rendered body, populated right before window.print(). Built from
-           markdownText via js/editor/renderer.js's renderLine rather than
-           cloning the live #doc-body-rich DOM, because the currently
-           focused line there can still be showing raw, unrendered Markdown
-           syntax (js/editor/engine.js's "the focused line is never rebuilt"
-           rule) — printing always re-renders every line fresh instead.
-           Forces black-on-white regardless of the active theme so dark
-           themes don't waste ink printing white text, while still
+      /* ─── PRINT (js/editor.js: printCurrentDoc, printFolderDocs) ───
+           A dedicated off-screen block holding one .print-doc per printed
+           note (one for printCurrentDoc, one per note under a folder for
+           printFolderDocs), populated right before window.print(). Each
+           .print-doc mirrors the editor's title + meta chip row + body, with
+           a thin divider between title/meta and body — the same layout the
+           editor itself uses (index.html's .editor-meta / .meta-chip), so
+           the printed page matches what you see while writing. Body content
+           is built from markdownText via js/editor/renderer.js's renderLine
+           rather than cloning the live #doc-body-rich DOM, because the
+           currently focused line there can still be showing raw, unrendered
+           Markdown syntax (js/editor/engine.js's "the focused line is never
+           rebuilt" rule) — printing always re-renders every line fresh
+           instead. Forces black-on-white regardless of the active theme so
+           dark themes don't waste ink printing white text, while still
            inheriting the user's chosen font family/size via the same
            --editor-font-* variables the live editor uses. */
       #print-area {
@@ -1292,15 +1297,35 @@
           background: #fff;
           color: #000;
         }
-        #print-title {
+        /* Folder printing puts more than one note into #print-area — start
+           each note after the first on a fresh page. */
+        .print-doc + .print-doc {
+          break-before: page;
+          page-break-before: always;
+        }
+        .print-doc-title {
           font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
           font-size: 28px;
           font-weight: 700;
           color: #000;
-          margin-bottom: 24px;
+          margin-bottom: 10px;
           word-wrap: break-word;
         }
-        #print-body {
+        .print-doc-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px 18px;
+          font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 14px;
+        }
+        .print-doc-divider {
+          border: none;
+          border-top: 1px solid #ccc;
+          margin: 0 0 22px;
+        }
+        .print-doc-body {
           font-family: var(--editor-font-en), var(--editor-font-kr), system-ui, sans-serif;
           font-size: var(--editor-font-size);
           line-height: 1.85;
@@ -1308,37 +1333,37 @@
           white-space: pre-wrap;
           word-wrap: break-word;
         }
-        #print-body .md-mark {
+        .print-doc-body .md-mark {
           display: none;
         }
-        #print-body .md-heading .md-h1 {
+        .print-doc-body .md-heading .md-h1 {
           font-size: 1.6em;
           font-weight: 700;
         }
-        #print-body .md-heading .md-h2 {
+        .print-doc-body .md-heading .md-h2 {
           font-size: 1.35em;
           font-weight: 700;
         }
-        #print-body .md-heading .md-h3 {
+        .print-doc-body .md-heading .md-h3 {
           font-size: 1.15em;
           font-weight: 700;
         }
-        #print-body .md-quote {
+        .print-doc-body .md-quote {
           border-left: 3px solid #999;
           padding-left: 10px;
           color: #333;
           font-style: italic;
         }
-        #print-body .md-checked-text {
+        .print-doc-body .md-checked-text {
           text-decoration: line-through;
           color: #555;
         }
-        #print-body .md-block.md-divider {
+        .print-doc-body .md-block.md-divider {
           border-top: 1px solid #999;
           height: 0;
           margin: 14px 0;
         }
-        #print-body .md-fence-label {
+        .print-doc-body .md-fence-label {
           display: inline-block;
           font-size: 11px;
           color: #333;
@@ -3453,12 +3478,10 @@
       </div>
     </div>
 
-    <!-- PRINT (js/editor.js: printCurrentDoc) — hidden on screen, shown only
-         via the @media print rules above -->
-    <div id="print-area">
-      <div id="print-title"></div>
-      <div id="print-body"></div>
-    </div>
+    <!-- PRINT (js/editor.js: printCurrentDoc, printFolderDocs) — hidden on
+         screen, built fresh before each print and shown only via the
+         @media print rules above -->
+    <div id="print-area"></div>
 
     <script src="js/config.js?v=202607047"></script>
     <script src="js/state.js?v=202607047"></script>

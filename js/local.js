@@ -567,6 +567,51 @@ function countLocalDocs(parentId) {
   return count;
 }
 
+/* ─── FOLDER PRINT ───
+   Right-click "Print folder" (js/contextmenu.js: localFolderContextMenu)
+   walks the whole subtree collecting notes, lazily reading real-FS bodies
+   the same way openLocalNote does, then hands the list to js/editor.js's
+   printFolderDocs to lay out and print. */
+async function collectLocalFolderDocs(folderNode) {
+  const noteNodes = [];
+  const walk = (parentId, folderName) => {
+    for (const child of getLocalChildren(parentId)) {
+      if (child.type === "folder") walk(child.id, child.title);
+      else noteNodes.push({ node: child, folderName });
+    }
+  };
+  walk(folderNode.id, folderNode.title);
+
+  return Promise.all(
+    noteNodes.map(async ({ node, folderName }) => {
+      let body = node.body;
+      if (body === undefined && node.handle) {
+        body = await node.handle.getFile().then((f) => f.text()).catch(() => "");
+        node.body = body;
+      }
+      return {
+        title: node.title || t("editor.titlePlaceholder"),
+        folderName,
+        created: node.createdTime ? new Date(node.createdTime) : null,
+        modified: node.modifiedTime ? new Date(node.modifiedTime) : null,
+        text: body || "",
+        rich: node.ext === ".md",
+      };
+    }),
+  );
+}
+
+async function printLocalFolder(folderNode) {
+  setSyncStatus("saving", t("sync.printingFolder"));
+  try {
+    const docs = await collectLocalFolderDocs(folderNode);
+    printFolderDocs(docs);
+  } catch (e) {
+    console.error("printLocalFolder error", e);
+    setSyncStatus("error", t("sync.openFailed"));
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    REAL-FILESYSTEM BACKEND (File System Access API)
    ═══════════════════════════════════════════════════════════════════════ */

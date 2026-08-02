@@ -137,26 +137,103 @@ function onTitleInput() {
 }
 
 /* ─── PRINT ───
-   Rebuilds the current doc into #print-area (index.html's @media print
-   rules) via renderLine — the same renderer the live view uses — instead of
-   cloning the live #doc-body-rich DOM, since the currently focused line
-   there can still be showing raw, unrendered Markdown syntax (see
-   js/editor/engine.js's "the focused line is never rebuilt" rule). */
+   Rebuilds the doc(s) being printed into #print-area (index.html's @media
+   print rules) via renderLine — the same renderer the live view uses —
+   instead of cloning the live #doc-body-rich DOM, since the currently
+   focused line there can still be showing raw, unrendered Markdown syntax
+   (see js/editor/engine.js's "the focused line is never rebuilt" rule).
+   buildPrintDocBlock renders one note (title + folder/created/modified meta
+   row + divider + body) matching the editor's own .editor-meta chip row;
+   printCurrentDoc uses it for the open doc, printFolderDocs (called from
+   js/drive.js/local.js's folder-print gathering) for every note in a
+   folder. */
+function buildPrintDocBlock(title, meta, text, rich) {
+  const doc = document.createElement("div");
+  doc.className = "print-doc";
+
+  const titleEl = document.createElement("div");
+  titleEl.className = "print-doc-title";
+  titleEl.textContent = title || t("editor.titlePlaceholder");
+  doc.appendChild(titleEl);
+
+  const metaEl = document.createElement("div");
+  metaEl.className = "print-doc-meta";
+  for (const [label, value] of meta) {
+    if (!value) continue;
+    const item = document.createElement("span");
+    item.className = "print-doc-meta-item";
+    item.textContent = `${label}: ${value}`;
+    metaEl.appendChild(item);
+  }
+  doc.appendChild(metaEl);
+
+  doc.appendChild(document.createElement("hr")).className = "print-doc-divider";
+
+  const bodyEl = document.createElement("div");
+  bodyEl.className = "print-doc-body";
+  if (rich) {
+    for (const line of (text || "").split("\n")) {
+      bodyEl.appendChild(renderLine(line, false).frag);
+    }
+  } else {
+    bodyEl.textContent = text || "";
+  }
+  doc.appendChild(bodyEl);
+
+  return doc;
+}
+
+function formatPrintDate(date) {
+  return date
+    ? date.toLocaleDateString(localeTag(), { month: "short", day: "numeric", year: "numeric" })
+    : "";
+}
+
 function printCurrentDoc() {
   if (!currentFileId) return;
 
   const title = document.getElementById("doc-title").value.trim() || t("editor.titlePlaceholder");
-  document.getElementById("print-title").textContent = title;
+  // Reuses the already-rendered meta chips (js/editor.js openDoc / js/local.js
+  // openLocalNote both keep these in sync with the open doc) instead of
+  // re-deriving folder/created/modified here.
+  const folder = document.getElementById("meta-folder-name").textContent;
+  const created = document.getElementById("meta-date-val").textContent;
+  const modified = document.getElementById("meta-modified-val").textContent;
+  const meta = [
+    [t("editor.metaFolder"), folder && folder !== "—" ? folder : ""],
+    [t("editor.metaCreated"), created && created !== "—" ? created : ""],
+    [t("editor.metaModified"), modified && modified !== "—" ? modified : ""],
+  ];
 
-  const printBody = document.getElementById("print-body");
-  printBody.innerHTML = "";
+  const printArea = document.getElementById("print-area");
+  printArea.innerHTML = "";
+  printArea.appendChild(buildPrintDocBlock(title, meta, editorGetText(), isRichMarkdownActive()));
 
-  if (isRichMarkdownActive()) {
-    for (const line of editorGetText().split("\n")) {
-      printBody.appendChild(renderLine(line, false).frag);
-    }
-  } else {
-    printBody.textContent = editorGetText();
+  window.print();
+}
+
+/* Prints every note under a folder as one multi-page job, one .print-doc per
+   note (CSS page-breaks between them). `docs` is gathered by
+   js/drive.js/local.js — each entry is
+   { title, folderName, created: Date|null, modified: Date|null, text, rich }.
+   Gathering stays with Storage (Drive/local know how to walk their own
+   trees and fetch file bodies); this function only knows how to lay a list
+   of already-fetched docs out for printing. */
+function printFolderDocs(docs) {
+  if (!docs.length) {
+    setSyncStatus("error", t("sync.printFolderEmpty"));
+    return;
+  }
+
+  const printArea = document.getElementById("print-area");
+  printArea.innerHTML = "";
+  for (const doc of docs) {
+    const meta = [
+      [t("editor.metaFolder"), doc.folderName || ""],
+      [t("editor.metaCreated"), formatPrintDate(doc.created)],
+      [t("editor.metaModified"), formatPrintDate(doc.modified)],
+    ];
+    printArea.appendChild(buildPrintDocBlock(doc.title, meta, doc.text, doc.rich));
   }
 
   window.print();

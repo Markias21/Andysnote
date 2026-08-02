@@ -392,6 +392,51 @@ async function deepLoadNodes(nodes) {
   return results.every(Boolean);
 }
 
+/* ─── FOLDER PRINT ───
+   Right-click "Print folder" (js/contextmenu.js: driveFolderContextMenu)
+   walks the whole subtree — not just the direct children ensureFolderLoaded
+   normally loads — fetching every file's text, then hands the list to
+   js/editor.js's printFolderDocs to lay out and print. Storage's job is
+   gathering the data; printFolderDocs only knows how to render it. */
+async function collectDriveFolderDocs(folderNode) {
+  await deepLoadNodes([folderNode]);
+
+  const fileNodes = [];
+  const walk = (node, folderName) => {
+    for (const child of node.children) {
+      if (child.mimeType === FOLDER_MIME) walk(child, child.name);
+      else fileNodes.push({ node: child, folderName });
+    }
+  };
+  walk(folderNode, folderNode.name);
+
+  return Promise.all(
+    fileNodes.map(async ({ node, folderName }) => {
+      const parsed = parseCreatedFromName(node.name);
+      const text = await driveGetFileText(node.id).catch(() => "");
+      return {
+        title: parsed.cleanTitle,
+        folderName,
+        created: parsed.createdDate || (node.createdTime ? new Date(node.createdTime) : null),
+        modified: node.modifiedTime ? new Date(node.modifiedTime) : null,
+        text,
+        rich: /\.md$/i.test(node.name),
+      };
+    }),
+  );
+}
+
+async function printDriveFolder(folderNode) {
+  setSyncStatus("saving", t("sync.printingFolder"));
+  try {
+    const docs = await collectDriveFolderDocs(folderNode);
+    printFolderDocs(docs);
+  } catch (e) {
+    console.error("printDriveFolder error", e);
+    setSyncStatus("error", t("sync.openFailed"));
+  }
+}
+
 /* Fill a <select> with one <option> per Drive folder, indented by nesting
    depth, ahead of whatever rootOptionHtml the caller wants as the first
    (unfiltered/root) choice. Shared by the "new document" modal's folder
