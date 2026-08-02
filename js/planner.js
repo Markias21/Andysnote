@@ -72,10 +72,15 @@ function plannerIdbPut(store, value) {
 
 async function plannerIdbLoadLastLabels() {
   const rec = await plannerIdbGet(PLANNER_META_STORE, "lastLabels").catch(() => null);
-  return { labels: rec && rec.labels ? rec.labels : null, fileId: null };
+  return {
+    labels: rec && rec.labels ? rec.labels : null,
+    colorIds: rec && Array.isArray(rec.colorIds) ? rec.colorIds : null,
+    colorPercents: rec && rec.colorPercents ? rec.colorPercents : null,
+    fileId: null,
+  };
 }
-async function plannerIdbSaveLastLabels(labels) {
-  await plannerIdbPut(PLANNER_META_STORE, { key: "lastLabels", labels }).catch(() => {});
+async function plannerIdbSaveLastLabels(labels, colorIds, colorPercents) {
+  await plannerIdbPut(PLANNER_META_STORE, { key: "lastLabels", labels, colorIds, colorPercents }).catch(() => {});
 }
 async function plannerIdbLoadMonth(monthKey) {
   const rec = await plannerIdbGet(PLANNER_MONTHS_STORE, monthKey).catch(() => null);
@@ -152,13 +157,18 @@ async function plannerDriveCreateFile(name, text) {
 
 async function plannerDriveLoadLastLabels() {
   const file = await plannerDriveFindFile("lastLabels.json");
-  if (!file) return { labels: null, fileId: null };
+  if (!file) return { labels: null, colorIds: null, colorPercents: null, fileId: null };
   const parsed = JSON.parse((await driveGetFileText(file.id)) || "{}");
-  return { labels: parsed.labels && typeof parsed.labels === "object" ? parsed.labels : null, fileId: file.id };
+  return {
+    labels: parsed.labels && typeof parsed.labels === "object" ? parsed.labels : null,
+    colorIds: Array.isArray(parsed.colorIds) ? parsed.colorIds : null,
+    colorPercents: parsed.colorPercents && typeof parsed.colorPercents === "object" ? parsed.colorPercents : null,
+    fileId: file.id,
+  };
 }
 
-async function plannerDriveSaveLastLabels(labels) {
-  const text = JSON.stringify({ labels }, null, 2);
+async function plannerDriveSaveLastLabels(labels, colorIds, colorPercents) {
+  const text = JSON.stringify({ labels, colorIds, colorPercents }, null, 2);
   if (plannerLastLabelsFileId) await drivePatch(plannerLastLabelsFileId, text);
   else plannerLastLabelsFileId = await plannerDriveCreateFile("lastLabels.json", text);
 }
@@ -182,8 +192,93 @@ function plannerBackendIsDrive() {
 
 function defaultPlannerLabels() {
   const obj = {};
-  for (const id of PLANNER_COLOR_IDS) obj[id] = "";
+  for (const id of plannerColorIds || PLANNER_COLOR_IDS) obj[id] = "";
   return obj;
+}
+
+/* Evenly spreads `ids` across [PLANNER_COLOR_MIN_PERCENT, PLANNER_COLOR_MAX_PERCENT] —
+   reproduces the original 22/38/54/70/86 split for the default 5-color palette, and
+   is the fallback whenever a saved record has colorIds but no matching percents. */
+function defaultPlannerColorPercents(ids) {
+  const min = PLANNER_COLOR_MIN_PERCENT;
+  const max = PLANNER_COLOR_MAX_PERCENT;
+  const obj = {};
+  ids.forEach((id, i) => {
+    obj[id] = ids.length <= 1 ? Math.round((min + max) / 2) : Math.round(min + ((max - min) * i) / (ids.length - 1));
+  });
+  return obj;
+}
+
+/* Where a NEW color's tone comes from: the midpoint of the widest currently-unused
+   gap in [PLANNER_COLOR_MIN_PERCENT, PLANNER_COLOR_MAX_PERCENT]. Never moves an
+   existing color's percent (so already-painted days never change color), and always
+   picks the tone most distinguishable from every color that exists so far. */
+function plannerLargestGapMidpoint(percents) {
+  const min = PLANNER_COLOR_MIN_PERCENT;
+  const max = PLANNER_COLOR_MAX_PERCENT;
+  const sorted = [min, ...percents.slice().sort((a, b) => a - b), max];
+  let bestGap = -1;
+  let bestMid = Math.round((min + max) / 2);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const gap = sorted[i + 1] - sorted[i];
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestMid = Math.round((sorted[i] + sorted[i + 1]) / 2);
+    }
+  }
+  return bestMid;
+}
+
+/* Generates the theme-adaptive --planner-cN color-mix() variables for every color
+   currently in the palette and (re)injects them as a single <style> override — the
+   count is user-extendable (plannerAddColor), so these can no longer live as a fixed
+   block in index.html the way the original 5 did. */
+function applyPlannerColorVars() {
+  if (!plannerColorPercents) return;
+  let css = "";
+  for (const id in plannerColorPercents) {
+    css += "--planner-" + id + ": color-mix(in srgb, var(--planner-anchor-b) " + plannerColorPercents[id] + "%, var(--planner-anchor-a));";
+  }
+  let styleEl = document.getElementById("planner-dynamic-colors");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "planner-dynamic-colors";
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = ":root{" + css + "}";
+}
+
+function plannerNextColorId(existingIds) {
+  let n = 1;
+  while (existingIds.includes("c" + n)) n++;
+  return "c" + n;
+}
+
+/* Adds one color to the global palette (legend "+" button) — extends the current
+   day's labels and, if this day already has a persisted entry, saves the new blank
+   slot into it too. Existing colors' ids/tones/data are never touched. */
+function plannerAddColor() {
+  if (!plannerColorIds || !plannerColorPercents || !plannerCurrentDayKey) return;
+  const newId = plannerNextColorId(plannerColorIds);
+  const pct = plannerLargestGapMidpoint(Object.values(plannerColorPercents));
+
+  plannerColorIds = plannerColorIds.concat(newId).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+  plannerColorPercents = Object.assign({}, plannerColorPercents, { [newId]: pct });
+
+  if (plannerLastLabels) plannerLastLabels[newId] = "";
+  if (plannerCurrentDayLabels) plannerCurrentDayLabels[newId] = "";
+
+  const dayKey = plannerCurrentDayKey;
+  const monthEntry = plannerMonthCache[dayKey.slice(0, 7)];
+  if (monthEntry && monthEntry.data[dayKey]) {
+    monthEntry.dirty = true;
+    schedulePlannerSave(dayKey.slice(0, 7));
+  }
+  schedulePlannerLastLabelsSave();
+  applyPlannerColorVars();
+
+  const [y, m, d] = dayKey.split("-").map(Number);
+  renderPlanner(y, m - 1, d);
 }
 
 /* ─── STORAGE: backend-agnostic layer (everything below calls only these) ─── */
@@ -196,12 +291,17 @@ async function loadPlannerLastLabels() {
     const loaded = plannerBackendIsDrive()
       ? await plannerDriveLoadLastLabels()
       : await plannerIdbLoadLastLabels();
+    plannerColorIds = loaded.colorIds && loaded.colorIds.length ? loaded.colorIds : PLANNER_COLOR_IDS.slice();
+    plannerColorPercents = loaded.colorPercents || defaultPlannerColorPercents(plannerColorIds);
     plannerLastLabels = loaded.labels || defaultPlannerLabels();
     plannerLastLabelsFileId = loaded.fileId;
   } catch (e) {
     console.error("loadPlannerLastLabels failed", e);
+    plannerColorIds = PLANNER_COLOR_IDS.slice();
+    plannerColorPercents = defaultPlannerColorPercents(plannerColorIds);
     plannerLastLabels = defaultPlannerLabels();
   }
+  applyPlannerColorVars();
   return plannerLastLabels;
 }
 
@@ -209,8 +309,8 @@ function schedulePlannerLastLabelsSave() {
   clearTimeout(plannerLastLabelsSaveTimer);
   plannerLastLabelsSaveTimer = setTimeout(async () => {
     try {
-      if (plannerBackendIsDrive()) await plannerDriveSaveLastLabels(plannerLastLabels);
-      else await plannerIdbSaveLastLabels(plannerLastLabels);
+      if (plannerBackendIsDrive()) await plannerDriveSaveLastLabels(plannerLastLabels, plannerColorIds, plannerColorPercents);
+      else await plannerIdbSaveLastLabels(plannerLastLabels, plannerColorIds, plannerColorPercents);
     } catch (e) {
       console.error("savePlannerLastLabels failed", e);
     }
@@ -291,6 +391,8 @@ function plannerResetCaches() {
   plannerFolderId = null;
   plannerFolderResolvePromise = null;
   plannerLastLabels = null;
+  plannerColorIds = null;
+  plannerColorPercents = null;
   plannerLastLabelsFileId = null;
   clearTimeout(plannerLastLabelsSaveTimer);
   plannerCurrentDayLabels = null;
@@ -307,7 +409,7 @@ function plannerDayEntryHasContent(dayEntry) {
   if (!dayEntry) return false;
   if (dayEntry.slots && Object.keys(dayEntry.slots).length) return true;
   if (dayEntry.labels) {
-    for (const id of PLANNER_COLOR_IDS) if ((dayEntry.labels[id] || "").trim()) return true;
+    for (const id of plannerColorIds || PLANNER_COLOR_IDS) if ((dayEntry.labels[id] || "").trim()) return true;
   }
   return false;
 }
@@ -374,6 +476,34 @@ function plannerDayTotalMinutes(dayData, colorId) {
 /* ─── RENDERING (day view) ─── */
 const PLANNER_ERASER_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>';
+const PLANNER_ADD_COLOR_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+
+function plannerSlotKeyOf(h, m) {
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+
+/* A painted cell's border is drawn ONLY on sides that face an unpainted
+   neighbor (or the grid edge) — so a contiguous block of painted cells gets
+   one clean outline around its outside, not a grid of lines through its
+   inside, even where two different colors sit side by side. Colors already
+   distinguish those internal seams; the border's only job is "painted vs.
+   not". Shared by the full-grid build (buildPlannerDom) and the
+   single-cell live update (plannerPaintCell) so both stay in sync. */
+function plannerCellInlineStyle(dayData, h, m, colorId) {
+  if (!colorId) return "";
+  const top = h === 0 || !dayData[plannerSlotKeyOf(h - 1, m)];
+  const bottom = h === 23 || !dayData[plannerSlotKeyOf(h + 1, m)];
+  const left = m === 0 || !dayData[plannerSlotKeyOf(h, m - PLANNER_SLOT_MINUTES)];
+  const right = m === 60 - PLANNER_SLOT_MINUTES || !dayData[plannerSlotKeyOf(h, m + PLANNER_SLOT_MINUTES)];
+  return (
+    "background:var(--planner-" + colorId + ");" +
+    "border-top-color:" + (top ? "var(--text)" : "transparent") + ";" +
+    "border-bottom-color:" + (bottom ? "var(--text)" : "transparent") + ";" +
+    "border-left-color:" + (left ? "var(--text)" : "transparent") + ";" +
+    "border-right-color:" + (right ? "var(--text)" : "transparent") + ";"
+  );
+}
 
 async function renderPlanner(year, month, day) {
   const container = document.getElementById("planner-panel");
@@ -432,13 +562,16 @@ function buildPlannerDom(container, monthEntry, dayKey, year, month, day, showIm
     grid += '<div class="planner-row" id="planner-row-' + hh + '">';
     grid += '<div class="planner-row-label">' + hh + ":00</div>";
     for (let m = 0; m < 60; m += PLANNER_SLOT_MINUTES) {
-      const slot = hh + ":" + String(m).padStart(2, "0");
+      const slot = plannerSlotKeyOf(h, m);
       const colorId = dayData[slot];
       const tooltip = colorId ? slot + " · " + plannerLabelFor(colorId) : slot;
+      const style = plannerCellInlineStyle(dayData, h, m, colorId);
       grid +=
         '<div class="planner-cell' +
-        (colorId ? " " + colorId : "") +
-        '" data-slot="' +
+        (colorId ? " painted " + colorId : "") +
+        '"' +
+        (style ? ' style="' + style + '"' : "") +
+        ' data-slot="' +
         slot +
         '" title="' +
         escapeHtml(tooltip) +
@@ -449,14 +582,16 @@ function buildPlannerDom(container, monthEntry, dayKey, year, month, day, showIm
   grid += "</div>";
 
   let legend = '<div class="planner-legend">';
-  for (const id of PLANNER_COLOR_IDS) {
+  for (const id of plannerColorIds || PLANNER_COLOR_IDS) {
     const name = plannerCurrentDayLabels[id] || "";
     legend +=
       '<div class="planner-legend-row">' +
       '<span class="planner-legend-swatch ' +
       id +
       (plannerActiveColorId === id && !plannerEraseMode ? " active" : "") +
-      '" title="' +
+      '" style="background:var(--planner-' +
+      id +
+      ')" title="' +
       escapeHtml(plannerLabelFor(id)) +
       "\" onclick=\"plannerSelectColor('" +
       id +
@@ -475,6 +610,12 @@ function buildPlannerDom(container, monthEntry, dayKey, year, month, day, showIm
       "</span>" +
       "</div>";
   }
+  legend +=
+    '<button type="button" class="planner-legend-add" title="' +
+    escapeHtml(t("planner.addColor")) +
+    '" onclick="plannerAddColor()">' +
+    PLANNER_ADD_COLOR_SVG +
+    "</button>";
   legend += "</div>";
 
   container.innerHTML =
@@ -512,7 +653,7 @@ function refreshPlannerToolbarActive() {
    renderPlanner() re-render — a full innerHTML rebuild would drop the name
    <input>'s focus/caret mid-keystroke. */
 function refreshPlannerLegendLabels() {
-  for (const id of PLANNER_COLOR_IDS) {
+  for (const id of plannerColorIds || PLANNER_COLOR_IDS) {
     const swatch = document.querySelector(".planner-legend-swatch." + id);
     if (swatch) swatch.title = plannerLabelFor(id);
   }
@@ -614,15 +755,41 @@ function plannerPaintCell(cell) {
   }
   monthEntry.dirty = true;
 
-  cell.className = "planner-cell" + (plannerPaintValue ? " " + plannerPaintValue : "");
+  const [hStr, mStr] = slot.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  cell.className = "planner-cell" + (plannerPaintValue ? " painted " + plannerPaintValue : "");
+  cell.style.cssText = plannerCellInlineStyle(dayData, h, m, plannerPaintValue);
   cell.title = plannerPaintValue ? slot + " · " + plannerLabelFor(plannerPaintValue) : slot;
+  plannerRefreshNeighborBorders(dayData, h, m);
 
   plannerRefreshTotals(dayData);
   schedulePlannerSave(monthKey);
 }
 
+/* Painting/erasing one cell can change which SIDES of its already-painted
+   neighbors count as an "outer" edge (see plannerCellInlineStyle) — e.g.
+   painting a cell right below an existing one joins them, so that cell's
+   bottom border must drop out. Only touches neighbors that are themselves
+   painted; an unpainted neighbor has no border state to recompute. */
+function plannerRefreshNeighborBorders(dayData, h, m) {
+  const neighbors = [
+    [h - 1, m],
+    [h + 1, m],
+    [h, m - PLANNER_SLOT_MINUTES],
+    [h, m + PLANNER_SLOT_MINUTES],
+  ];
+  for (const [nh, nm] of neighbors) {
+    if (nh < 0 || nh > 23 || nm < 0 || nm > 60 - PLANNER_SLOT_MINUTES) continue;
+    const nColorId = dayData[plannerSlotKeyOf(nh, nm)];
+    if (!nColorId) continue;
+    const el = document.querySelector('.planner-cell[data-slot="' + plannerSlotKeyOf(nh, nm) + '"]');
+    if (el) el.style.cssText = plannerCellInlineStyle(dayData, nh, nm, nColorId);
+  }
+}
+
 function plannerRefreshTotals(dayData) {
-  for (const id of PLANNER_COLOR_IDS) {
+  for (const id of plannerColorIds || PLANNER_COLOR_IDS) {
     const el = document.getElementById("planner-total-" + id);
     if (el) el.textContent = formatPlannerDuration(plannerDayTotalMinutes(dayData, id));
   }

@@ -160,7 +160,12 @@ var THEME_SWATCH_COLORS = {
    renderer filtering out plannerFolderId once resolved (see js/planner.js). */
 var PLANNER_FOLDER_NAME = "Calendar";
 var PLANNER_SLOT_MINUTES = 10; // single source for slot size -> minute math
-var PLANNER_COLOR_IDS = ["c1", "c2", "c3", "c4", "c5"];
+var PLANNER_COLOR_IDS = ["c1", "c2", "c3", "c4", "c5"]; // default palette for brand-new users
+// Color-mix range every planner color tone is picked from (% of --planner-anchor-b
+// mixed into --planner-anchor-a — see applyPlannerColorVars() in js/planner.js).
+// Kept off 0/100 so no tone ever becomes the literal bg or text color.
+var PLANNER_COLOR_MIN_PERCENT = 22;
+var PLANNER_COLOR_MAX_PERCENT = 86;
 var PLANNER_DB_NAME = "andysnote-planner";
 var PLANNER_DB_VERSION = 1;
 var PLANNER_MONTHS_STORE = "months";

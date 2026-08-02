@@ -64,14 +64,15 @@
              Mono themes: --bg/--text are already the two brightness extremes,
              so the base anchors below need no per-theme override. Concept
              themes override --planner-anchor-a to --surface instead (their
-             --bg is a photo, not mixable) — see those blocks below. */
+             --bg is a photo, not mixable) — see those blocks below.
+             The actual --planner-cN color-mix() variables (one per palette
+             color, user-extendable via the legend's + button — see
+             plannerAddColor() in js/planner.js) are no longer a fixed block
+             here: js/planner.js's applyPlannerColorVars() generates and
+             injects them into a <style id="planner-dynamic-colors"> in
+             <head> instead, since the count isn't fixed at 5 anymore. */
         --planner-anchor-a: var(--bg);
         --planner-anchor-b: var(--text);
-        --planner-c1: color-mix(in srgb, var(--planner-anchor-b) 22%, var(--planner-anchor-a));
-        --planner-c2: color-mix(in srgb, var(--planner-anchor-b) 38%, var(--planner-anchor-a));
-        --planner-c3: color-mix(in srgb, var(--planner-anchor-b) 54%, var(--planner-anchor-a));
-        --planner-c4: color-mix(in srgb, var(--planner-anchor-b) 70%, var(--planner-anchor-a));
-        --planner-c5: color-mix(in srgb, var(--planner-anchor-b) 86%, var(--planner-anchor-a));
       }
 
       /* ─── THEMES — toggled via Settings > Library > Theme, which stamps
@@ -1741,11 +1742,17 @@
         cursor: pointer;
         touch-action: none;
       }
-      .planner-cell.c1 { background: var(--planner-c1); }
-      .planner-cell.c2 { background: var(--planner-c2); }
-      .planner-cell.c3 { background: var(--planner-c3); }
-      .planner-cell.c4 { background: var(--planner-c4); }
-      .planner-cell.c5 { background: var(--planner-c5); }
+      /* Background (--planner-cN) and per-side border colors are set inline by
+         js/planner.js (plannerCellInlineStyle) — painted cells only draw a
+         border on sides that face an unpainted neighbor, so a block of
+         painted cells gets one outline around its outside, not internal grid
+         lines. This class just supplies the width/style every side needs so
+         that inline border-*-color can actually show. */
+      .planner-cell.painted {
+        border-style: solid;
+        border-width: 1px;
+        border-color: transparent;
+      }
 
       .planner-legend {
         width: 190px;
@@ -1789,11 +1796,32 @@
       .planner-legend-swatch.active {
         border-color: var(--text);
       }
-      .planner-legend-swatch.c1 { background: var(--planner-c1); }
-      .planner-legend-swatch.c2 { background: var(--planner-c2); }
-      .planner-legend-swatch.c3 { background: var(--planner-c3); }
-      .planner-legend-swatch.c4 { background: var(--planner-c4); }
-      .planner-legend-swatch.c5 { background: var(--planner-c5); }
+      /* background (--planner-cN) is set inline by js/planner.js — same reason
+         as .planner-cell above: the palette's color count isn't fixed at 5. */
+      .planner-legend-add {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 4px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .planner-legend-add:hover {
+        background: var(--surface3);
+        color: var(--text);
+      }
+      .planner-legend-add svg {
+        width: 14px;
+        height: 14px;
+      }
       .planner-legend-name {
         flex: 1 1 auto;
         min-width: 0;

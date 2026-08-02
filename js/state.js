@@ -61,6 +61,8 @@ let plannerFolderId = null; // Drive ID of "AndysNote/Calendar/" (also the sideb
 let plannerFolderResolvePromise = null; // in-flight resolvePlannerFolderId() promise (dedupe)
 let plannerDbPromise = null; // cached IndexedDB connection for the offline planner store
 let plannerLastLabels = null; // {c1:"",...,c5:""} seed for new days once loaded; null = not loaded yet
+let plannerColorIds = null; // ["c1",...] active palette ids, user-extendable via the legend's + button; null = not loaded yet
+let plannerColorPercents = null; // {c1:22,...} color-mix % per id (see applyPlannerColorVars in planner.js); null = not loaded yet
 let plannerLastLabelsFileId = null; // Drive file ID of lastLabels.json, or null if not created yet
 let plannerLastLabelsSaveTimer = null;
 let plannerCurrentDayLabels = null; // {c1..c5} labels object for the day view currently rendered
