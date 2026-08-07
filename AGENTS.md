@@ -3,7 +3,7 @@
 ## Read First
 
 - Read [docs/PRINCIPLE.md](docs/PRINCIPLE.md) before making changes.
-- Also read [docs/DECISIONS.md](docs/DECISIONS.md) for the current architectural decisions.
+- Also read the 결정 로그 (Decision Log) section in [CLAUDE.md](CLAUDE.md) for the current architectural decisions.
 - Keep the project rules in those files as the source of truth.
 
 ## Core Rules
