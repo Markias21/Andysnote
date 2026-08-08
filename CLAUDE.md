@@ -103,3 +103,34 @@
   없었고, 사용자가 `CLAUDE.md`로 일원화하기로 결정함.
 - 영향: `AGENTS.md`의 "Read First" 항목을 `docs/DECISIONS.md` 대신
   `CLAUDE.md` 결정 로그를 참조하도록 수정함.
+
+### 2026-08-08 — AndysLetter 추가: Supabase는 우체국이지 문서 저장소가 아니다
+- 결정: 유저 간 편지 기능 "AndysLetter"를 라이브러리·캘린더와 나란한 세 번째
+  최상위 뷰로 추가한다. 편지 배달을 위해 Supabase(Postgres + Auth)를 도입한다
+  (이 프로젝트의 첫 외부 서버·외부 JS 라이브러리 의존성).
+- 이유: 원칙 2("모든 문서는 .txt/.md로 저장, 메모장으로 읽을 수 있어야")는
+  사용자가 작성한 문서 데이터에 대한 것이다. Supabase에 있는 편지는 아직
+  배달 중인 우편물이지 사용자의 문서가 아니라고 해석한다. 편지가 실제
+  문서(Source of Truth)가 되는 시점은 Drive 또는 로컬로 "내보내기"할 때이며,
+  그 순간 반드시 사람이 읽을 수 있는 `.md`로 저장된다(js/letter/export.js:
+  letterBuildMarkdown). 이 해석으로 원칙 2와 AndysLetter는 충돌하지 않는다.
+- 추가 결정:
+  - 편지 도착 지연 없음(즉시 도착). 지연 배송은 만들지 않음(`docs/additional.md`
+    로 이동).
+  - 가입은 구글 로그인 + 이메일/비밀번호 둘 다 허용하되, 소규모 운영을 위해
+    관리자(admin) 승인을 받아야 편지를 주고받을 수 있다(`letter_users.status`).
+    관리자 계정 지정은 비밀번호를 코드/SQL에 남기지 않고 Supabase 대시보드에서만
+    설정한다 (`docs/supabase-schema.sql` §7).
+  - 내보내기 후 원본 처리: 구글 드라이브 연동 사용자는 Drive 저장이 확인된
+    후에만 Supabase 원본을 삭제한다(무료 용량 절약). 구글 미연동 사용자는
+    기존 로컬 노트로 저장하되 Supabase 원본은 남긴다 — 로컬 저장은 그 기기
+    에만 있으므로 유일한 사본을 지우지 않기 위함.
+  - `Letters` 폴더는 플래너의 `Calendar` 폴더와 달리 사이드바에서 숨기지
+    않는다 — 내보낸 편지는 일반 문서이므로 라이브러리·캘린더·검색에 그대로
+    잡히는 것이 맞다.
+- 영향: `js/ui.js`의 `switchView`가 `library`/`calendar` 2분기에서
+  `library`/`calendar`/`letter` 3분기로 바뀜. `js/config.js`, `js/state.js`,
+  `js/i18n.js`에 AndysLetter 관련 블록 추가. 새 파일:
+  `js/letter.js`, `js/letter/api.js`, `js/letter/papers.js`,
+  `js/letter/compose.js`, `js/letter/admin.js`, `js/letter/export.js`,
+  `docs/supabase-schema.sql`, `docs/additional.md`.

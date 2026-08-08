@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSidebarContextMenu();
   initLocalContextMenu();
   initTrashDropTarget();
+  initLetter();
 
   // Init the live Markdown engine with an empty document.
   editorOpen("");
@@ -36,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
       closeModal();
       closeSettings();
       closeSidebarMobile();
+      if (letterComposeOpen) letterCloseCompose();
+      else if (letterOpenId) letterCloseDetail();
     }
   });
 

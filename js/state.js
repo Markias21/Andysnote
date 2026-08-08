@@ -77,3 +77,20 @@ let plannerPaintValue = null; // "c1".."c5" or null (eraser) — fixed once per 
 let plannerLastPaintedSlot = null; // dedupe re-entering the same cell during a drag
 let plannerCurrentDayKey = null; // "YYYY-MM-DD" of the day view currently being rendered (stale-response guard)
 let plannerStatsToken = 0; // bumped on every renderPlannerStats() call (stale-response guard for the summary view)
+
+/* ─── ANDYSLETTER (js/letter.js, js/letter/*.js) ──────────────────────────
+   AndysLetter's own sign-in is independent of driveAccessToken above — a
+   user can be signed into Drive, AndysLetter, both, or neither. */
+let letterSb = null; // the supabase-js client instance, created once by js/letter/api.js
+let letterSession = null; // current Supabase auth session, or null when signed out
+let letterProfile = null; // this user's letter_users row ({postcode,display_name,status,is_admin,...}), or null before it's loaded/created
+let letterViewMode = "inbox"; // active tab: "inbox" | "sent" | "contacts" | "admin"
+let letterInbox = null; // cached received letters (array), null = not loaded yet
+let letterSent = null; // cached sent letters (array), null = not loaded yet
+let letterContacts = null; // cached address book rows (array), null = not loaded yet
+let letterOpenId = null; // id of the letter shown in detail view, overlaying the active tab; null = tab's list is shown
+let letterComposeOpen = false; // true while the compose form is shown, overlaying the active tab
+let letterComposeDraft = null; // { toPostcode, senderName, recipientName, subject, body, paperId, envelopeColor, fontId } — prefilled when opened from a contact or a reply
+let letterAdminUsers = null; // cached admin user list (array), null = not loaded yet (admin view only)
+let letterAuthMode = "signin"; // "signin" | "signup" — which form the email/password sign-in screen shows
+let letterPostcodeCheckTimer = null; // debounce timer for the compose form's live postcode-exists check

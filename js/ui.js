@@ -38,25 +38,34 @@ function updateTodayDate() {
   );
 }
 
-/* ─── VIEW SWITCHING ─── */
+/* ─── VIEW SWITCHING ───────────────────────────────────────────────────────
+   Three top-level views now (library/calendar/AndysLetter) — explicit
+   per-view branches instead of an if/else catch-all, since a catch-all
+   would silently lump a third view in with the calendar's. Each branch
+   handles its own nav-button state, view container, sidebar visibility,
+   and on-entry render. */
 function switchView(view) {
   const btnLib = document.getElementById("btn-library");
   const btnCal = document.getElementById("btn-calendar");
+  const btnLetter = document.getElementById("btn-letter");
   const libView = document.getElementById("library-view");
   const calView = document.getElementById("calendar-view");
+  const letterView = document.getElementById("letter-view");
   const sidebar = document.getElementById("sidebar");
-  if (view === "library") {
-    btnLib.classList.add("active");
-    btnCal.classList.remove("active");
-    libView.style.display = "flex";
-    calView.classList.add("hidden");
-    sidebar.style.display = "";
-  } else {
-    btnLib.classList.remove("active");
-    btnCal.classList.add("active");
-    libView.style.display = "none";
-    calView.classList.remove("hidden");
-    sidebar.style.display = "none";
+
+  btnLib.classList.toggle("active", view === "library");
+  btnCal.classList.toggle("active", view === "calendar");
+  btnLetter.classList.toggle("active", view === "letter");
+
+  libView.style.display = view === "library" ? "flex" : "none";
+  calView.classList.toggle("hidden", view !== "calendar");
+  letterView.classList.toggle("hidden", view !== "letter");
+
+  // AndysLetter has no folder tree of its own, so the sidebar only needs to
+  // stay visible for the library view — same as the calendar's behavior.
+  sidebar.style.display = view === "library" ? "" : "none";
+
+  if (view === "calendar") {
     renderCalendar();
     // The Drive tree is lazy-loaded (only expanded folders have their
     // children fetched), so the calendar would otherwise miss anything
@@ -65,6 +74,8 @@ function switchView(view) {
     if (driveAccessToken && !driveTreeFullyLoaded) {
       loadEntireTree().then(renderCalendar);
     }
+  } else if (view === "letter") {
+    renderLetterView();
   }
 }
 

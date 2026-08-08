@@ -170,3 +170,53 @@ var PLANNER_DB_NAME = "andysnote-planner";
 var PLANNER_DB_VERSION = 1;
 var PLANNER_MONTHS_STORE = "months";
 var PLANNER_META_STORE = "meta";
+
+/* ─── ANDYSLETTER (js/letter.js, js/letter/*.js) ──────────────────────────
+   AndysLetter is a third top-level view, sibling to Library/Calendar. It's
+   the one feature that talks to a server other than Google's — Supabase is
+   used purely as a mail-relay between users (see docs/supabase-schema.sql).
+   A letter only becomes a real user document (.md, Source of Truth per
+   docs/PRINCIPLE.md §4) once it's exported to Drive or a local note; while
+   it sits in Supabase it's in-transit mail, not a saved document. */
+var SUPABASE_URL = ""; // 👇 배포 전 Supabase 프로젝트 URL을 채워 넣으세요
+var SUPABASE_ANON_KEY = ""; // 👇 anon(publishable) key — 공개되어도 되는 값입니다 (보안은 RLS가 담당)
+
+// Reserved local/Drive folder name for exported letters. Unlike the
+// planner's "Calendar" folder, this one is NOT hidden from the sidebar —
+// an exported letter is meant to show up as a normal document.
+var LETTER_FOLDER_NAME = "Letters";
+
+var LETTER_POSTCODE_REGEX = /^[0-9]{5}$/;
+
+// Letter paper designs — pure CSS (index.html .letter-paper-<id>), no image
+// assets, so they follow every theme automatically. Order here is the
+// order shown in the paper picker.
+var LETTER_PAPERS = [
+  { id: "plain", labelKey: "letter.paper.plain" },
+  { id: "ruled", labelKey: "letter.paper.ruled" },
+  { id: "manuscript", labelKey: "letter.paper.manuscript" },
+  { id: "kraft", labelKey: "letter.paper.kraft" },
+  { id: "romance", labelKey: "letter.paper.romance" },
+  { id: "ornate", labelKey: "letter.paper.ornate" },
+  { id: "night", labelKey: "letter.paper.night" },
+  { id: "blossom", labelKey: "letter.paper.blossom" },
+];
+var DEFAULT_LETTER_PAPER = "plain";
+
+// Envelope colors shown in the inbox/sent list as the envelope card background.
+var LETTER_ENVELOPES = [
+  { id: "cream", labelKey: "letter.envelope.cream" },
+  { id: "white", labelKey: "letter.envelope.white" },
+  { id: "kraft", labelKey: "letter.envelope.kraft" },
+  { id: "rose", labelKey: "letter.envelope.rose" },
+  { id: "sky", labelKey: "letter.envelope.sky" },
+  { id: "sage", labelKey: "letter.envelope.sage" },
+  { id: "lavender", labelKey: "letter.envelope.lavender" },
+  { id: "charcoal", labelKey: "letter.envelope.charcoal" },
+];
+var DEFAULT_LETTER_ENVELOPE = "cream";
+
+// localStorage key for the Supabase session (mirrors DRIVE_TOKEN_STORAGE_KEY's
+// role for Drive — lets AndysLetter restore its own login independently of
+// the Google Drive sign-in above it).
+var LETTER_SESSION_STORAGE_KEY = "andysnote-letter-session";
