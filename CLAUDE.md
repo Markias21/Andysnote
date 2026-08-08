@@ -134,3 +134,25 @@
   `js/letter.js`, `js/letter/api.js`, `js/letter/papers.js`,
   `js/letter/compose.js`, `js/letter/admin.js`, `js/letter/export.js`,
   `docs/supabase-schema.sql`, `docs/additional.md`.
+
+### 2026-08-08 — AndysLetter 알림: 실시간 구독 대신 탭 체류 중 폴링, 읽음 확인은 서버 동기화
+- 결정: "편지 도착"/"읽음" 알림을 만들면서 트레이드오프가 있는 두 지점을
+  먼저 물어서 결정했다.
+  1. 알림 갱신 방식 — Supabase Realtime 구독을 새로 도입하지 않고, 앤디스레터
+     탭에 머무는 동안만 30초 간격으로 다시 fetch한다(`js/letter/notify.js`:
+     `letterStartNotifyPolling`). 탭 진입/전환 시점에는 즉시 한 번 더
+     새로고침한다.
+  2. "읽었습니다" 알림 해제 방식 — 로컬(브라우저)에만 "확인함"을 남기지
+     않고, `letters.read_seen_at` 컬럼 + `letter_ack_read_notification` RPC로
+     서버에 기록한다. `read_at`(받는 사람이 읽은 시각)과 개념이 달라
+     컬럼을 분리했다.
+- 이유: 1번은 AndysLetter에 실시간 인프라가 아직 없어 최소 변경으로
+  가능한 쪽을 택함. 2번은 read_at처럼 여러 기기에서 일관되게 동작해야
+  한다는 점이 스키마 변경(되돌리기 어려움)보다 우선한다고 판단해 서버
+  저장을 선택함.
+- 영향: `docs/supabase-schema.sql`에 `letters.read_seen_at` 컬럼과
+  `letter_ack_read_notification(uuid)` RPC 추가 — **Supabase 대시보드에서
+  스크립트를 다시 실행해야 실제로 적용된다**(멱등이라 재실행 안전).
+  새 파일 `js/letter/notify.js`. `js/settings.js`에 "앤디스레터" 설정
+  탭(`letter.notificationsEnabled`) 추가. 모바일(≤768px)에서는 알림
+  패널을 아예 숨김 — 별도 대안(푸시 등)은 만들지 않음.
