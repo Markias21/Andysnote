@@ -94,3 +94,6 @@ let letterComposeDraft = null; // { toPostcode, senderName, recipientName, subje
 let letterAdminUsers = null; // cached admin user list (array), null = not loaded yet (admin view only)
 let letterAuthMode = "signin"; // "signin" | "signup" — which form the email/password sign-in screen shows
 let letterPostcodeCheckTimer = null; // debounce timer for the compose form's live postcode-exists check
+let letterNotifyArrived = []; // unread inbox letters (js/letter/notify.js), [{id, sender_name, sent_at}]
+let letterNotifyReadReceipts = []; // sent letters the recipient read but the sender hasn't seen the notification for yet, [{id, recipient_name, read_at}]
+let letterNotifyTimer = null; // setInterval handle for the notification poll while the AndysLetter tab is open, or null

@@ -2734,10 +2734,41 @@
         background: var(--surface3);
         color: var(--text);
       }
+      .letter-topbar-right-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+      }
       .letter-topbar-right {
         display: flex;
         align-items: center;
         gap: 10px;
+      }
+      .letter-notify-panel:empty {
+        display: none;
+      }
+      .letter-notify-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-width: 320px;
+      }
+      .letter-notify-item {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text-dim);
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .letter-notify-item:hover {
+        background: var(--surface3);
+        color: var(--text);
       }
       .letter-postcode-chip {
         font-size: 12px;
@@ -3323,6 +3354,9 @@
         }
         .letter-paper {
           padding: 20px;
+        }
+        .letter-notify-panel {
+          display: none !important;
         }
       }
     </style>
@@ -4202,6 +4236,7 @@
     <script src="js/letter/compose.js?v=202607047"></script>
     <script src="js/letter/admin.js?v=202607047"></script>
     <script src="js/letter/export.js?v=202607047"></script>
+    <script src="js/letter/notify.js?v=202607047"></script>
     <script src="js/letter.js?v=202607047"></script>
 
     <script src="js/app.js?v=202607047"></script>

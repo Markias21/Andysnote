@@ -64,9 +64,12 @@ create table if not exists letters (
   font_id               text not null default '',
   sent_at               timestamptz not null default now(),
   read_at               timestamptz,
+  read_seen_at          timestamptz, -- 보낸 사람이 "읽었습니다" 알림을 확인한 시각(letter_ack_read_notification). read_at과 분리한 이유: read_at은 받는 사람이 편지를 연 시각이라 손댈 수 없고, 이건 그 사실을 보낸 사람이 알림창에서 확인했는지만 별도로 추적한다.
   archived_by_sender    boolean not null default false,
   archived_by_recipient boolean not null default false
 );
+
+alter table letters add column if not exists read_seen_at timestamptz;
 
 -- 주소록. 이건 순수하게 본인 것만 읽고 쓰므로 RPC 없이 RLS로 직접 CRUD 한다.
 create table if not exists letter_contacts (
@@ -317,6 +320,20 @@ begin
 end;
 $$;
 
+-- "OO님이 편지를 읽었습니다" 알림 확인 처리. 보낸 사람만, 그리고 그 편지가
+-- 실제로 읽힌 뒤에만 기록한다. 기기마다 따로 남기지 않고 서버에 남기는 이유는
+-- 어느 기기에서 확인하든 알림이 다 같이 사라져야 하기 때문이다.
+create or replace function letter_ack_read_notification(p_id uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update letters
+  set read_seen_at = now()
+  where id = p_id and sender_id = auth.uid() and read_at is not null and read_seen_at is null;
+$$;
+
 -- 내보내기 후 아카이브. 호출자 쪽 플래그만 켜고, 양쪽 다 켜졌으면 행을 지운다.
 create or replace function letter_archive(p_id uuid)
 returns boolean
@@ -450,14 +467,14 @@ grant execute on function letter_is_admin(), letter_is_approved() to public;
 revoke execute on function
   letter_claim_postcode(text, text), letter_postcode_exists(text),
   letter_send(text, text, text, text, text, text, text, text),
-  letter_mark_read(uuid), letter_archive(uuid),
+  letter_mark_read(uuid), letter_ack_read_notification(uuid), letter_archive(uuid),
   letter_admin_list_users(), letter_admin_set_status(uuid, text)
 from public, anon;
 
 grant execute on function
   letter_claim_postcode(text, text), letter_postcode_exists(text),
   letter_send(text, text, text, text, text, text, text, text),
-  letter_mark_read(uuid), letter_archive(uuid),
+  letter_mark_read(uuid), letter_ack_read_notification(uuid), letter_archive(uuid),
   letter_admin_list_users(), letter_admin_set_status(uuid, text)
 to authenticated;
 

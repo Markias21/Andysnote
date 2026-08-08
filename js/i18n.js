@@ -130,6 +130,8 @@ const I18N = {
     "settings.tabLibrary": "Library",
     "settings.tabFonts": "Fonts",
     "settings.tabCalendar": "Calendar",
+    "settings.tabLetter": "AndysLetter",
+    "settings.notifyEnabled": "Show new-letter / read-receipt notifications",
     "settings.groupUI": "UI",
     "settings.groupBehavior": "Behavior",
     "settings.groupFont": "Font",
@@ -304,6 +306,8 @@ const I18N = {
     "letter.admin.you": "you",
     "letter.admin.confirmReject": "Reject this sign-up request?",
     "letter.admin.confirmRevoke": "Revoke this user's access?",
+    "letter.notifyArrived": "A letter arrived from {name}!",
+    "letter.notifyRead": "{name} read your letter",
   },
   ko: {
     "nav.library": "라이브러리",
@@ -426,6 +430,8 @@ const I18N = {
     "settings.tabLibrary": "라이브러리",
     "settings.tabFonts": "폰트",
     "settings.tabCalendar": "캘린더",
+    "settings.tabLetter": "앤디스레터",
+    "settings.notifyEnabled": "새 편지 / 읽음 알림 표시",
     "settings.groupUI": "UI",
     "settings.groupBehavior": "동작",
     "settings.groupFont": "폰트",
@@ -600,6 +606,8 @@ const I18N = {
     "letter.admin.you": "나",
     "letter.admin.confirmReject": "이 가입 신청을 거부할까요?",
     "letter.admin.confirmRevoke": "이 사용자의 접근 권한을 회수할까요?",
+    "letter.notifyArrived": "{name}에게서 편지가 도착했습니다!",
+    "letter.notifyRead": "{name}님이 편지를 읽었습니다",
   },
 };
 

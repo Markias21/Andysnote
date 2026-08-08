@@ -141,6 +141,9 @@ function defaultSettings() {
       pinEnabled: false, // require a 4-digit PIN to enter a Google-signed-in session — see js/lock.js
       pinHash: "", // SHA-256 hex digest of the PIN; never the plaintext PIN itself
     },
+    letter: {
+      notificationsEnabled: true, // show the AndysLetter notification panel + inbox unread count, see js/letter/notify.js
+    },
   };
 }
 
@@ -204,6 +207,16 @@ function setSetting(path, value) {
   applySettings();
   if (path === "ui.indentMode") editorRefreshIndentDisplay();
   if (path === "ui.language") refreshUiLanguage();
+  if (path === "letter.notificationsEnabled") {
+    if (value && isLetterViewVisible()) letterStartNotifyPolling();
+    if (!value) {
+      letterStopNotifyPolling();
+      letterNotifyArrived = [];
+      letterNotifyReadReceipts = [];
+      letterRenderNotifyPanel();
+      letterUpdateInboxTabLabel();
+    }
+  }
 
   // Disabling autosave/sync must take effect immediately: cancel any save
   // already queued on a debounce timer before the toggle flipped.
@@ -377,6 +390,18 @@ function settingsTabs() {
       id: "calendar",
       label: t("settings.tabCalendar"),
       groups: [], // nothing here yet
+    },
+    {
+      id: "letter",
+      label: t("settings.tabLetter"),
+      groups: [
+        {
+          title: t("settings.groupBehavior"),
+          fields: [
+            { path: "letter.notificationsEnabled", label: t("settings.notifyEnabled"), type: "bool" },
+          ],
+        },
+      ],
     },
   ];
 }

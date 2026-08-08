@@ -208,6 +208,34 @@ async function letterApiMarkRead(id) {
   return data; // ISO timestamp string, or null if not yet read
 }
 
+/* ─── NOTIFICATIONS (js/letter/notify.js) ───────────────────────────────────
+   Two plain RLS-scoped selects (own rows only, same policy letterApiLoadInbox/
+   letterApiLoadSent already rely on) instead of a full inbox/sent reload, so
+   polling stays cheap. */
+async function letterApiLoadNotifications() {
+  const sb = letterInitClient();
+  const uid = letterSession.user.id;
+  const [arrivedRes, readRes] = await Promise.all([
+    sb.from("letters").select("id, sender_name, sent_at").eq("recipient_id", uid).is("read_at", null).order("sent_at", { ascending: false }),
+    sb
+      .from("letters")
+      .select("id, recipient_name, read_at")
+      .eq("sender_id", uid)
+      .not("read_at", "is", null)
+      .is("read_seen_at", null)
+      .order("read_at", { ascending: false }),
+  ]);
+  if (arrivedRes.error) throw arrivedRes.error;
+  if (readRes.error) throw readRes.error;
+  return { arrived: arrivedRes.data || [], readReceipts: readRes.data || [] };
+}
+
+async function letterApiAckReadNotification(id) {
+  const sb = letterInitClient();
+  const { error } = await sb.rpc("letter_ack_read_notification", { p_id: id });
+  if (error) throw error;
+}
+
 /* Returns true if the letter was fully deleted (both sides had archived it). */
 async function letterApiArchive(id) {
   const sb = letterInitClient();

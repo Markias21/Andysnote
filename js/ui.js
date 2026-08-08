@@ -77,5 +77,7 @@ function switchView(view) {
   } else if (view === "letter") {
     renderLetterView();
   }
+
+  if (view !== "letter") letterStopNotifyPolling();
 }
 

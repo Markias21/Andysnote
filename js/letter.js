@@ -161,6 +161,9 @@ async function letterHandleSignOut() {
   } catch (e) {
     console.error("letterApiSignOut failed", e);
   }
+  letterStopNotifyPolling();
+  letterNotifyArrived = [];
+  letterNotifyReadReceipts = [];
   letterViewMode = "inbox";
   letterOpenId = null;
   letterComposeOpen = false;
@@ -260,20 +263,24 @@ function letterRenderShell(root) {
   root.innerHTML = `
     <div class="letter-topbar">
       <div class="letter-tabs">
-        <button class="letter-tab ${letterViewMode === "inbox" ? "active" : ""}" onclick="letterSwitchTab('inbox')">${escapeHtml(t("letter.tabInbox"))}</button>
+        <button id="letter-tab-inbox" class="letter-tab ${letterViewMode === "inbox" ? "active" : ""}" onclick="letterSwitchTab('inbox')">${escapeHtml(t("letter.tabInbox"))}${letterNotifyArrived.length ? ` (${letterNotifyArrived.length})` : ""}</button>
         <button class="letter-tab ${letterViewMode === "sent" ? "active" : ""}" onclick="letterSwitchTab('sent')">${escapeHtml(t("letter.tabSent"))}</button>
         <button class="letter-tab ${letterViewMode === "contacts" ? "active" : ""}" onclick="letterSwitchTab('contacts')">${escapeHtml(t("letter.tabContacts"))}</button>
         ${isAdmin ? `<button class="letter-tab ${letterViewMode === "admin" ? "active" : ""}" onclick="letterSwitchTab('admin')">${escapeHtml(t("letter.tabAdmin"))}</button>` : ""}
       </div>
-      <div class="letter-topbar-right">
-        <span class="letter-postcode-chip">${escapeHtml(t("letter.myPostcode"))}: ${escapeHtml(letterProfile.postcode)}</span>
-        <button class="btn btn-accent" onclick="letterOpenCompose()">${escapeHtml(t("letter.compose"))}</button>
-        <button class="letter-signout-btn" title="${escapeHtml(t("letter.signOut"))}" onclick="letterHandleSignOut()">✕</button>
+      <div class="letter-topbar-right-col">
+        <div class="letter-topbar-right">
+          <span class="letter-postcode-chip">${escapeHtml(t("letter.myPostcode"))}: ${escapeHtml(letterProfile.postcode)}</span>
+          <button class="btn btn-accent" onclick="letterOpenCompose()">${escapeHtml(t("letter.compose"))}</button>
+          <button class="letter-signout-btn" title="${escapeHtml(t("letter.signOut"))}" onclick="letterHandleSignOut()">✕</button>
+        </div>
+        <div class="letter-notify-panel" id="letter-notify-panel"></div>
       </div>
     </div>
     <div class="letter-body" id="letter-body"></div>
   `;
   letterRenderBody();
+  letterStartNotifyPolling();
 }
 
 function letterSwitchTab(tab) {
@@ -394,6 +401,7 @@ async function letterRenderDetail(body) {
   if (letterViewMode === "inbox" && !letter.read_at) {
     try {
       letter.read_at = await letterApiMarkRead(letter.id);
+      letterRefreshNotifications(); // drops the "arrived" notification/count for this letter right away, not on the next poll tick
     } catch (e) {
       console.error("letterApiMarkRead failed", e);
     }
@@ -467,12 +475,14 @@ function letterOpenCompose(prefill) {
   letterComposeOpen = true;
   letterOpenId = null;
   letterRenderBody();
+  letterRenderNotifyPanel(); // hidden while composing, per spec
 }
 
 function letterCloseCompose() {
   letterComposeOpen = false;
   letterComposeDraft = null;
   letterRenderBody();
+  letterRenderNotifyPanel();
 }
 
 /* ─── ADDRESS BOOK (letter_contacts) ─── */
