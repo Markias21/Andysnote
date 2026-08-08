@@ -8,6 +8,7 @@
 function renderLetterCompose(body) {
   const d = letterComposeDraft;
   body.innerHTML = `
+    <div class="letter-compose-page">
     <button type="button" class="letter-back-btn" onclick="letterCloseCompose()">${LETTER_BACK_ICON_SVG}<span>${escapeHtml(t("letter.backToList"))}</span></button>
     <h2>${escapeHtml(t("letter.composeHeading"))}</h2>
     <form class="letter-compose-form" onsubmit="letterSubmitCompose(event)">
@@ -68,6 +69,7 @@ function renderLetterCompose(body) {
       </div>
       <div class="letter-auth-error" id="letter-compose-error"></div>
     </form>
+    </div>
   `;
 
   if (d.toPostcode) letterCheckComposePostcode();
