@@ -47,7 +47,7 @@ function renderLetterCompose(body) {
         </div>
         <div class="letter-compose-row">
           <label>${escapeHtml(t("letter.fontLabel"))}</label>
-          <select id="letter-compose-font">
+          <select id="letter-compose-font" onchange="letterOnComposeFontChange(this.value)">
             <option value="">—</option>
             ${letterFontOptions()
               .map((o) => `<option value="${o.value}"${o.value === d.fontId ? " selected" : ""}>${escapeHtml(o.label)}</option>`)
@@ -58,6 +58,7 @@ function renderLetterCompose(body) {
       <textarea
         id="letter-compose-body"
         class="letter-compose-body ${letterPaperClass(d.paperId)}"
+        style="${letterFontStack(d.fontId) ? `font-family:${letterFontStack(d.fontId)},sans-serif;` : ""}"
         maxlength="20000"
         placeholder="${escapeHtml(t("letter.bodyLabel"))}"
         required
@@ -75,6 +76,11 @@ function renderLetterCompose(body) {
 function letterOnComposePaperChange(paperId) {
   const textarea = document.getElementById("letter-compose-body");
   if (textarea) textarea.className = "letter-compose-body " + letterPaperClass(paperId);
+}
+
+function letterOnComposeFontChange(fontId) {
+  const textarea = document.getElementById("letter-compose-body");
+  if (textarea) textarea.style.fontFamily = letterFontStack(fontId) ? letterFontStack(fontId) + ",sans-serif" : "";
 }
 
 /* Debounced "does this postcode exist" check — mirrors the app's existing
