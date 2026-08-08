@@ -431,12 +431,23 @@ $$;
 -- ───────────────────────────────────────────────────────────────────────────
 -- §6. 권한
 -- ───────────────────────────────────────────────────────────────────────────
--- Postgres 는 새 함수의 EXECUTE 를 PUBLIC 에 기본 부여한다. 로그인하지 않은
--- anon 키로도 호출할 수 있다는 뜻이므로 명시적으로 회수하고 authenticated 에게만 준다.
--- (함수 안에서도 auth.uid() 로 다시 확인하지만, 층을 하나 더 둔다.)
+-- Postgres 는 새 함수의 EXECUTE 를 PUBLIC 에 기본 부여한다. 실제 발송/승인
+-- 같은 동작을 하는 RPC는 로그인하지 않은 anon 으로도 호출할 수 있으면 안 되므로
+-- 명시적으로 회수하고 authenticated 에게만 준다 (함수 안에서도 auth.uid() 로
+-- 다시 확인하지만, 층을 하나 더 둔다).
+--
+-- letter_is_admin()/letter_is_approved() 는 예외다 — 이 둘은 RPC로 직접
+-- 호출되는 게 아니라 §3의 RLS 정책(letter_users의 SELECT, letter_contacts의
+-- INSERT) "안에서" 호출된다. Postgres는 정책 표현식을 평가할 때 그 조회를
+-- 실행하는 역할(anon 포함)이 정책이 참조하는 함수의 EXECUTE 권한도 가지고
+-- 있어야 한다 — 최종 결과가 false가 되더라도 평가 자체가 막히면
+-- "permission denied for function letter_is_admin" 에러가 난다. 그래서
+-- 이 둘만 public 전체에 열어둔다. 안전한 이유: 인자를 받지 않고 항상
+-- auth.uid() 기준으로만 "나 자신"을 확인하므로, 남의 정보를 캐낼 방법이 없다.
+revoke execute on function letter_is_admin(), letter_is_approved() from public;
+grant execute on function letter_is_admin(), letter_is_approved() to public;
 
 revoke execute on function
-  letter_is_admin(), letter_is_approved(),
   letter_claim_postcode(text, text), letter_postcode_exists(text),
   letter_send(text, text, text, text, text, text, text, text),
   letter_mark_read(uuid), letter_archive(uuid),
@@ -444,7 +455,6 @@ revoke execute on function
 from public, anon;
 
 grant execute on function
-  letter_is_admin(), letter_is_approved(),
   letter_claim_postcode(text, text), letter_postcode_exists(text),
   letter_send(text, text, text, text, text, text, text, text),
   letter_mark_read(uuid), letter_archive(uuid),
