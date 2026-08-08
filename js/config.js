@@ -178,8 +178,8 @@ var PLANNER_META_STORE = "meta";
    A letter only becomes a real user document (.md, Source of Truth per
    docs/PRINCIPLE.md §4) once it's exported to Drive or a local note; while
    it sits in Supabase it's in-transit mail, not a saved document. */
-var SUPABASE_URL = ""; // 👇 배포 전 Supabase 프로젝트 URL을 채워 넣으세요
-var SUPABASE_ANON_KEY = ""; // 👇 anon(publishable) key — 공개되어도 되는 값입니다 (보안은 RLS가 담당)
+var SUPABASE_URL = "https://xyazsjhgbrcwjkoxnhvl.supabase.co";
+var SUPABASE_ANON_KEY = "sb_publishable_738-jsHFP3KwwlWhJBz2fQ_V1zsbCRX"; // publishable key — 공개되어도 되는 값입니다 (보안은 RLS가 담당)
 
 // Reserved local/Drive folder name for exported letters. Unlike the
 // planner's "Calendar" folder, this one is NOT hidden from the sidebar —
