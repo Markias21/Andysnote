@@ -1144,6 +1144,18 @@
         display: none;
       }
 
+      #preview-toggle-btn.hidden,
+      #preview-toggle-sep.hidden {
+        display: none;
+      }
+
+      /* Preview mode (js/editor/engine.js: setRichPreviewMode): read-only
+         rendered view, no caret, text stays selectable for copying. */
+      #doc-body-rich.rich-preview {
+        caret-color: transparent;
+        cursor: default;
+      }
+
       #doc-body-rich {
         width: 100%;
         min-height: 400px;
@@ -3794,6 +3806,26 @@
                       d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
                     />
                     <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                </button>
+                <span class="sep" id="preview-toggle-sep"></span>
+                <button
+                  class="tool-btn"
+                  id="preview-toggle-btn"
+                  title="Preview"
+                  data-i18n-title="editor.preview"
+                  onclick="toggleRichPreview()"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 </button>
                 <span class="md-toolbar-group" id="md-toolbar-group">

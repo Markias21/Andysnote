@@ -34,6 +34,7 @@ let _plainEl = null; // <textarea id="doc-body">
 let _richEl = null; // <div id="doc-body-rich">
 let richMode = false; // true only for Drive .md docs
 let toolbarVisible = true; // false only for Drive .txt docs
+let richPreviewMode = false; // true = read-only rendered view, no editing
 let _lineEls = [];
 let _lineMappings = [];
 let _focusedLine = -1; // which line index is currently rendered raw (has the caret)
@@ -44,16 +45,23 @@ function editorOpen(text, opts) {
   opts = opts || {};
   richMode = !!opts.rich;
   toolbarVisible = opts.toolbar !== false;
+  richPreviewMode = false; // every doc opens in edit mode; user re-toggles preview per visit
   markdownText = text || "";
 
   _plainEl = document.getElementById("doc-body");
   _richEl = document.getElementById("doc-body-rich");
   wireEditorEvents();
   setToolbarVisible(toolbarVisible);
+  setPreviewToggleVisible(richMode);
+  updatePreviewToggleButton();
 
   if (richMode) {
     if (_plainEl) _plainEl.style.display = "none";
-    if (_richEl) _richEl.style.display = "";
+    if (_richEl) {
+      _richEl.style.display = "";
+      _richEl.contentEditable = "true";
+      _richEl.classList.remove("rich-preview");
+    }
     richRenderAll(-1);
   } else {
     if (_richEl) _richEl.style.display = "none";
@@ -230,6 +238,52 @@ function setToolbarVisible(visible) {
   if (group) group.classList.toggle("hidden", !visible);
 }
 
+function setPreviewToggleVisible(visible) {
+  const btn = document.getElementById("preview-toggle-btn");
+  const sep = document.getElementById("preview-toggle-sep");
+  if (btn) btn.classList.toggle("hidden", !visible);
+  if (sep) sep.classList.toggle("hidden", !visible);
+}
+
+function isRichPreviewActive() {
+  return richPreviewMode;
+}
+
+/* Toggle between the live editor (contentEditable, click-to-edit-line) and
+   a fully rendered, read-only view — the "preview" the user reads and
+   copies from without risking an accidental edit. Reuses richRenderAll's
+   existing "focusedLine = -1 renders every line styled" path (already used
+   for every non-caret line today; see renderer.js) rather than building a
+   separate rendering pipeline. Formatting toolbar buttons are hidden while
+   previewing since they act on a live selection that no longer exists. */
+function setRichPreviewMode(on) {
+  if (!richMode || !_richEl) return;
+  richPreviewMode = !!on;
+
+  if (richPreviewMode) {
+    switchFocusedLine(-1);
+    _richEl.contentEditable = "false";
+  } else {
+    _richEl.contentEditable = "true";
+  }
+  _richEl.classList.toggle("rich-preview", richPreviewMode);
+  setToolbarVisible(toolbarVisible && !richPreviewMode);
+  updatePreviewToggleButton();
+}
+
+function toggleRichPreview() {
+  setRichPreviewMode(!richPreviewMode);
+}
+
+function updatePreviewToggleButton() {
+  const btn = document.getElementById("preview-toggle-btn");
+  if (!btn) return;
+  btn.classList.toggle("active", richPreviewMode);
+  const key = richPreviewMode ? "editor.previewExit" : "editor.preview";
+  btn.setAttribute("data-i18n-title", key);
+  btn.title = t(key);
+}
+
 function wireEditorEvents() {
   if (_plainEl && !_plainEl._editorWired) {
     _plainEl.addEventListener("input", editorSyncFromView);
@@ -260,6 +314,7 @@ function wireEditorEvents() {
 }
 
 function richHandleClick(e) {
+  if (richPreviewMode) return; // read-only: no checklist toggling either
   const box = e.target.closest(".md-checkbox");
   if (!box) return;
   e.preventDefault();
@@ -443,6 +498,7 @@ function richGetSelectionOffsets() {
    paste, toolbar actions) — NOT for ordinary typing, which the browser
    handles natively (see richHandleInput). */
 function richApplyEdit(start, end, text, selStart, selEnd) {
+  if (richPreviewMode) return; // read-only view: refuse edits regardless of entry point
   markdownText = markdownText.slice(0, start) + text + markdownText.slice(end);
   scheduleRichChangeCallbacks();
 
@@ -467,7 +523,7 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
    progress. The focused line is always exactly one plain text node (see
    renderer.js), so its container's textContent IS the raw line text. */
 function richHandleInput() {
-  if (!richMode || _focusedLine === -1) return;
+  if (!richMode || richPreviewMode || _focusedLine === -1) return;
   const container = _lineEls[_focusedLine];
   if (!container) return;
   const lines = markdownText.split("\n");
@@ -483,7 +539,7 @@ function richHandleInput() {
    just a more robust way to own this specific key than relying on
    beforeinput's "insertParagraph" alone. */
 function richHandleKeyDown(e) {
-  if (!richMode || e.key !== "Enter") return;
+  if (!richMode || richPreviewMode || e.key !== "Enter") return;
   e.preventDefault();
   const { start, end } = richGetSelectionOffsets();
   if (start == null) return;
@@ -491,7 +547,7 @@ function richHandleKeyDown(e) {
 }
 
 function richHandleBeforeInput(e) {
-  if (!richMode) return;
+  if (!richMode || richPreviewMode) return;
 
   switch (e.inputType) {
     case "insertParagraph":
@@ -564,7 +620,7 @@ function switchFocusedLine(idx) {
    already handled at mousedown). If it landed on a different line, swap
    which one renders raw vs. styled. */
 function richHandleSelectionChange() {
-  if (!richMode || !_richEl) return;
+  if (!richMode || richPreviewMode || !_richEl) return;
   const sel = window.getSelection();
   if (!sel.rangeCount) return;
   const range = sel.getRangeAt(0);
@@ -591,7 +647,7 @@ function richHandleSelectionChange() {
    caret, the line already looks the way it's going to — so that placement
    just lands correctly the first time, with no rebuild racing behind it. */
 function richHandleMouseDown(e) {
-  if (!richMode) return;
+  if (!richMode || richPreviewMode) return; // let the browser do plain text selection
   // Clicking a decorative, non-editable control (the checklist checkbox) is
   // a toggle action, not "start editing this line" — suppress the browser's
   // own default entirely so it can't plant a selection on this line either
