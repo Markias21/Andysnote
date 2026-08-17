@@ -39,6 +39,15 @@ let _lineEls = [];
 let _lineMappings = [];
 let _focusedLine = -1; // which line index is currently rendered raw (has the caret)
 
+/* Rich mode's own undo/redo history — see the "Rich mode: undo / redo"
+   section below for why plain mode doesn't need one. */
+const UNDO_GROUP_IDLE_MS = 600;
+const UNDO_STACK_LIMIT = 200;
+let _undoStack = [];
+let _redoStack = [];
+let _lastUndoGroupKey = null;
+let _lastUndoGroupAt = 0;
+
 /* ─── Public API (shared by both modes) ─── */
 
 function editorOpen(text, opts) {
@@ -47,6 +56,7 @@ function editorOpen(text, opts) {
   toolbarVisible = opts.toolbar !== false;
   richPreviewMode = false; // every doc opens in edit mode; user re-toggles preview per visit
   markdownText = text || "";
+  richResetUndoHistory();
 
   _plainEl = document.getElementById("doc-body");
   _richEl = document.getElementById("doc-body-rich");
@@ -91,6 +101,7 @@ function editorGetText() {
 
 function editorSetText(text) {
   markdownText = text || "";
+  richResetUndoHistory();
   if (richMode) {
     richRenderAll(-1);
   } else if (_plainEl) {
@@ -499,11 +510,16 @@ function richGetSelectionOffsets() {
    handles natively (see richHandleInput). */
 function richApplyEdit(start, end, text, selStart, selEnd) {
   if (richPreviewMode) return; // read-only view: refuse edits regardless of entry point
+  richRecordUndoBoundary(null); // structural edits are always their own undo step
   markdownText = markdownText.slice(0, start) + text + markdownText.slice(end);
   scheduleRichChangeCallbacks();
 
   const finalStart = selStart != null ? selStart : start + text.length;
   const finalEnd = selEnd != null ? selEnd : finalStart;
+  richRenderAndPlaceCaret(finalStart, finalEnd);
+}
+
+function richRenderAndPlaceCaret(finalStart, finalEnd) {
   const from = lineAndOffsetForAbsolute(finalStart);
   const to = lineAndOffsetForAbsolute(finalEnd);
 
@@ -515,6 +531,68 @@ function richApplyEdit(start, end, text, selStart, selEnd) {
     placeCaretInLine(_lineEls[from.line], _lineMappings[from.line], from.offset);
   }
   updateToolbarActiveStates();
+}
+
+/* ─── Rich mode: undo / redo ───
+   richRenderAll/rerenderSingleLine rebuild the DOM directly, which breaks
+   the browser's own contenteditable undo — unlike plain mode, a real
+   <textarea> where native Ctrl+Z already works untouched. So rich mode
+   keeps its own history: whole-document text + caret snapshots, taken
+   right before markdownText changes.
+
+   Ordinary typing/deleting coalesces into one undo step per "burst"
+   (same kind of edit, no more than UNDO_GROUP_IDLE_MS apart) so Ctrl+Z
+   removes a run of typing at a time, not one character at a time.
+   Structural edits (Enter, paste, toolbar formatting, checklist toggles)
+   always start a fresh step — see richApplyEdit above. */
+
+function richResetUndoHistory() {
+  _undoStack = [];
+  _redoStack = [];
+  _lastUndoGroupKey = null;
+  _lastUndoGroupAt = 0;
+}
+
+/* Call right before markdownText changes. groupKey null always starts a
+   new step. A non-null groupKey coalesces with the previous call when it's
+   the same key and within the idle window (used for native typing/
+   deleting, keyed by beforeinput's inputType). */
+function richRecordUndoBoundary(groupKey) {
+  const now = Date.now();
+  if (groupKey != null) {
+    const sameGroup = groupKey === _lastUndoGroupKey && now - _lastUndoGroupAt < UNDO_GROUP_IDLE_MS;
+    _lastUndoGroupKey = groupKey;
+    _lastUndoGroupAt = now;
+    if (sameGroup) return;
+  } else {
+    _lastUndoGroupKey = null;
+  }
+  const { start, end } = richGetSelectionOffsets();
+  _undoStack.push({ text: markdownText, start, end });
+  if (_undoStack.length > UNDO_STACK_LIMIT) _undoStack.shift();
+  _redoStack = [];
+}
+
+function editorUndo() {
+  if (!richMode || _undoStack.length === 0) return;
+  const { start, end } = richGetSelectionOffsets();
+  const entry = _undoStack.pop();
+  _redoStack.push({ text: markdownText, start, end });
+  markdownText = entry.text;
+  scheduleRichChangeCallbacks();
+  richRenderAndPlaceCaret(entry.start ?? 0, entry.end ?? entry.start ?? 0);
+  _lastUndoGroupKey = null;
+}
+
+function editorRedo() {
+  if (!richMode || _redoStack.length === 0) return;
+  const { start, end } = richGetSelectionOffsets();
+  const entry = _redoStack.pop();
+  _undoStack.push({ text: markdownText, start, end });
+  markdownText = entry.text;
+  scheduleRichChangeCallbacks();
+  richRenderAndPlaceCaret(entry.start ?? 0, entry.end ?? entry.start ?? 0);
+  _lastUndoGroupKey = null;
 }
 
 /* Mirrors the focused line's live (natively-edited) text into markdownText.
@@ -539,7 +617,22 @@ function richHandleInput() {
    just a more robust way to own this specific key than relying on
    beforeinput's "insertParagraph" alone. */
 function richHandleKeyDown(e) {
-  if (!richMode || richPreviewMode || e.key !== "Enter") return;
+  if (!richMode || richPreviewMode) return;
+
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && !e.altKey && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    if (e.shiftKey) editorRedo();
+    else editorUndo();
+    return;
+  }
+  if (mod && !e.altKey && e.key.toLowerCase() === "y") {
+    e.preventDefault();
+    editorRedo();
+    return;
+  }
+
+  if (e.key !== "Enter") return;
   e.preventDefault();
   const { start, end } = richGetSelectionOffsets();
   if (start == null) return;
@@ -572,7 +665,11 @@ function richHandleBeforeInput(e) {
 
     case "deleteContentBackward": {
       const { start, end } = richGetSelectionOffsets();
-      if (start == null || start !== end) return; // let native handle deleting a real selection
+      if (start == null) return;
+      if (start !== end) {
+        richRecordUndoBoundary(e.inputType); // real selection: native handles the delete
+        return;
+      }
       const { line, offset } = lineAndOffsetForAbsolute(start);
       if (offset === 0 && line > 0) {
         // Start of a non-first line: merge with the previous one. Native
@@ -581,27 +678,38 @@ function richHandleBeforeInput(e) {
         // one boundary case stays intercepted.
         e.preventDefault();
         richApplyEdit(start - 1, start, "");
+        return;
       }
       // Otherwise: an ordinary in-place delete — let the browser handle it.
+      richRecordUndoBoundary(e.inputType);
       return;
     }
 
     case "deleteContentForward": {
       const { start, end } = richGetSelectionOffsets();
-      if (start == null || start !== end) return;
+      if (start == null) return;
+      if (start !== end) {
+        richRecordUndoBoundary(e.inputType);
+        return;
+      }
       const lines = markdownText.split("\n");
       const { line, offset } = lineAndOffsetForAbsolute(start);
       if (offset === lines[line].length && line < lines.length - 1) {
         e.preventDefault();
         richApplyEdit(start, start + 1, "");
+        return;
       }
+      richRecordUndoBoundary(e.inputType);
       return;
     }
 
     default:
       // insertText, insertCompositionText, deleteWordBackward/Forward, etc:
       // left entirely to the browser's native editing within the focused
-      // line's plain text node. richHandleInput resyncs markdownText.
+      // line's plain text node. richHandleInput resyncs markdownText — but
+      // the undo snapshot has to be taken here, before the browser applies
+      // the edit, not there.
+      richRecordUndoBoundary(e.inputType);
       return;
   }
 }
@@ -610,6 +718,7 @@ function richHandleBeforeInput(e) {
    lines — never the whole document, never mid-typing. */
 function switchFocusedLine(idx) {
   if (idx === _focusedLine) return;
+  _lastUndoGroupKey = null; // moving to another line starts a fresh undo step
   const oldLine = _focusedLine;
   _focusedLine = idx;
   if (oldLine >= 0 && oldLine < _lineEls.length) rerenderSingleLine(oldLine, false);
@@ -747,6 +856,7 @@ function richToggleChecklistAt(box) {
   const lineText = lines[index];
   const ast = parseBlock(lineText);
   if (ast.type !== "checklist") return;
+  richRecordUndoBoundary(null);
   lines[index] = (ast.checked ? "- [ ] " : "- [x] ") + lineText.slice(ast.prefixEnd);
   markdownText = lines.join("\n");
   scheduleRichChangeCallbacks();
