@@ -515,10 +515,15 @@ async function saveToDriveNow() {
     setSyncStatus("saving", t("sync.saving"));
     const text = editorGetText();
     const savedId = currentFileId;
+    const node = findNodeById(savedId, driveTree);
+    const newTitle = document.getElementById("doc-title").value.trim() || t("editor.titlePlaceholder");
+    if (node && parseCreatedFromName(node.name).cleanTitle !== newTitle) {
+      await renameDriveEntryName(node, { title: newTitle });
+      renderSidebar(currentSearchValue());
+    }
     await drivePatch(savedId, text);
     // Update cached modifiedTime + persist the new body so re-opening is instant.
     const stamp = new Date().toISOString();
-    const node = findNodeById(savedId, driveTree);
     if (node) {
       node.modifiedTime = stamp;
       node.size = text.length;

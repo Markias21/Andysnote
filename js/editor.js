@@ -134,6 +134,7 @@ function onTitleInput() {
   autoResize(document.getElementById("doc-title"));
   updateMeta();
   if (storageMode === "local" && currentFileId) scheduleLocalSave();
+  else if (storageMode === "drive" && currentFileId) scheduleDriveSave();
 }
 
 /* ─── PRINT ───
