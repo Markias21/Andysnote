@@ -97,6 +97,29 @@ function trySilentReauth() {
     tokenClient_tc.requestAccessToken({ prompt: "" });
 }
 
+/* Mid-session counterpart to attemptAutoSignIn()'s boot-time reauth. GIS
+   access tokens last ~1h and this app has no refresh_token, so leaving a
+   tab open past that window used to make every Drive save fail with 401
+   forever (nothing ever asked for a new token again). js/drive.js's
+   driveFetch() calls this on a 401 and retries once.
+   Deliberately does NOT call onSignedIn() the way the boot-time path does —
+   that resets currentFileId/expandedFolders/etc., which would yank the
+   user out of the note they're editing just to renew a token quietly in
+   the background. */
+function refreshDriveTokenSilently() {
+    if (!tokenClient_tc) return Promise.resolve(false);
+    if (driveTokenRefreshPromise) return driveTokenRefreshPromise; // dedup concurrent 401s onto one reauth
+    driveTokenRefreshPromise = new Promise((resolve) => {
+        midSessionRefreshResolve = resolve;
+        isSilentAuthAttempt = true;
+        isMidSessionRefresh = true;
+        tokenClient_tc.requestAccessToken({ prompt: "" });
+    }).finally(() => {
+        driveTokenRefreshPromise = null;
+    });
+    return driveTokenRefreshPromise;
+}
+
 async function handleSignoutClick() {
     // Flush any pending planner paint save while the token is still valid —
     // otherwise the debounce timer would fire after revoke() and silently
@@ -184,8 +207,14 @@ function maybeEnableButton() {
 
 async function handleTokenResponse(resp) {
   const wasSilentAttempt = isSilentAuthAttempt;
+  const wasMidSessionRefresh = isMidSessionRefresh;
   isSilentAuthAttempt = false;
+  isMidSessionRefresh = false;
   if (resp.error) {
+    if (wasMidSessionRefresh && midSessionRefreshResolve) {
+      midSessionRefreshResolve(false);
+      midSessionRefreshResolve = null;
+    }
     // A silent auto-restore attempt failing just means "not previously signed
     // in" or "consent was revoked" — that's the normal logged-out state, not
     // an error the user needs to see.
@@ -197,6 +226,15 @@ async function handleTokenResponse(resp) {
   driveAccessToken = resp.access_token;
   saveTokenToStorage(resp);
   console.log("Granted OAuth scopes:", resp.scope);
+  if (wasMidSessionRefresh) {
+    // Just renewing the token in the background for driveFetch's caller to
+    // retry with — skip the full onSignedIn() sign-in flow below entirely.
+    if (midSessionRefreshResolve) {
+      midSessionRefreshResolve(true);
+      midSessionRefreshResolve = null;
+    }
+    return;
+  }
   const hasDrive =
     typeof google !== "undefined" &&
     google.accounts &&

@@ -17,6 +17,9 @@ let gapiInited = false;
 let gisInited = false;
 let driveAccessToken = null;
 let isSilentAuthAttempt = false; // true while requestAccessToken({prompt:""}) is in flight (auto restore) — suppresses the error toast on failure
+let isMidSessionRefresh = false; // true while requestAccessToken({prompt:""}) is in flight for a driveFetch 401 retry — must not re-run onSignedIn()
+let driveTokenRefreshPromise = null; // in-flight mid-session refresh, so concurrent 401s share one reauth instead of racing
+let midSessionRefreshResolve = null; // resolves driveTokenRefreshPromise once handleTokenResponse comes back
 
 /* ─── STORAGE MODE / LOCAL (BROWSER) NOTES ─── */
 let storageMode = "drive"; // backend of the currently-open doc: "drive" | "local"

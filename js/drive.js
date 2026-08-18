@@ -1,12 +1,30 @@
 /* ─── DRIVE HTTP API ─── */
-async function driveGet(url, params = {}) {
+/* Every Drive call below goes through this instead of raw fetch(). GIS
+   access tokens last ~1h and this app has no refresh_token, so a tab left
+   open longer than that used to make every Drive call (autosave included)
+   fail with 401 forever — nothing ever asked Google for a new token again.
+   On a 401 this asks auth.js for one via a silent, no-popup reauth
+   (refreshDriveTokenSilently) and retries the request exactly once; if that
+   also fails, the response is returned as-is and the caller's normal
+   !r.ok handling takes over. */
+async function driveFetch(url, options = {}) {
   if (!driveAccessToken) throw new Error("Not authenticated");
+  const withAuth = () => ({
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: "Bearer " + driveAccessToken },
+  });
+  let r = await fetch(url, withAuth());
+  if (r.status === 401 && (await refreshDriveTokenSilently())) {
+    r = await fetch(url, withAuth());
+  }
+  return r;
+}
+
+async function driveGet(url, params = {}) {
   const qs = Object.keys(params).length
     ? "?" + new URLSearchParams(params).toString()
     : "";
-  const r = await fetch(url + qs, {
-    headers: { Authorization: "Bearer " + driveAccessToken },
-  });
+  const r = await driveFetch(url + qs);
   if (!r.ok) {
     const err = new Error(`GET ${url} -> ${r.status}: ${await r.text()}`);
     err.status = r.status;
@@ -16,14 +34,10 @@ async function driveGet(url, params = {}) {
 }
 
 async function drivePost(url, metadata, textContent = null) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
   if (textContent === null) {
-    const r = await fetch(url, {
+    const r = await driveFetch(url, {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + driveAccessToken,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(metadata),
     });
     if (!r.ok) throw new Error(`POST ${url} -> ${r.status}: ${await r.text()}`);
@@ -41,12 +55,9 @@ async function drivePost(url, metadata, textContent = null) {
       textContent,
       `--${boundary}--`,
     ].join("\r\n");
-    const r = await fetch(url + "?uploadType=multipart", {
+    const r = await driveFetch(url + "?uploadType=multipart", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + driveAccessToken,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
       body,
     });
     if (!r.ok)
@@ -59,28 +70,25 @@ async function drivePost(url, metadata, textContent = null) {
    also handles caching/painting) so bulk operations like js/sync.js can read
    file bodies without pulling in editor-specific logic. */
 async function driveGetFileText(fileId) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
-  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-    headers: { Authorization: "Bearer " + driveAccessToken },
-  });
+  const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
   if (!r.ok) throw new Error("fetch content failed: " + r.status);
   return r.text();
 }
 
 async function drivePatch(fileId, textContent) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
-  const r = await fetch(
+  const r = await driveFetch(
     `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
     {
       method: "PATCH",
-      headers: {
-        Authorization: "Bearer " + driveAccessToken,
-        "Content-Type": "text/plain; charset=utf-8",
-      },
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
       body: textContent,
     },
   );
-  if (!r.ok) throw new Error(`PATCH ${fileId} -> ${r.status}: ${await r.text()}`);
+  if (!r.ok) {
+    const err = new Error(`PATCH ${fileId} -> ${r.status}: ${await r.text()}`);
+    err.status = r.status;
+    throw err;
+  }
   return r.json();
 }
 
@@ -88,13 +96,9 @@ async function drivePatch(fileId, textContent) {
    upload one drivePatch() uses for content) — currently only used to rename
    a file, e.g. to update the created-date suffix encoded in its name. */
 async function drivePatchMetadata(fileId, metadata) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
-  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+  const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
     method: "PATCH",
-    headers: {
-      Authorization: "Bearer " + driveAccessToken,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(metadata),
   });
   if (!r.ok) throw new Error(`PATCH metadata ${fileId} -> ${r.status}: ${await r.text()}`);
@@ -104,16 +108,12 @@ async function drivePatchMetadata(fileId, metadata) {
 /* Drag-and-drop move: reparents a file/folder to a different Drive folder
    via the addParents/removeParents query params (files.update). */
 async function driveMoveFile(fileId, newParentId, oldParentId) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
   const url =
     `https://www.googleapis.com/drive/v3/files/${fileId}` +
     `?addParents=${newParentId}&removeParents=${oldParentId}`;
-  const r = await fetch(url, {
+  const r = await driveFetch(url, {
     method: "PATCH",
-    headers: {
-      Authorization: "Bearer " + driveAccessToken,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: "{}",
   });
   if (!r.ok) throw new Error(`PATCH move ${fileId} -> ${r.status}: ${await r.text()}`);
@@ -157,13 +157,9 @@ async function renameDriveFolder(node, newTitle) {
 /* Moves a Drive file to Google Drive's trash (PATCH trashed=true) — recoverable
    there, unlike the local backend's permanent delete. */
 async function driveTrashFile(fileId) {
-  if (!driveAccessToken) throw new Error("Not authenticated");
-  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+  const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
     method: "PATCH",
-    headers: {
-      Authorization: "Bearer " + driveAccessToken,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ trashed: true }),
   });
   if (!r.ok) throw new Error(`PATCH trash ${fileId} -> ${r.status}: ${await r.text()}`);
