@@ -71,11 +71,21 @@ async function attemptAutoSignIn() {
             await onSignedIn();
             return;
         } catch (e) {
-            // Cached token rejected by Google (revoked elsewhere, etc.) — drop it and
-            // fall through to a silent reauth attempt below.
-            console.error("Cached Drive token rejected, retrying sign-in", e);
-            driveAccessToken = null;
-            clearTokenFromStorage();
+            if (e.status === 401) {
+                // Cached token actually rejected by Google (revoked elsewhere, etc.) —
+                // drop it and fall through to a silent reauth attempt below.
+                console.error("Cached Drive token rejected, retrying sign-in", e);
+                driveAccessToken = null;
+                clearTokenFromStorage();
+            } else {
+                // Transient failure (offline, CORS hiccup, Google 5xx) — the cached
+                // token itself may still be perfectly valid. Leave it in storage so a
+                // later reload can retry instead of forcing the user through a fresh
+                // (possibly silently-failing) reauth every time the network blips.
+                console.error("Drive token check failed transiently, will retry on next load", e);
+                driveAccessToken = null;
+                return;
+            }
         }
     }
     trySilentReauth();

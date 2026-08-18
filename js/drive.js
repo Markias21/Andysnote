@@ -7,7 +7,11 @@ async function driveGet(url, params = {}) {
   const r = await fetch(url + qs, {
     headers: { Authorization: "Bearer " + driveAccessToken },
   });
-  if (!r.ok) throw new Error(`GET ${url} -> ${r.status}: ${await r.text()}`);
+  if (!r.ok) {
+    const err = new Error(`GET ${url} -> ${r.status}: ${await r.text()}`);
+    err.status = r.status;
+    throw err;
+  }
   return r.json();
 }
 
