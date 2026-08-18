@@ -91,8 +91,14 @@ function editorOpen(text, opts) {
    inside the textarea right next to the text. */
 function autoResizePlainBody() {
   if (!_plainEl) return;
+  // Momentarily shrinking to "auto" before measuring scrollHeight can make
+  // .editor-wrap's scrollTop get clamped down (it just got shorter); restore
+  // it afterward so typing mid-document doesn't yank the view to the top.
+  const wrap = _plainEl.closest(".editor-wrap");
+  const scrollTop = wrap ? wrap.scrollTop : 0;
   _plainEl.style.height = "auto";
   _plainEl.style.height = _plainEl.scrollHeight + "px";
+  if (wrap) wrap.scrollTop = scrollTop;
 }
 
 function editorGetText() {
@@ -463,6 +469,13 @@ function findEnclosingInlineSpan(type, start, end) {
    focusedLine is the line index that should render fully raw (or -1). */
 
 function richRenderAll(focusedLine) {
+  // Clearing innerHTML before rebuilding leaves _richEl momentarily empty,
+  // which can clamp .editor-wrap's scrollTop down; restore it afterward so
+  // structural edits (Enter, paste, toolbar actions, undo/redo) don't jerk
+  // the scroll position around in a long document.
+  const wrap = _richEl && _richEl.closest(".editor-wrap");
+  const scrollTop = wrap ? wrap.scrollTop : 0;
+
   const lines = markdownText.split("\n");
   _richEl.innerHTML = "";
   _lineEls = [];
@@ -477,6 +490,8 @@ function richRenderAll(focusedLine) {
     _lineEls.push(container);
     _lineMappings.push(mapping);
   });
+
+  if (wrap) wrap.scrollTop = scrollTop;
 }
 
 /* Re-render just one line in place (used when focus moves between lines —

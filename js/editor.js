@@ -249,8 +249,13 @@ function updateWordCount() {
 }
 
 function autoResize(el) {
+  // See js/editor/engine.js's autoResizePlainBody for why: shrinking to
+  // "auto" before measuring can clamp .editor-wrap's scrollTop down.
+  const wrap = el.closest(".editor-wrap");
+  const scrollTop = wrap ? wrap.scrollTop : 0;
   el.style.height = "auto";
   el.style.height = el.scrollHeight + "px";
+  if (wrap) wrap.scrollTop = scrollTop;
 }
 
 function updateMeta() {
