@@ -38,6 +38,7 @@ let richPreviewMode = false; // true = read-only rendered view, no editing
 let _lineEls = [];
 let _lineMappings = [];
 let _focusedLine = -1; // which line index is currently rendered raw (has the caret)
+let _recentTouchUntil = 0; // Date.now() cutoff: a touch happened just before this
 
 /* Rich mode's own undo/redo history — see the "Rich mode: undo / redo"
    section below for why plain mode doesn't need one. */
@@ -325,6 +326,10 @@ function wireEditorEvents() {
     // does, the target line is already in its final plain form and native
     // placement just lands correctly, with nothing left to race.
     _richEl.addEventListener("mousedown", richHandleMouseDown);
+    // Marks the interaction as touch so richHandleMouseDown can step aside
+    // for it (see that function for why) — touchstart always fires before
+    // the synthetic mousedown a tap/drag produces.
+    _richEl.addEventListener("touchstart", richHandleTouchStart, { passive: true });
     document.addEventListener("selectionchange", richHandleSelectionChange);
     _richEl._editorWired = true;
   }
@@ -770,8 +775,21 @@ function richHandleSelectionChange() {
    form right away. By the time the browser actually places its native
    caret, the line already looks the way it's going to — so that placement
    just lands correctly the first time, with no rebuild racing behind it. */
+function richHandleTouchStart() {
+  _recentTouchUntil = Date.now() + 500;
+}
+
+/* Touch (drag-to-select, long-press selection handles, the native
+   copy/paste callout) needs the browser's own default mousedown handling
+   to run — preventDefault below cancels all of that, not just caret
+   placement, which is what made selecting/copying/pasting text on a phone
+   impossible. Desktop typing right after a click races selectionchange (see
+   below), but a touch keyboard takes long enough to appear that this
+   handler's synchronous caret placement isn't needed there; the async
+   richHandleSelectionChange path still converts the tapped line for us. */
 function richHandleMouseDown(e) {
   if (!richMode || richPreviewMode) return; // let the browser do plain text selection
+  if (Date.now() < _recentTouchUntil) return; // touch: let the browser handle it natively
   // Clicking a decorative, non-editable control (the checklist checkbox) is
   // a toggle action, not "start editing this line" — suppress the browser's
   // own default entirely so it can't plant a selection on this line either
