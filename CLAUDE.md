@@ -156,3 +156,21 @@
   새 파일 `js/letter/notify.js`. `js/settings.js`에 "앤디스레터" 설정
   탭(`letter.notificationsEnabled`) 추가. 모바일(≤768px)에서는 알림
   패널을 아예 숨김 — 별도 대안(푸시 등)은 만들지 않음.
+
+### 2026-09-02 — AndysLetter 전면 제거
+- 결정: AndysLetter 기능(라이브러리·캘린더와 나란한 세 번째 최상위 뷰,
+  Supabase 메일 릴레이)을 코드베이스에서 완전히 제거한다.
+- 이유: 기존 Supabase 프로젝트를 다른 프로젝트를 위해 삭제해서 연결이
+  끊어졌고, 사용자가 AndysLetter 기능 자체를 없애기로 결정함.
+- 영향: `js/letter.js`, `js/letter/` 디렉터리(api/papers/compose/admin/
+  export/notify.js), `docs/supabase-schema.sql`, `docs/additional.md`
+  삭제. `index.html`에서 AndysLetter 전용 CSS 블록, 네비게이션 버튼,
+  `#letter-view` 컨테이너, `supabase-js` CDN 스크립트 태그와 letter 스크립트
+  태그들을 제거. `js/config.js`의 `SUPABASE_URL`/`SUPABASE_ANON_KEY`/
+  `LETTER_*` 상수, `js/state.js`의 `letter*` 전역 상태, `js/ui.js`의
+  `switchView` 3분기(→2분기 복귀), `js/settings.js`의 "앤디스레터" 설정
+  탭과 `letter.notificationsEnabled` 처리, `js/i18n.js`의 letter 관련
+  번역 키(en/ko) 전부 삭제. `js/app.js`의 `initLetter()` 호출 및 편지
+  compose/detail 관련 Escape 키 처리도 제거.
+  위 2026-08-08 이전 두 결정 항목은 AndysLetter 도입 당시의 기록으로
+  남겨두되, 더 이상 유효한 현재 상태가 아님.

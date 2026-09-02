@@ -39,30 +39,22 @@ function updateTodayDate() {
 }
 
 /* ─── VIEW SWITCHING ───────────────────────────────────────────────────────
-   Three top-level views now (library/calendar/AndysLetter) — explicit
-   per-view branches instead of an if/else catch-all, since a catch-all
-   would silently lump a third view in with the calendar's. Each branch
-   handles its own nav-button state, view container, sidebar visibility,
-   and on-entry render. */
+   Two top-level views (library/calendar) — explicit per-view branches
+   instead of an if/else catch-all. Each branch handles its own nav-button
+   state, view container, sidebar visibility, and on-entry render. */
 function switchView(view) {
   const btnLib = document.getElementById("btn-library");
   const btnCal = document.getElementById("btn-calendar");
-  const btnLetter = document.getElementById("btn-letter");
   const libView = document.getElementById("library-view");
   const calView = document.getElementById("calendar-view");
-  const letterView = document.getElementById("letter-view");
   const sidebar = document.getElementById("sidebar");
 
   btnLib.classList.toggle("active", view === "library");
   btnCal.classList.toggle("active", view === "calendar");
-  btnLetter.classList.toggle("active", view === "letter");
 
   libView.style.display = view === "library" ? "flex" : "none";
   calView.classList.toggle("hidden", view !== "calendar");
-  letterView.classList.toggle("hidden", view !== "letter");
 
-  // AndysLetter has no folder tree of its own, so the sidebar only needs to
-  // stay visible for the library view — same as the calendar's behavior.
   sidebar.style.display = view === "library" ? "" : "none";
 
   if (view === "calendar") {
@@ -74,10 +66,6 @@ function switchView(view) {
     if (driveAccessToken && !driveTreeFullyLoaded) {
       loadEntireTree().then(renderCalendar);
     }
-  } else if (view === "letter") {
-    renderLetterView();
   }
-
-  if (view !== "letter") letterStopNotifyPolling();
 }
 
