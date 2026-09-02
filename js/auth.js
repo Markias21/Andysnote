@@ -120,6 +120,24 @@ function refreshDriveTokenSilently() {
     return driveTokenRefreshPromise;
 }
 
+/* Proactively renews the Drive token when the app returns to the foreground
+   (tab refocused / PWA brought back from background) instead of waiting for
+   the next Drive call to hit a 401 and retry. Only fires when the cached
+   token is already expired or about to expire; a still-fresh token is left
+   alone. This only helps the "backgrounded, not fully closed" case — once
+   the app has been fully closed and relaunched, attemptAutoSignIn() runs
+   instead, and its silent reauth hits the same third-party-cookie limits on
+   iOS Safari that this can't work around either. */
+function handleVisibilityChange() {
+    if (document.visibilityState !== "visible") return;
+    if (!driveAccessToken) return;
+    const SKEW_MS = 60 * 1000;
+    const cached = loadTokenFromStorage();
+    if (cached && cached.expires_at > Date.now() + SKEW_MS) return;
+    refreshDriveTokenSilently();
+}
+document.addEventListener("visibilitychange", handleVisibilityChange);
+
 async function handleSignoutClick() {
     // Flush any pending planner paint save while the token is still valid —
     // otherwise the debounce timer would fire after revoke() and silently
