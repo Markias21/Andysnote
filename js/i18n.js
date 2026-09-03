@@ -44,6 +44,7 @@ const I18N = {
     "auth.signOut": "Sign out",
     "auth.notConfigured":
       "Google Sign-In is not configured. Please set window.GOOGLE_CLIENT_ID in js/config.js.",
+    "auth.popupBlocked": "Allow pop-ups to sign in",
     "sidebar.folders": "Folders",
     "sidebar.chooseFolder": "Choose folder / new item",
     "sidebar.search": "Search...",
@@ -228,6 +229,7 @@ const I18N = {
     "auth.signOut": "로그아웃",
     "auth.notConfigured":
       "Google 로그인이 설정되지 않았습니다. js/config.js에서 window.GOOGLE_CLIENT_ID를 설정해 주세요.",
+    "auth.popupBlocked": "로그인하려면 팝업을 허용해 주세요",
     "sidebar.folders": "폴더",
     "sidebar.chooseFolder": "폴더 선택 / 새 항목",
     "sidebar.search": "검색...",

@@ -11,15 +11,11 @@ let calScopeFolderId = null; // Drive folder ID to limit the calendar to, or nul
 let driveSaveTimer = null;
 let driveDirty = false; // true when the open Drive doc has unsaved edits
 
-/* ─── OAUTH / GAPI ─── */
-let tokenClient_tc = null;
-let gapiInited = false;
-let gisInited = false;
+/* ─── OAUTH ─── */
 let driveAccessToken = null;
-let isSilentAuthAttempt = false; // true while requestAccessToken({prompt:""}) is in flight (auto restore) — suppresses the error toast on failure
-let isMidSessionRefresh = false; // true while requestAccessToken({prompt:""}) is in flight for a driveFetch 401 retry — must not re-run onSignedIn()
-let driveTokenRefreshPromise = null; // in-flight mid-session refresh, so concurrent 401s share one reauth instead of racing
-let midSessionRefreshResolve = null; // resolves driveTokenRefreshPromise once handleTokenResponse comes back
+let driveSessionId = null; // opaque id issued by the auth Worker; stands in for the refresh_token the browser never sees
+let driveTokenRefreshPromise = null; // in-flight Worker /refresh call, so concurrent 401s share one renewal instead of racing
+let oauthPendingState = null; // CSRF state for the sign-in popup currently in flight, or null
 
 /* ─── STORAGE MODE / LOCAL (BROWSER) NOTES ─── */
 let storageMode = "drive"; // backend of the currently-open doc: "drive" | "local"

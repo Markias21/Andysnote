@@ -1,3 +1,4 @@
 .vscode
 .playwright-mcp
 .env
+.dev.vars

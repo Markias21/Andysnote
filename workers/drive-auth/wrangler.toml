@@ -1,0 +1,24 @@
+# AndysNote Drive 인증 릴레이 (Cloudflare Worker)
+#
+# 이 Worker가 존재하는 이유: Google에서 refresh_token을 받으려면 authorization
+# code를 client_secret과 함께 교환해야 하는데, client_secret은 브라우저 JS에 절대
+# 넣을 수 없다. 그 교환과 refresh_token 보관만 대신 해주는 최소 서버.
+#
+# 배포 전 필요한 것:
+#   1) wrangler kv namespace create SESSIONS  -> 출력된 id를 아래 [[kv_namespaces]]에 반영
+#   2) wrangler secret put GOOGLE_CLIENT_SECRET   (Google Cloud Console의 클라이언트 보안 비밀번호)
+#   3) wrangler deploy
+
+name = "andysnote-drive-auth"
+main = "src/index.js"
+compatibility_date = "2026-09-03"
+
+[vars]
+# 공개돼도 무방한 값들만 여기 둔다. client_secret은 반드시 wrangler secret으로.
+GOOGLE_CLIENT_ID = "214649048044-lq3pcovgq8lo09g0apguilj31m481uj6.apps.googleusercontent.com"
+# CORS 허용 오리진(쉼표 구분). 로컬 테스트 포트를 바꾸면 여기도 같이 바꿔야 한다.
+ALLOWED_ORIGINS = "https://ryugunlee.github.io,http://localhost:8000"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "PUT_KV_NAMESPACE_ID_HERE"

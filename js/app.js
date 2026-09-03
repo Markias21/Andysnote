@@ -17,6 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Init the live Markdown engine with an empty document.
   editorOpen("");
 
+  // Drive 자동 로그인 복구는 에디터 초기화 뒤에 — 복구가 성공하면 문서를 열게 되므로
+  // 위의 editorOpen("")이 그걸 덮어쓰지 않도록 순서를 지킨다.
+  initDriveAuth();
+
   document.getElementById("doc-title").addEventListener("input", onTitleInput);
 
   document.addEventListener("keydown", (e) => {

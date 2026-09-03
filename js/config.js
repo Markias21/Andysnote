@@ -1,7 +1,11 @@
 /* ─── GOOGLE OAUTH ─── */
-/* 👇 여기에만 Client ID를 붙여넣으세요 (Client Secret은 사용하지 않음) */
+/* 👇 여기에만 Client ID를 붙여넣으세요 */
 window.GOOGLE_CLIENT_ID =
   "214649048044-lq3pcovgq8lo09g0apguilj31m481uj6.apps.googleusercontent.com";
+/* 인증 릴레이 Worker의 주소 (workers/drive-auth/, wrangler deploy 결과 URL).
+   Client Secret은 이 Worker 안에만 있고 브라우저로는 절대 내려오지 않는다.
+   로컬 테스트 시에만 "http://localhost:8787"로 잠시 바꿔 쓴다. */
+window.DRIVE_AUTH_WORKER_URL = "https://andysnote-drive-auth.workers.dev";
 
 /* ─── DRIVE FILESYSTEM CONFIG ─── */
 const DEV_MODE =
@@ -16,8 +20,15 @@ var MARKDOWN_MIME = "text/markdown";
 var DOC_EXT_REGEX = /\.(txt|md)$/i;
 var DRIVE_SCOPE =
   "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile";
-// 같은 기기 재접속 시 재로그인 없이 이어서 쓰기 위해 access token을 캐싱하는 localStorage 키.
-var DRIVE_TOKEN_STORAGE_KEY = "andysnote-drive-token";
+// 재접속 시 재로그인 없이 이어서 쓰기 위한 localStorage 키.
+// 값: { session_id, access_token, expires_at } — session_id는 Worker가 발급한
+// 불투명한 값이고, refresh_token은 브라우저에 저장되지 않는다(Worker의 KV에만 있음).
+var DRIVE_SESSION_STORAGE_KEY = "andysnote-drive-session";
+// Google 동의화면에서 돌아올 착지 페이지. Google Cloud Console의 "승인된 리디렉션
+// URI"에 이 URL이 그대로 등록돼 있어야 한다(현재 페이지 기준 상대 경로로 계산).
+function driveOAuthRedirectUri() {
+  return new URL("oauth-callback.html", window.location.href).href;
+}
 
 function isDriveDocName(name) {
   return DOC_EXT_REGEX.test(name);

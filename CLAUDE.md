@@ -174,3 +174,46 @@
   compose/detail 관련 Escape 키 처리도 제거.
   위 2026-08-08 이전 두 결정 항목은 AndysLetter 도입 당시의 기록으로
   남겨두되, 더 이상 유효한 현재 상태가 아님.
+
+### 2026-09-03 — 드라이브 로그인 유지: Cloudflare Worker로 refresh_token 보관
+- 결정: Google Drive 로그인을 implicit flow에서 **authorization code flow**로 바꾸고,
+  `client_secret` 보관과 토큰 재발급을 전담하는 최소 서버를 Cloudflare Workers +
+  KV로 새로 도입한다(`workers/drive-auth/`).
+- 이유: 휴대폰에서 앱을 껐다 켤 때마다 재로그인해야 하는 문제의 근본 원인이
+  implicit flow가 `refresh_token`을 아예 발급하지 않는 것이었다. 만료 후의 무팝업
+  재인증(`prompt:""`)은 `accounts.google.com`의 서드파티 쿠키에 의존하는데 iOS
+  Safari가 이를 차단해 사실상 매번 실패했다. 갱신 자격(refresh_token)을 서버에 두면
+  브라우저 쿠키 정책과 무관하게 로그인이 유지된다.
+- 추가 결정:
+  - 서버는 Supabase가 아니라 Cloudflare Workers + KV — 기존 Supabase 프로젝트의
+    무료 할당량이 남지 않아서. Worker 코드는 별도 저장소로 분리하지 않고 이
+    저장소 안 `workers/drive-auth/`에 둔다.
+  - GIS 라이브러리의 `initCodeClient()` 헬퍼를 쓰지 않고 **인증 URL을 직접 구성**한다.
+    이 헬퍼의 설정 필드에 `access_type`이 없어서 `access_type=offline`을 보장할 수
+    없고, 그러면 `refresh_token`을 못 받아 설계 전체가 무너지기 때문. 직접 구성한
+    URL에는 우리가 소유한 redirect_uri가 필요하므로 `oauth-callback.html`(코드를
+    `postMessage`로 넘기고 닫히는 최소 정적 페이지)을 추가했다. 팝업 UX는 그대로.
+  - 브라우저에는 `refresh_token`을 절대 내려보내지 않는다. localStorage에는 Worker가
+    발급한 불투명한 `session_id`와 마지막 access token만 둔다.
+  - 갱신 실패 처리: `invalid_grant`/`no_session`(권한이 영구히 사라짐)일 때만 로컬
+    세션을 지우고, 네트워크 장애나 Google 5xx 같은 일시적 실패에는 세션을 남긴다 —
+    한 번의 통신 실패로 살아있는 세션을 버리지 않기 위함.
+  - 롤백은 폴백 스위치를 만들지 않고 `git revert`로 한다. 두 인증 흐름을 auth.js에
+    영구 공존시키면 죽은 코드가 남고 "불필요한 추상화 금지" 원칙과 충돌한다.
+- 영향: 신규 `oauth-callback.html`, `workers/drive-auth/{wrangler.toml,src/index.js}`.
+  `js/auth.js` 대부분 재작성(`gisLoaded`/`gapiLoaded`/`maybeEnableButton`/
+  `handleTokenResponse`/`trySilentReauth` 삭제, `initDriveAuth`/`completeSignIn`/
+  `fetchAccessTokenViaWorker`/`restoreSessionFromWorker` 신설). `js/config.js`에
+  `DRIVE_AUTH_WORKER_URL`·`DRIVE_SESSION_STORAGE_KEY`·`driveOAuthRedirectUri()` 추가
+  (`DRIVE_TOKEN_STORAGE_KEY` 삭제). `js/state.js`의 OAuth 전역 상태 정리. `js/app.js`
+  부팅에 `initDriveAuth()` 추가. `index.html`에서 GIS·gapi 스크립트 태그 2개 삭제
+  (코드베이스에서 두 라이브러리를 더 이상 아무도 쓰지 않음). `js/drive.js`는 변경 없음
+  — `driveFetch()`의 401 재시도는 `refreshDriveTokenSilently()`가 같은 계약을
+  유지하므로 그대로 재사용된다.
+- **배포 전 수동 설정 필요**: Cloudflare 계정 생성 → `wrangler kv namespace create
+  SESSIONS`로 만든 id를 `wrangler.toml`에 반영 → `wrangler secret put
+  GOOGLE_CLIENT_SECRET` → `wrangler deploy` → 나온 URL을 `js/config.js`의
+  `DRIVE_AUTH_WORKER_URL`에 반영. Google Cloud Console에는 "승인된 리디렉션 URI"로
+  `https://ryugunlee.github.io/AndysNote/oauth-callback.html`(+ 로컬 테스트용
+  `http://localhost:8000/oauth-callback.html`)를 등록하고, OAuth 동의 화면이
+  "Testing"이면 refresh_token이 7일 후 만료되므로 "In production"인지 확인해야 한다.
