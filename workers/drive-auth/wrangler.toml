@@ -21,4 +21,4 @@ ALLOWED_ORIGINS = "https://ryugunlee.github.io,http://localhost:8000"
 
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "PUT_KV_NAMESPACE_ID_HERE"
+id = "62f22b6c91514a588c994559edde614b"
