@@ -2,3 +2,4 @@
 .playwright-mcp
 .env
 .dev.vars
+.wrangler/
