@@ -5,7 +5,7 @@ window.GOOGLE_CLIENT_ID =
 /* 인증 릴레이 Worker의 주소 (workers/drive-auth/, wrangler deploy 결과 URL).
    Client Secret은 이 Worker 안에만 있고 브라우저로는 절대 내려오지 않는다.
    로컬 테스트 시에만 "http://localhost:8787"로 잠시 바꿔 쓴다. */
-window.DRIVE_AUTH_WORKER_URL = "https://andysnote-drive-auth.workers.dev";
+window.DRIVE_AUTH_WORKER_URL = "https://andysnote-drive-auth.ryugunlee.workers.dev";
 
 /* ─── DRIVE FILESYSTEM CONFIG ─── */
 const DEV_MODE =
