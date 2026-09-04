@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>개인정보처리방침 - AndysNote</title>
+    <style>
+      body {
+        max-width: 640px;
+        margin: 40px auto;
+        padding: 0 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.7;
+        color: #202124;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      li {
+        margin-bottom: 0.6em;
+      }
+      a {
+        color: #1a73e8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AndysNote 개인정보처리방침</h1>
+    <p>AndysNote는 개인이 만들어 쓰는 노트 앱입니다.</p>
+    <ul>
+      <li>
+        <strong>수집하는 정보</strong>: 구글 로그인 시 이름·이메일·프로필
+        사진(구글 계정 기본 정보)과 구글 드라이브 접근 권한만 요청합니다.
+        광고, 분석 도구, 방문자 추적을 사용하지 않습니다.
+      </li>
+      <li>
+        <strong>작성한 문서</strong>: 사용자가 쓴 글은 사용자 본인의 구글
+        드라이브(<code>AndysNote</code> 폴더)에 <code>.txt</code>/<code>.md</code>
+        파일로 저장되거나, 로그인하지 않은 경우 사용자의 브라우저 안에만
+        저장됩니다. 어느 쪽이든 개발자를 포함한 제3자가 접근할 수 있는
+        서버에 문서 내용이 저장되지 않습니다.
+      </li>
+      <li>
+        <strong>로그인 유지를 위한 정보</strong>: 로그인이 꺼졌다 켜져도
+        유지되도록, 구글이 발급하는 <code>refresh_token</code>을 앱이 직접
+        운영하는 최소 서버(Cloudflare Workers, 인증 갱신 전용)에 보관합니다.
+        이 값은 새 접근 권한을 재발급받는 데만 쓰이고, 문서 내용이나 다른
+        어떤 데이터도 함께 저장하지 않습니다.
+      </li>
+      <li>
+        <strong>제3자 제공</strong>: 위에서 설명한 것 외에 어떤 정보도
+        제3자에게 판매·공유하지 않습니다.
+      </li>
+      <li>
+        <strong>삭제</strong>: 언제든 앱의 로그아웃 버튼을 누르거나,
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">구글 계정의 서드파티 앱 권한 페이지</a>에서
+        AndysNote의 접근을 철회하면 이 앱이 가진 모든 접근 권한과 서버에
+        남은 로그인 정보가 즉시 삭제됩니다.
+      </li>
+      <li>
+        <strong>문의</strong>: 이 저장소의
+        <a href="https://github.com/ryugunlee/AndysNote/issues" target="_blank" rel="noopener">Issues</a>로
+        남겨주세요.
+      </li>
+    </ul>
+  </body>
+</html>
